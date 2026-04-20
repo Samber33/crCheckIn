@@ -10,62 +10,6 @@
     /* 保留页面特有样式 */
     .progress-bar { transition: width 0.3s ease; }
     .roster-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
-    .roster-list-item {
-      border: 1px solid var(--slate-200); border-radius: var(--card-radius-sm); padding: 12px;
-      background: var(--card-bg-solid);
-      transition: all var(--duration-fast) var(--ease-out);
-      box-shadow: var(--shadow-xs);
-    }
-    .roster-list-item:hover { background: #fff; box-shadow: var(--shadow-sm); }
-    .roster-list-item.signed { border-color: rgba(87, 167, 120, 0.3); background: var(--success-light); }
-    .roster-list-item.unsigned { border-color: var(--slate-200); background: rgba(255, 255, 255, 0.8); }
-    .roster-list-item.dup { border-color: rgba(217, 110, 110, 0.3); background: var(--error-light); }
-    .roster-dot { width: 8px; height: 8px; border-radius: 9999px; flex-shrink: 0; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.8); }
-    .roster-dot.signed { background: var(--success-500); }
-    .roster-dot.unsigned { background: var(--slate-300); }
-    .roster-dot.dup { background: var(--error-500); }
-    .roster-line { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
-    .roster-name { min-width: 0; display: flex; align-items: center; gap: 8px; }
-    .roster-student { min-width: 0; display: flex; align-items: baseline; gap: 6px; }
-    .roster-student strong { display: block; font-size: 14px; line-height: 1.2; font-weight: 600; color: var(--slate-800); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .roster-student span { display: block; font-size: 11px; line-height: 1; color: var(--slate-400); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
-    .roster-status {
-      flex-shrink: 0; display: inline-flex; align-items: center; padding: 4px 8px; border-radius: 9999px;
-      font-size: 11px; line-height: 1; font-weight: 600; border: 1px solid transparent;
-    }
-    .roster-status.signed { color: var(--success-700); background: var(--success-100); border-color: rgba(16, 185, 129, 0.2); }
-    .roster-status.unsigned { color:#64748b;background:rgba(241,245,249,.92);border-color:rgba(203,213,225,.5); }
-    .roster-status.dup { color: var(--error-600); background: var(--error-50); border-color: rgba(248, 113, 113, 0.24); }
-    .roster-meta { margin-top: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-    .roster-meta-text {
-      min-width: 0; display: inline-flex; align-items: center; padding: 5px 8px; border-radius: 10px;
-      font-size: 11px; line-height: 1.1; color: var(--slate-500);
-      background: var(--slate-50); border: 1px solid var(--slate-200);
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .roster-meta-text.signed { color: var(--slate-700); background: rgba(255, 255, 255, 0.72); }
-    .roster-meta-text.dup { color: var(--error-700); background: var(--error-50); border-color: rgba(248, 113, 113, 0.24); }
-    .roster-action {
-      flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
-      min-width: 42px; height: 28px; padding: 0 8px; border-radius: 9px;
-      font-size: 11px; line-height: 1; font-weight: 500;
-    }
-    .roster-action.revoke { color: var(--error-600); background: rgba(255, 255, 255, 0.86); border: 1px solid rgba(248, 113, 113, 0.24); }
-    .roster-action.empty { opacity: 0; pointer-events: none; border: 1px solid transparent; }
-    .subtle-panel { background: linear-gradient(180deg, rgba(248, 250, 252, 0.62), rgba(255, 255, 255, 0.54)); }
-    .metric-card { position: relative; overflow: hidden; }
-    .metric-card::before {
-      content: ''; position: absolute; inset: auto auto 0 0; width: 100%; height: 3px;
-      background: linear-gradient(90deg, var(--success-600), rgba(31, 122, 91, 0.14));
-    }
-    .metric-card.soft::before { background: linear-gradient(90deg, var(--slate-400), rgba(148, 163, 184, 0.08)); }
-    .window-fields { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; padding-top: 14px; }
-    .window-field label { display: block; font-size: 11px; color: var(--slate-400); margin-bottom: 5px; }
-    .window-help { margin-top: 10px; font-size: 11px; color: var(--slate-400); }
-    .topbar-shell { min-height: 70px; padding: 12px 0; }
-    .nav-divider { color: var(--slate-300); }
-    .text-emerald-600 { color: var(--success-600); }
-    .text-slate-300 { color: var(--slate-300); }
   </style>
 </head>
 <body class="min-h-screen">
@@ -111,232 +55,244 @@
     </div>
   </div>
 
-  <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+  <main class="max-w-6xl mx-auto px-4 py-6">
+    <div class="two-column-layout">
 
-    <!-- 统计卡片 -->
-    <div class="stats-grid">
-      <div class="card stat-card p-4">
-        <p class="stat-label">总人数</p>
-        <p id="totalCount" class="stat-value">0</p>
-      </div>
-      <div class="card stat-card p-4">
-        <p class="stat-label">已签到</p>
-        <p id="signedCount" class="stat-value text-emerald-600">0</p>
-        <div class="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-          <div id="progressBar" class="progress-bar h-full bg-emerald-400 rounded-full" style="width:0%"></div>
+      <!-- 左侧栏：操作面板 -->
+      <aside class="sidebar-panel space-y-4">
+
+        <!-- 统计卡片 -->
+        <div class="card p-4">
+          <div class="stats-grid">
+            <div class="text-center">
+              <p class="text-xs text-slate-500 uppercase font-semibold">总人数</p>
+              <p id="totalCount" class="text-2xl font-bold text-slate-800 mt-1">0</p>
+            </div>
+            <div class="text-center">
+              <p class="text-xs text-slate-500 uppercase font-semibold">已签到</p>
+              <p id="signedCount" class="text-2xl font-bold text-emerald-600 mt-1">0</p>
+              <div class="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div id="progressBar" class="progress-bar h-full bg-emerald-400 rounded-full" style="width:0%"></div>
+              </div>
+            </div>
+            <div class="text-center">
+              <p class="text-xs text-slate-500 uppercase font-semibold">未签到</p>
+              <p id="absentCount" class="text-2xl font-bold text-slate-300 mt-1">0</p>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="card stat-card p-4">
-        <p class="stat-label">未签到</p>
-        <p id="absentCount" class="stat-value text-slate-300">0</p>
-      </div>
-    </div>
 
-    <!-- 学生签到入口 -->
-    <a href="/student?classId={{ cls.id }}" target="_blank" class="student-entry-card">
-      <div>
-        <p class="student-entry-card-title">学生签到入口</p>
-        <p class="student-entry-card-desc">/student?classId={{ cls.id }}</p>
-      </div>
-      <svg class="student-entry-card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-      </svg>
-    </a>
+        <!-- 学生签到入口 -->
+        <a href="/student?classId={{ cls.id }}" target="_blank" class="student-entry-card">
+          <div>
+            <p class="student-entry-card-title">学生签到入口</p>
+            <p class="student-entry-card-desc">/student?classId={{ cls.id }}</p>
+          </div>
+          <svg class="student-entry-card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+          </svg>
+        </a>
 
-    <!-- 课堂工具 -->
-    <div class="card p-5">
-      <div class="section-header">
-        <p class="section-label">课堂工具</p>
-      </div>
-      <div class="action-group">
-        <a href="/teacher/classes/{{ cls.id }}/seats" class="btn btn-primary">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-          </svg>
-          座位表
-        </a>
-        <a href="/teacher/classes/{{ cls.id }}/students" class="btn btn-secondary">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-          </svg>
-          学生管理
-        </a>
-        <a href="/teacher/info?classId={{ cls.id }}" class="btn btn-secondary">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-          </svg>
-          信息收集
-        </a>
-        <button id="statsToggle" class="btn btn-secondary">
+        <!-- 课堂工具 -->
+        <div class="card p-4">
+          <p class="section-label mb-3">课堂工具</p>
+          <div class="action-group">
+            <a href="/teacher/classes/{{ cls.id }}/seats" class="btn btn-primary flex-1 justify-center">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+              </svg>
+              座位表
+            </a>
+            <a href="/teacher/classes/{{ cls.id }}/students" class="btn btn-secondary flex-1 justify-center">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>
+              学生管理
+            </a>
+            <a href="/teacher/info?classId={{ cls.id }}" class="btn btn-secondary flex-1 justify-center">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              信息收集
+            </a>
+          </div>
+        </div>
+
+        <!-- 数据管理 (可折叠) -->
+        <div class="collapse-card">
+          <button id="data_mgmt_toggle" class="collapse-trigger" aria-expanded="false">
+            <span>数据管理</span>
+            <svg class="collapse-trigger-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <div id="data_mgmt_body" class="collapse-body hidden">
+            <div class="space-y-2">
+              <button id="importBtn" class="btn btn-secondary w-full justify-start">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+                导入名单
+              </button>
+              <a href="/api/export?classId={{ cls.id }}" class="btn btn-secondary w-full justify-start">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                导出签到记录
+              </a>
+              <a href="/api/stats/export?classId={{ cls.id }}" class="btn btn-secondary w-full justify-start">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                导出出勤统计
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- 危险操作 (可折叠) -->
+        <div class="collapse-card">
+          <button id="danger_toggle" class="collapse-trigger" aria-expanded="false">
+            <span class="text-red-600">危险操作</span>
+            <svg class="collapse-trigger-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <div id="danger_body" class="collapse-body hidden">
+            <div class="space-y-2">
+              <button id="resetBtn" class="btn btn-danger w-full justify-start">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                归档重置
+              </button>
+              <button id="clearRosterBtn" class="btn btn-danger w-full justify-start">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+                清空名单
+              </button>
+            </div>
+            <p class="mt-3 text-xs text-slate-400 leading-relaxed">归档重置：将当前签到存为历史批次并清空状态。清空名单：删除全部学生及记录，不可恢复。</p>
+          </div>
+        </div>
+
+        <!-- 签到时间段（可折叠） -->
+        <div class="collapse-card">
+          <button id="windowToggle" class="collapse-trigger" aria-expanded="false">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-brand-50 border border-brand-200 flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <div class="min-w-0">
+                <strong class="text-sm block">签到时间段</strong>
+                <p class="text-xs text-slate-500 mt-0.5 truncate" id="windowText">不限</p>
+              </div>
+            </div>
+            <svg class="collapse-trigger-icon flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <div id="windowPanel" class="collapse-body hidden">
+            <div class="window-fields">
+              <div class="window-field">
+                <label>开始时间</label>
+                <input id="startTime" type="datetime-local" class="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-800 w-full" />
+              </div>
+              <div class="window-field">
+                <label>结束时间</label>
+                <input id="endTime" type="datetime-local" class="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-800 w-full" />
+              </div>
+              <div class="action-group" style="margin-top: 8px">
+                <button id="saveWindow" class="btn btn-primary">保存</button>
+                <button id="clearWindow" class="btn btn-secondary">清除</button>
+              </div>
+            </div>
+            <p class="window-help">留空表示不限制，设置后会立即对学生签到入口生效。</p>
+          </div>
+        </div>
+
+        <!-- 出勤统计按钮 -->
+        <button id="statsToggle" class="btn btn-secondary w-full justify-start">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
           </svg>
           出勤统计
         </button>
-      </div>
-    </div>
 
-    <!-- 数据管理 (可折叠) -->
-    <div class="collapse-card">
-      <button id="data_mgmt_toggle" class="collapse-trigger" aria-expanded="false">
-        <span>数据管理</span>
-        <svg class="collapse-trigger-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-        </svg>
-      </button>
-      <div id="data_mgmt_body" class="collapse-body hidden">
-        <div class="action-group">
-          <button id="importBtn" class="btn btn-secondary">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-            </svg>
-            导入名单
-          </button>
-          <a href="/api/export?classId={{ cls.id }}" class="btn btn-secondary">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-            </svg>
-            导出签到记录
-          </a>
-          <a href="/api/stats/export?classId={{ cls.id }}" class="btn btn-secondary">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-            </svg>
-            导出出勤统计
-          </a>
-        </div>
-      </div>
-    </div>
+      </aside>
 
-    <!-- 危险操作 (可折叠) -->
-    <div class="collapse-card">
-      <button id="danger_toggle" class="collapse-trigger" aria-expanded="false">
-        <span class="text-red-600">危险操作</span>
-        <svg class="collapse-trigger-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-        </svg>
-      </button>
-      <div id="danger_body" class="collapse-body hidden">
-        <div class="action-group">
-          <button id="resetBtn" class="btn btn-danger">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-            </svg>
-            归档重置
-          </button>
-          <button id="clearRosterBtn" class="btn btn-danger">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-            </svg>
-            清空名单
-          </button>
-        </div>
-        <p class="mt-3 text-xs text-slate-400">归档重置：将当前签到存为历史批次并清空状态。清空名单：删除全部学生及记录，不可恢复。</p>
-      </div>
-    </div>
+      <!-- 右侧栏：数据展示 -->
+      <div class="space-y-4">
 
-    <!-- 签到时间段（可折叠） -->
-    <div class="collapse-card">
-      <button id="windowToggle" class="collapse-trigger" aria-expanded="false">
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-lg bg-brand-50 border border-brand-200 flex items-center justify-center">
-            <svg class="w-[18px] h-[18px] text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
+        <!-- 出勤统计面板 -->
+        <div id="statsPanel" class="hidden card overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-50 flex items-center justify-between">
+            <p class="text-sm font-medium text-slate-700">出勤统计</p>
           </div>
-          <div>
-            <strong class="text-sm">签到时间段</strong>
-            <p class="text-xs text-slate-500 mt-0.5">设置开始和结束时间后，学生只可在允许的时间范围内完成签到。</p>
+          <div id="statsContent" class="px-5 py-8 text-center text-sm text-slate-400">加载中...</div>
+        </div>
+
+        <!-- 通知 -->
+        <div id="msg" class="hidden px-4 py-3 rounded-xl text-sm font-medium fade"></div>
+
+        <!-- 签到名单 -->
+        <div class="card overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-50 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <p class="text-sm font-medium text-slate-700">当前签到名单</p>
+              <span id="rosterBadge" class="text-xs text-slate-400"></span>
+              <span id="rosterDate" class="text-xs text-slate-300"></span>
+            </div>
+          </div>
+          <div class="p-5 subtle-panel">
+            <div id="rosterCompactGrid" class="roster-grid"></div>
           </div>
         </div>
-        <div class="flex items-center gap-3">
-          <span class="text-xs text-slate-500" id="windowText">不限</span>
-          <svg class="collapse-trigger-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-          </svg>
-        </div>
-      </button>
-      <div id="windowPanel" class="collapse-body hidden">
-        <div class="window-fields">
-          <div class="window-field">
-            <label>开始时间</label>
-            <input id="startTime" type="datetime-local" class="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-800" />
+
+        <!-- 历史批次 -->
+        <div class="card overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-50 flex items-center justify-between">
+            <p class="text-sm font-medium text-slate-700">历史批次</p>
+            <span id="sessionCount" class="text-xs text-slate-400"></span>
           </div>
-          <div class="window-field">
-            <label>结束时间</label>
-            <input id="endTime" type="datetime-local" class="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-800" />
+          <div id="sessionList">
+            <div class="px-5 py-8 text-center text-sm text-slate-400">暂无历史批次</div>
           </div>
-          <button id="saveWindow" class="btn btn-primary">保存</button>
-          <button id="clearWindow" class="btn btn-secondary">清除限制</button>
         </div>
-        <p class="window-help">留空表示不限制，设置后会立即对学生签到入口生效。</p>
+
+        <!-- 导入名单隐藏 input -->
+        <input type="file" id="importFile" accept=".xlsx,.xls" class="hidden" />
+
       </div>
     </div>
-
-    <!-- 出勤统计面板 -->
-    <div id="statsPanel" class="hidden card overflow-hidden">
-      <div class="px-5 py-4 border-b border-slate-50 flex items-center justify-between">
-        <p class="text-sm font-medium text-slate-700">出勤统计</p>
-      </div>
-      <div id="statsContent" class="px-5 py-8 text-center text-sm text-slate-400">加载中...</div>
-    </div>
-
-    <!-- 通知 -->
-    <div id="msg" class="hidden px-4 py-3 rounded-xl text-sm font-medium fade"></div>
-
-    <!-- 签到名单 -->
-    <div class="card overflow-hidden">
-      <div class="px-5 py-4 border-b border-slate-50 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <p class="text-sm font-medium text-slate-700">当前签到名单</p>
-          <span id="rosterBadge" class="text-xs text-slate-400"></span>
-          <span id="rosterDate" class="text-xs text-slate-300"></span>
-        </div>
-      </div>
-      <div class="p-5 subtle-panel">
-        <div id="rosterCompactGrid" class="roster-grid"></div>
-      </div>
-    </div>
-
-    <!-- 历史批次 -->
-    <div class="card overflow-hidden">
-      <div class="px-5 py-4 border-b border-slate-50 flex items-center justify-between">
-        <p class="text-sm font-medium text-slate-700">历史批次</p>
-        <span id="sessionCount" class="text-xs text-slate-400"></span>
-      </div>
-      <div id="sessionList">
-        <div class="px-5 py-8 text-center text-sm text-slate-400">暂无历史批次</div>
-      </div>
-    </div>
-
-    <!-- 导入名单隐藏 input -->
-    <input type="file" id="importFile" accept=".xlsx,.xls" class="hidden" />
-
-    <!-- 历史批次详情弹窗 -->
-    <div id="sessionModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
-        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <p id="modalTitle" class="text-sm font-semibold text-slate-800"></p>
-          <button id="modalClose" class="text-slate-400 hover:text-slate-600 transition text-xl leading-none">&times;</button>
-        </div>
-        <div class="overflow-auto flex-1">
-          <table class="w-full text-sm">
-            <thead class="sticky top-0 bg-white">
-              <tr class="text-xs text-slate-400 border-b border-slate-100">
-                <th class="text-left px-5 py-3 font-medium">姓名</th>
-                <th class="text-left px-5 py-3 font-medium">行政班级</th>
-                <th class="text-left px-5 py-3 font-medium">签到状态</th>
-                <th class="text-left px-5 py-3 font-medium">计算机 IP</th>
-                <th class="text-left px-5 py-3 font-medium">签到时间</th>
-              </tr>
-            </thead>
-            <tbody id="modalBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
   </main>
+
+  <!-- 历史批次详情弹窗 -->
+  <div id="sessionModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
+      <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <p id="modalTitle" class="text-sm font-semibold text-slate-800"></p>
+        <button id="modalClose" class="text-slate-400 hover:text-slate-600 transition text-xl leading-none">&times;</button>
+      </div>
+      <div class="overflow-auto flex-1">
+        <table class="w-full text-sm">
+          <thead class="sticky top-0 bg-white">
+            <tr class="text-xs text-slate-400 border-b border-slate-100">
+              <th class="text-left px-5 py-3 font-medium">姓名</th>
+              <th class="text-left px-5 py-3 font-medium">行政班级</th>
+              <th class="text-left px-5 py-3 font-medium">签到状态</th>
+              <th class="text-left px-5 py-3 font-medium">计算机 IP</th>
+              <th class="text-left px-5 py-3 font-medium">签到时间</th>
+            </tr>
+          </thead>
+          <tbody id="modalBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
 <script>
 const CLASS_ID = {{ cls.id }}

@@ -913,6 +913,30 @@ body {
 }
 
 /* ========== 布局网格系统 ========== */
+.two-column-layout {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .two-column-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sidebar-panel {
+  position: sticky;
+  top: 90px;
+}
+
+@media (max-width: 1024px) {
+  .sidebar-panel {
+    position: static;
+  }
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1063,4 +1087,191 @@ body {
     top: 16px;
     right: 16px;
   }
+}
+
+/* ========== 签到名单样式 ========== */
+.roster-list-item {
+  border: 1px solid var(--slate-200);
+  border-radius: var(--card-radius-sm);
+  padding: 12px;
+  background: var(--card-bg-solid);
+  transition: all var(--duration-fast) var(--ease-out);
+  box-shadow: var(--shadow-xs);
+}
+
+.roster-list-item:hover {
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+.roster-list-item.signed {
+  border-color: rgba(87, 167, 120, 0.3);
+  background: var(--success-light);
+}
+
+.roster-list-item.unsigned {
+  border-color: var(--slate-200);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.roster-list-item.dup {
+  border-color: rgba(217, 110, 110, 0.3);
+  background: var(--error-light);
+}
+
+.roster-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.8);
+}
+
+.roster-dot.signed { background: var(--success-500); }
+.roster-dot.unsigned { background: var(--slate-300); }
+.roster-dot.dup { background: var(--error-500); }
+
+.roster-line {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.roster-name {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.roster-student {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.roster-student strong {
+  display: block;
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 600;
+  color: var(--slate-800);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.roster-student span {
+  display: block;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--slate-400);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+
+.roster-status {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.roster-status.signed {
+  color: var(--success-700);
+  background: var(--success-100);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.roster-status.unsigned {
+  color: #64748b;
+  background: rgba(241, 245, 249, 0.92);
+  border-color: rgba(203, 213, 225, 0.5);
+}
+
+.roster-status.dup {
+  color: var(--error-600);
+  background: var(--error-50);
+  border-color: rgba(248, 113, 113, 0.24);
+}
+
+.roster-meta {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.roster-meta-piece {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  font-size: 11px;
+  color: var(--slate-500);
+}
+
+.roster-meta-slash {
+  color: var(--slate-300);
+  font-size: 10px;
+}
+
+.roster-action {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 9px;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 500;
+}
+
+.roster-action.revoke {
+  color: var(--error-600);
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(248, 113, 113, 0.24);
+}
+
+.roster-action.empty {
+  opacity: 0;
+  pointer-events: none;
+  border: 1px solid transparent;
+}
+
+.subtle-panel {
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.62), rgba(255, 255, 255, 0.54));
+}
+
+.window-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+  padding-top: 14px;
+}
+
+.window-field label {
+  display: block;
+  font-size: 11px;
+  color: var(--slate-400);
+  margin-bottom: 5px;
+}
+
+.window-help {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--slate-400);
 }
