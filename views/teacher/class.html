@@ -7,18 +7,8 @@
   <link rel="stylesheet" href="/public/design-system.css">
   <link rel="stylesheet" href="/public/tailwind.min.css">
   <style>
-    .fade { animation: fadeIn var(--duration-normal) var(--ease-out); }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    /* 保留页面特有样式 */
     .progress-bar { transition: width 0.3s ease; }
-    .section-label { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--slate-500); margin-bottom: 8px; }
-    .entry-card {
-      position: relative; display: flex; align-items: center; justify-content: space-between; padding: 16px 18px;
-      background: var(--brand); color: #fff; border-radius: var(--card-radius); text-decoration: none;
-      transition: all var(--duration-normal) var(--ease-out);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04); overflow: hidden;
-    }
-    .entry-card:hover { background: var(--brand-dark); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); }
-    .divider { height: 1px; background: var(--slate-200); margin: 16px 0; }
     .roster-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
     .roster-list-item {
       border: 1px solid var(--slate-200); border-radius: var(--card-radius-sm); padding: 12px;
@@ -63,57 +53,19 @@
     .roster-action.revoke { color: var(--error-600); background: rgba(255, 255, 255, 0.86); border: 1px solid rgba(248, 113, 113, 0.24); }
     .roster-action.empty { opacity: 0; pointer-events: none; border: 1px solid transparent; }
     .subtle-panel { background: linear-gradient(180deg, rgba(248, 250, 252, 0.62), rgba(255, 255, 255, 0.54)); }
-    .header-blur { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid var(--slate-200); }
-    .topbar-shell { min-height: 70px; padding: 12px 0; }
-    .nav-link {
-      display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 8px;
-      color: var(--slate-600); font-size: 13px; font-weight: 500; transition: all var(--duration-fast) var(--ease-out);
-      text-decoration: none;
-    }
-    .nav-link:hover { background: var(--slate-50); color: var(--slate-800); }
-    .nav-link svg { color: var(--slate-400); }
-    .nav-title { color: var(--slate-800); font-size: 15px; font-weight: 600; }
-    .nav-action {
-      display: inline-flex; align-items: center; justify-content: center; padding: 8px 12px; border-radius: 8px;
-      color: var(--slate-600); font-size: 13px; font-weight: 500; transition: all var(--duration-fast) var(--ease-out);
-      border: none; background: transparent; cursor: pointer;
-    }
-    .nav-action:hover { background: var(--slate-50); color: var(--slate-800); }
-    .nav-divider { color: var(--slate-300); }
     .metric-card { position: relative; overflow: hidden; }
     .metric-card::before {
       content: ''; position: absolute; inset: auto auto 0 0; width: 100%; height: 3px;
       background: linear-gradient(90deg, var(--success-600), rgba(31, 122, 91, 0.14));
     }
     .metric-card.soft::before { background: linear-gradient(90deg, var(--slate-400), rgba(148, 163, 184, 0.08)); }
-    .window-card { position: relative; overflow: hidden; background: #fff; border: 1px solid var(--slate-200); border-radius: var(--card-radius); }
-    .window-trigger {
-      width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 14px;
-      padding: 16px 18px; text-align: left; transition: background var(--duration-fast) var(--ease-out);
-    }
-    .window-trigger:hover { background: var(--slate-50); }
-    .window-info { display: flex; align-items: center; gap: 12px; min-width: 0; }
-    .window-icon {
-      width: 38px; height: 38px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-      border-radius: 10px; color: var(--brand-600);
-      background: var(--brand-50);
-      border: 1px solid var(--brand-200);
-    }
-    .window-copy { min-width: 0; }
-    .window-copy strong { display: block; font-size: 14px; line-height: 1.2; font-weight: 600; color: var(--slate-800); }
-    .window-copy p { margin-top: 4px; font-size: 11px; line-height: 1.4; color: var(--slate-500); }
-    .window-summary {
-      display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
-      padding: 8px 10px; border-radius: 8px; background: var(--slate-50); border: 1px solid var(--slate-200);
-      color: var(--slate-600);
-    }
-    .window-summary span { font-size: 11px; color: var(--slate-400); }
-    .window-summary strong { font-size: 12px; font-weight: 600; color: var(--slate-700); }
-    .window-chevron { width: 14px; height: 14px; color: var(--slate-400); transition: transform var(--duration-normal) var(--ease-out); }
-    .window-body { padding: 0 18px 16px; border-top: 1px solid var(--slate-100); }
     .window-fields { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; padding-top: 14px; }
     .window-field label { display: block; font-size: 11px; color: var(--slate-400); margin-bottom: 5px; }
     .window-help { margin-top: 10px; font-size: 11px; color: var(--slate-400); }
+    .topbar-shell { min-height: 70px; padding: 12px 0; }
+    .nav-divider { color: var(--slate-300); }
+    .text-emerald-600 { color: var(--success-600); }
+    .text-slate-300 { color: var(--slate-300); }
   </style>
 </head>
 <body class="min-h-screen">
@@ -159,91 +111,94 @@
     </div>
   </div>
 
-  <main class="max-w-5xl mx-auto px-4 py-8 space-y-5">
+  <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
 
     <!-- 统计卡片 -->
-    <div class="grid grid-cols-3 gap-3">
-      <div class="card metric-card p-4">
-        <p class="text-xs text-slate-400 mb-1">总人数</p>
-        <p id="totalCount" class="text-2xl font-bold text-slate-800">0</p>
+    <div class="stats-grid">
+      <div class="card stat-card p-4">
+        <p class="stat-label">总人数</p>
+        <p id="totalCount" class="stat-value">0</p>
       </div>
-      <div class="card metric-card p-4">
-        <p class="text-xs text-slate-400 mb-1">已签到</p>
-        <p id="signedCount" class="text-2xl font-bold text-emerald-600">0</p>
+      <div class="card stat-card p-4">
+        <p class="stat-label">已签到</p>
+        <p id="signedCount" class="stat-value text-emerald-600">0</p>
         <div class="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
           <div id="progressBar" class="progress-bar h-full bg-emerald-400 rounded-full" style="width:0%"></div>
         </div>
       </div>
-      <div class="card metric-card soft p-4">
-        <p class="text-xs text-slate-400 mb-1">未签到</p>
-        <p id="absentCount" class="text-2xl font-bold text-slate-300">0</p>
+      <div class="card stat-card p-4">
+        <p class="stat-label">未签到</p>
+        <p id="absentCount" class="stat-value text-slate-300">0</p>
       </div>
     </div>
 
     <!-- 学生签到入口 -->
-    <a href="/student?classId={{ cls.id }}" target="_blank" class="entry-card block">
+    <a href="/student?classId={{ cls.id }}" target="_blank" class="student-entry-card">
       <div>
-        <p class="text-sm font-semibold">学生签到入口</p>
-        <p class="text-xs text-slate-400 mt-0.5">/student?classId={{ cls.id }}</p>
+        <p class="student-entry-card-title">学生签到入口</p>
+        <p class="student-entry-card-desc">/student?classId={{ cls.id }}</p>
       </div>
-      <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="student-entry-card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
       </svg>
     </a>
 
-    <!-- 操作区 -->
-    <div class="card p-5 space-y-4">
-
-      <!-- 主要操作 -->
-      <div>
+    <!-- 课堂工具 -->
+    <div class="card p-5">
+      <div class="section-header">
         <p class="section-label">课堂工具</p>
-        <div class="flex flex-wrap gap-2">
-          <a href="/teacher/classes/{{ cls.id }}/seats" class="btn btn-primary">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-            </svg>
-            座位表
-          </a>
-          <a href="/teacher/classes/{{ cls.id }}/students" class="btn btn-gray">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-            </svg>
-            学生管理
-          </a>
-          <a href="/teacher/info?classId={{ cls.id }}" class="btn btn-gray">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-            </svg>
-            信息收集
-          </a>
-          <button id="statsToggle" class="btn btn-gray">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-            </svg>
-            出勤统计
-          </button>
-        </div>
       </div>
+      <div class="action-group">
+        <a href="/teacher/classes/{{ cls.id }}/seats" class="btn btn-primary">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+          </svg>
+          座位表
+        </a>
+        <a href="/teacher/classes/{{ cls.id }}/students" class="btn btn-secondary">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          学生管理
+        </a>
+        <a href="/teacher/info?classId={{ cls.id }}" class="btn btn-secondary">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          信息收集
+        </a>
+        <button id="statsToggle" class="btn btn-secondary">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+          出勤统计
+        </button>
+      </div>
+    </div>
 
-      <div class="divider"></div>
-
-      <!-- 数据操作 -->
-      <div>
-        <p class="section-label">数据管理</p>
-        <div class="flex flex-wrap gap-2">
-          <button id="importBtn" class="btn btn-gray">
+    <!-- 数据管理 (可折叠) -->
+    <div class="collapse-card">
+      <button id="data_mgmt_toggle" class="collapse-trigger" aria-expanded="false">
+        <span>数据管理</span>
+        <svg class="collapse-trigger-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </button>
+      <div id="data_mgmt_body" class="collapse-body hidden">
+        <div class="action-group">
+          <button id="importBtn" class="btn btn-secondary">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
             </svg>
             导入名单
           </button>
-          <a href="/api/export?classId={{ cls.id }}" class="btn btn-gray">
+          <a href="/api/export?classId={{ cls.id }}" class="btn btn-secondary">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
             </svg>
             导出签到记录
           </a>
-          <a href="/api/stats/export?classId={{ cls.id }}" class="btn btn-gray">
+          <a href="/api/stats/export?classId={{ cls.id }}" class="btn btn-secondary">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
             </svg>
@@ -251,13 +206,18 @@
           </a>
         </div>
       </div>
+    </div>
 
-      <div class="divider"></div>
-
-      <!-- 危险操作 -->
-      <div>
-        <p class="section-label">危险操作</p>
-        <div class="flex flex-wrap gap-2">
+    <!-- 危险操作 (可折叠) -->
+    <div class="collapse-card">
+      <button id="danger_toggle" class="collapse-trigger" aria-expanded="false">
+        <span class="text-red-600">危险操作</span>
+        <svg class="collapse-trigger-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </button>
+      <div id="danger_body" class="collapse-body hidden">
+        <div class="action-group">
           <button id="resetBtn" class="btn btn-danger">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -271,35 +231,32 @@
             清空名单
           </button>
         </div>
-        <p class="mt-2 text-xs text-slate-400">归档重置：将当前签到存为历史批次并清空状态。清空名单：删除全部学生及记录，不可恢复。</p>
+        <p class="mt-3 text-xs text-slate-400">归档重置：将当前签到存为历史批次并清空状态。清空名单：删除全部学生及记录，不可恢复。</p>
       </div>
     </div>
 
     <!-- 签到时间段（可折叠） -->
-    <div class="card window-card slide-up">
-      <button id="windowToggle" class="window-trigger">
-        <div class="window-info">
-          <div class="window-icon">
-            <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="collapse-card">
+      <button id="windowToggle" class="collapse-trigger" aria-expanded="false">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-brand-50 border border-brand-200 flex items-center justify-center">
+            <svg class="w-[18px] h-[18px] text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
           </div>
-          <div class="window-copy">
-            <strong>签到时间段</strong>
-            <p>设置开始和结束时间后，学生只可在允许的时间范围内完成签到。</p>
+          <div>
+            <strong class="text-sm">签到时间段</strong>
+            <p class="text-xs text-slate-500 mt-0.5">设置开始和结束时间后，学生只可在允许的时间范围内完成签到。</p>
           </div>
         </div>
-        <div class="window-summary">
-          <div class="text-right">
-            <span>当前设置</span>
-            <strong id="windowText">不限</strong>
-          </div>
-          <svg id="windowChevron" class="window-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="flex items-center gap-3">
+          <span class="text-xs text-slate-500" id="windowText">不限</span>
+          <svg class="collapse-trigger-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
           </svg>
         </div>
       </button>
-      <div id="windowPanel" class="hidden window-body">
+      <div id="windowPanel" class="collapse-body hidden">
         <div class="window-fields">
           <div class="window-field">
             <label>开始时间</label>
@@ -310,7 +267,7 @@
             <input id="endTime" type="datetime-local" class="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-800" />
           </div>
           <button id="saveWindow" class="btn btn-primary">保存</button>
-          <button id="clearWindow" class="btn btn-gray">清除限制</button>
+          <button id="clearWindow" class="btn btn-secondary">清除限制</button>
         </div>
         <p class="window-help">留空表示不限制，设置后会立即对学生签到入口生效。</p>
       </div>
@@ -620,11 +577,24 @@ document.getElementById('changePwdBtn').addEventListener('click', async () => {
   if (data.ok) { document.getElementById('oldPwd').value = ''; document.getElementById('newPwd').value = '' }
 })
 
-document.getElementById('windowToggle').addEventListener('click', () => {
+document.getElementById('windowToggle').addEventListener('click', function() {
   const panel = document.getElementById('windowPanel')
-  const chevron = document.getElementById('windowChevron')
   panel.classList.toggle('hidden')
-  chevron.style.transform = panel.classList.contains('hidden') ? '' : 'rotate(180deg)'
+  this.setAttribute('aria-expanded', !panel.classList.contains('hidden'))
+})
+
+// 数据管理折叠
+document.getElementById('data_mgmt_toggle').addEventListener('click', function() {
+  const body = document.getElementById('data_mgmt_body')
+  body.classList.toggle('hidden')
+  this.setAttribute('aria-expanded', !body.classList.contains('hidden'))
+})
+
+// 危险操作折叠
+document.getElementById('danger_toggle').addEventListener('click', function() {
+  const body = document.getElementById('danger_body')
+  body.classList.toggle('hidden')
+  this.setAttribute('aria-expanded', !body.classList.contains('hidden'))
 })
 
 document.getElementById('saveWindow').addEventListener('click', async () => {
