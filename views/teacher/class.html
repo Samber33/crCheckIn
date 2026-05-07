@@ -4,595 +4,1082 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{{ cls.name }} - 签到管理</title>
-  <link rel="stylesheet" href="/public/design-system.css">
   <link rel="stylesheet" href="/public/tailwind.min.css">
   <style>
-    /* ===== 紧凑布局 ===== */
-    .layout-wrapper {
+    :root {
+      --canvas: #faf9f5;
+      --surface-card: #efe9de;
+      --surface-dark: #181715;
+      --primary: #cc785c;
+      --primary-active: #a9583e;
+      --ink: #141413;
+      --body: #3d3d3a;
+      --muted: #6c6a64;
+      --muted-soft: #8e8b82;
+      --hairline: #e6dfd8;
+      --on-primary: #ffffff;
+      --on-dark: #faf9f5;
+      --success: #5db872;
+      --error: #c64545;
+      --warning: #d4a017;
+    }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: var(--canvas);
+      color: var(--body);
+      margin: 0;
+    }
+
+    /* === Header === */
+    .header-bar {
+      background: var(--canvas);
+      border-bottom: 1px solid var(--hairline);
+      height: 64px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .header-inner {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      transition: all .15s ease;
+      text-decoration: none;
+    }
+    .nav-link:hover { background: var(--surface-card); color: var(--ink); }
+    .page-title {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-weight: 400;
+      letter-spacing: -0.3px;
+      color: var(--ink);
+    }
+    .nav-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 14px;
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      transition: all .15s ease;
+      border: none;
+      background: none;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .nav-action:hover { background: var(--surface-card); color: var(--ink); }
+
+    /* === Compact Banner === */
+    .compact-banner {
+      background: var(--surface-dark);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .banner-title {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--on-dark);
+      margin: 0;
+      letter-spacing: -0.3px;
+    }
+    .banner-stats {
+      display: flex;
+      gap: 12px;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+    .banner-stat {
+      text-align: center;
+      padding: 8px 14px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.08);
+    }
+    .banner-stat-label {
+      font-size: 11px;
+      color: #8e8b82;
+      margin: 0;
+    }
+    .banner-stat-value {
+      font-family: Georgia, serif;
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--on-dark);
+      margin: 4px 0 0;
+      line-height: 1;
+    }
+    .banner-stat-value.accent { color: var(--primary); }
+    .banner-stat-value.muted { color: #8e8b82; }
+
+    /* === Layout === */
+    .page-layout {
       display: grid;
-      grid-template-columns: 280px 1fr;
+      grid-template-columns: 260px 1fr;
       gap: 16px;
       align-items: start;
     }
-    @media (max-width: 1024px) { .layout-wrapper { grid-template-columns: 1fr; } }
 
-    .sidebar { position: sticky; top: 80px; display: flex; flex-direction: column; gap: 12px; }
-
-    /* 统计行 */
-    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .stat-mini {
-      background: #fff; border: 1px solid var(--slate-200); border-radius: 8px;
-      padding: 10px 8px; text-align: center; transition: all 0.12s;
+    /* === Card === */
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid var(--hairline);
+      overflow: hidden;
     }
-    .stat-mini:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.04); }
-    .stat-mini .label { font-size: 8px; font-weight: 700; text-transform: uppercase; color: var(--slate-500); }
-    .stat-mini .value { font-size: 20px; font-weight: 700; color: var(--slate-800); margin-top: 2px; }
-    .stat-mini.signed .value { color: var(--success-600); }
-    .stat-mini.absent .value { color: var(--slate-400); }
-    .progress-mini { height: 3px; background: var(--slate-100); border-radius: 2px; margin-top: 4px; overflow: hidden; }
-    .progress-mini .bar { height: 100%; background: linear-gradient(90deg, var(--success-500), var(--success-600)); transition: width 0.4s; }
+    .card-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--hairline);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0;
+    }
 
-    /* 签到入口 */
+    /* === Entry Card === */
     .entry-card {
-      display: flex; align-items: center; gap: 10px; padding: 12px;
-      background: linear-gradient(135deg, var(--brand-600), var(--brand-700));
-      border-radius: 10px; color: #fff; text-decoration: none;
-      transition: all 0.15s; box-shadow: 0 2px 8px rgba(201,109,58,0.25);
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 24px 28px;
+      background: var(--surface-dark);
+      color: var(--on-dark);
+      border-radius: 14px;
+      text-decoration: none;
+      transition: transform .15s, box-shadow .15s;
+      margin-bottom: 16px;
+      position: relative;
+      overflow: hidden;
     }
-    .entry-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(201,109,58,0.35); }
-    .entry-card .icon {
-      width: 32px; height: 32px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-      background: rgba(255,255,255,0.15); border-radius: 8px;
+    .entry-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -10%;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(204,120,92,.2), transparent 70%);
+      pointer-events: none;
     }
-    .entry-card .icon svg { width: 16px; height: 16px; }
-    .entry-card .content { flex: 1; min-width: 0; }
-    .entry-card .title { font-size: 12px; font-weight: 600; }
-    .entry-card .url { font-size: 9px; opacity: 0.85; font-family: 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-    /* 按钮 */
-    .btn-xs {
-      display: flex; align-items: center; justify-content: center; gap: 6px;
-      padding: 6px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;
-      border: 1px solid transparent; cursor: pointer; transition: all 0.12s; text-decoration: none;
+    .entry-card:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(204,120,92,.25); }
+    .entry-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      position: relative;
     }
-    .btn-xs.primary { background: var(--brand-600); color: #fff; }
-    .btn-xs.primary:hover { background: var(--brand-700); }
-    .btn-xs.secondary { background: #fff; border-color: var(--slate-200); color: var(--slate-700); }
-    .btn-xs.secondary:hover { background: var(--slate-50); border-color: var(--slate-300); }
-    .btn-xs.danger { background: #fff; border-color: rgba(217,110,110,0.4); color: var(--error-600); }
-    .btn-xs.danger:hover { background: var(--error-50); border-color: var(--error-500); }
-    .btn-xs.block { width: 100%; }
-
-    /* 侧边栏卡片 */
-    .side-card { background: #fff; border: 1px solid var(--slate-200); border-radius: 10px; padding: 10px; }
-    .side-card.danger { border-color: rgba(217,110,110,0.4); }
-    .btn-group { display: flex; flex-direction: column; gap: 6px; }
-
-    /* 时间窗口 */
-    .time-window { background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: 8px; padding: 8px; }
-    .time-window .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-    .time-window label { display: block; font-size: 9px; color: var(--slate-500); margin-bottom: 3px; font-weight: 600; }
-    .time-window input {
-      width: 100%; padding: 6px 8px; border: 1px solid var(--slate-200); border-radius: 5px;
-      font-size: 11px; transition: all 0.12s;
+    .entry-body { flex: 1; position: relative; }
+    .entry-title {
+      font-family: Georgia, serif;
+      font-size: 18px;
+      font-weight: 400;
+      color: var(--on-dark);
+      margin: 0 0 4px;
+      letter-spacing: -0.3px;
     }
-    .time-window input:focus { outline: none; border-color: var(--brand-400); box-shadow: 0 0 0 2px rgba(223,138,92,0.1); }
-    .time-window .actions { display: flex; gap: 6px; margin-top: 8px; }
+    .entry-url {
+      font-size: 12px;
+      color: #a09d96;
+      margin: 0;
+    }
+    .entry-arrow {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--on-dark);
+      position: relative;
+    }
 
-    /* 右侧内容 */
-    .content-area { display: flex; flex-direction: column; gap: 12px; }
-
-    /* 名单网格 */
+    /* === Roster === */
     .roster-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px;
-      max-height: calc(100vh - 260px); overflow-y: auto; padding: 4px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 8px;
+      padding: 16px;
     }
-    .roster-grid::-webkit-scrollbar { width: 5px; }
-    .roster-grid::-webkit-scrollbar-track { background: var(--slate-50); border-radius: 2px; }
-    .roster-grid::-webkit-scrollbar-thumb { background: var(--slate-300); border-radius: 2px; }
-    .roster-card {
-      padding: 8px 10px; background: #fff; border: 1px solid var(--slate-200); border-radius: 7px;
-      transition: all 0.12s;
+    .roster-item {
+      border: 1px solid var(--hairline);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: var(--canvas);
+      transition: border-color .12s, box-shadow .12s;
     }
-    .roster-card:hover { border-color: var(--slate-300); box-shadow: 0 2px 6px rgba(0,0,0,0.04); transform: translateY(-1px); }
-    .roster-card.signed { background: linear-gradient(135deg, #f0fdf4, #f5f9f7); border-color: rgba(87,167,120,0.3); }
-    .roster-card.dup { background: linear-gradient(135deg, #fef2f2, #fbf5f5); border-color: rgba(217,110,110,0.3); }
-    .roster-card .row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-    .roster-card .name-row { display: flex; align-items: center; gap: 5px; min-width: 0; }
-    .status-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
-    .status-dot.signed { background: var(--success-500); }
-    .status-dot.unsigned { background: var(--slate-300); }
-    .status-dot.dup { background: var(--error-500); }
-    .student-name { font-size: 12px; font-weight: 600; color: var(--slate-800); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
-    .student-class { font-size: 9px; color: var(--slate-400); flex-shrink: 0; }
-    .status-badge { font-size: 8px; font-weight: 600; padding: 1px 5px; border-radius: 3px; flex-shrink: 0; }
-    .status-badge.signed { color: var(--success-700); background: var(--success-100); }
-    .status-badge.unsigned { color: var(--slate-500); background: var(--slate-100); }
-    .status-badge.dup { color: var(--error-600); background: var(--error-50); }
-    .roster-card .meta { margin-top: 6px; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-    .meta-info { font-size: 9px; color: var(--slate-400); display: flex; align-items: center; gap: 3px; }
-    .meta-info .ip { font-family: 'JetBrains Mono', monospace; }
-    .btn-revoke { font-size: 8px; padding: 1px 6px; border-radius: 3px; background: #fff; border: 1px solid rgba(248,113,113,0.3); color: var(--error-600); cursor: pointer; }
-    .btn-revoke:hover { background: var(--error-50); }
+    .roster-item:hover {
+      box-shadow: 0 2px 8px rgba(20,20,19,.05);
+    }
+    .roster-item.signed { border-color: #b7e4c7; background: #f0fdf4; }
+    .roster-item.dup { border-color: #f5c6cb; background: #fef2f2; }
+    .roster-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .roster-name-wrap {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .roster-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .roster-dot.signed { background: var(--success); }
+    .roster-dot.unsigned { background: var(--muted-soft); }
+    .roster-dot.dup { background: var(--error); }
+    .roster-student-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .roster-home-class {
+      font-size: 10px;
+      color: var(--muted-soft);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .roster-status {
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 6px;
+      border-radius: 9999px;
+      line-height: 1;
+    }
+    .roster-status.signed { color: #047857; background: #d1fae5; }
+    .roster-status.unsigned { color: var(--muted); background: var(--surface-card); }
+    .roster-status.dup { color: var(--error); background: #fecaca; }
+    .roster-meta {
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .roster-meta-text {
+      font-size: 10px;
+      color: var(--muted-soft);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
+    .roster-meta-text .ip { color: var(--muted); }
+    .roster-meta-text .time { color: #047857; }
+    .roster-meta-text.dup .ip,
+    .roster-meta-text.dup .time { color: var(--error); }
+    .roster-meta-text .sep { color: var(--hairline); margin: 0 3px; }
+    .roster-revoke {
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid #f5c6cb;
+      background: #fef2f2;
+      color: var(--error);
+      transition: background .12s;
+    }
+    .roster-revoke:hover { background: #fecaca; }
+    .roster-empty {
+      grid-column: 1 / -1;
+      padding: 24px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted-soft);
+      border: 1px dashed var(--hairline);
+      border-radius: 8px;
+    }
 
-    /* 历史列表 */
-    .session-list { display: flex; flex-direction: column; }
+    /* === Sidebar === */
+    .sidebar { display: flex; flex-direction: column; gap: 16px; }
+    .sidebar-card {
+      background: #fff;
+      border-radius: 10px;
+      border: 1px solid var(--hairline);
+      overflow: hidden;
+    }
+    .sidebar-card-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--hairline);
+    }
+    .sidebar-card-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0;
+      letter-spacing: 0.3px;
+    }
+    .sidebar-card-body { padding: 12px 16px; }
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--body);
+      transition: background .12s;
+    }
+    .sidebar-link:hover { background: var(--canvas); }
+    .sidebar-link-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .sidebar-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--body);
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+      transition: background .12s;
+    }
+    .sidebar-btn:hover { background: var(--canvas); }
+    .sidebar-btn.danger { color: var(--error); }
+    .sidebar-btn.danger:hover { background: #fef2f2; }
+    .sidebar-divider { height: 1px; background: var(--hairline); margin: 4px 0; }
+    .sidebar-help {
+      font-size: 11px;
+      color: var(--muted-soft);
+      line-height: 1.5;
+      margin-top: 8px;
+    }
+
+    /* === Time Window === */
+    .window-status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: var(--canvas);
+      border: 1px solid var(--hairline);
+      margin-bottom: 10px;
+    }
+    .window-status-label { font-size: 11px; color: var(--muted-soft); }
+    .window-status-value { font-size: 12px; font-weight: 500; color: var(--body); }
+    .window-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--primary);
+      background: none;
+      border: 1px solid #f5d0b5;
+      cursor: pointer;
+      transition: background .12s;
+    }
+    .window-toggle:hover { background: #fef3ec; }
+    .window-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .window-field label {
+      display: block;
+      font-size: 11px;
+      color: var(--muted-soft);
+      margin-bottom: 4px;
+    }
+
+    /* === Sessions === */
     .session-item {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 10px 14px; border-bottom: 1px solid var(--slate-100); transition: background 0.1s;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--hairline);
+      transition: background .12s;
     }
     .session-item:last-child { border-bottom: none; }
-    .session-item:hover { background: var(--slate-50); }
-    .session-item .label { font-size: 12px; font-weight: 500; color: var(--slate-700); }
-    .session-item .count { font-size: 10px; color: var(--slate-400); margin-top: 1px; }
-    .session-actions { display: flex; gap: 4px; }
-    .session-actions .btn-xs { padding: 4px 8px; }
+    .session-item:hover { background: var(--canvas); }
+    .session-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .session-label { font-size: 13px; font-weight: 500; color: var(--body); }
+    .session-count { font-size: 11px; color: var(--muted-soft); margin-top: 2px; }
+    .session-actions {
+      display: flex;
+      gap: 4px;
+    }
+    .session-action {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      background: none;
+      transition: background .12s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+    }
 
-    /* 顶栏 */
-    .header-bar {
-      background: rgba(255,255,255,0.95); backdrop-filter: blur(16px);
-      border-bottom: 1px solid rgba(231,229,228,0.6); box-shadow: 0 1px 0 rgba(255,255,255,0.8) inset;
+    /* === Input === */
+    .input-field {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--hairline);
+      font-size: 13px;
+      color: var(--ink);
+      background: var(--canvas);
+      transition: border-color .15s, box-shadow .15s;
+      box-sizing: border-box;
     }
-    .nav-link {
-      display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 7px;
-      color: var(--slate-600); font-size: 13px; font-weight: 500; text-decoration: none; transition: all 0.12s;
+    .input-field::placeholder { color: var(--muted-soft); }
+    .input-field:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(204,120,92,.12);
     }
-    .nav-link:hover { background: var(--slate-50); color: var(--slate-800); }
-    .nav-link svg { color: var(--slate-400); transition: transform 0.12s; }
-    .nav-link:hover svg { transform: translateX(-2px); }
-    .nav-title { font-size: 14px; font-weight: 700; color: var(--slate-800); }
-    .nav-action {
-      display: inline-flex; align-items: center; justify-content: center; padding: 6px 12px; border-radius: 7px;
-      color: var(--slate-600); font-size: 13px; font-weight: 500; border: none; background: transparent; cursor: pointer; transition: all 0.12s;
-    }
-    .nav-action:hover { background: var(--slate-50); color: var(--slate-800); }
 
-    /* 通知 */
+    /* === Buttons === */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all .15s;
+      cursor: pointer;
+      border: none;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .btn-primary { background: var(--primary); color: var(--on-primary); }
+    .btn-primary:hover { background: var(--primary-active); }
+    .btn-secondary {
+      background: var(--canvas);
+      color: var(--ink);
+      border: 1px solid var(--hairline);
+    }
+    .btn-secondary:hover { background: var(--surface-card); }
+
+    /* === Toast === */
     .toast {
-      position: fixed; bottom: 20px; right: 20px; z-index: 1000;
-      padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 500;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid;
-      animation: slideIn 0.25s ease-out;
+      position: fixed;
+      top: 80px;
+      right: 24px;
+      z-index: 50;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 8px 24px rgba(20,20,19,.12);
+      transform: translateX(120%);
+      transition: transform .25s ease;
     }
-    .toast.success { background: #f0fdf4; color: var(--success-700); border-color: var(--success-200); }
-    .toast.error { background: #fef2f2; color: var(--error-600); border-color: var(--error-200); }
-    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-    @keyframes fadeOut { to { opacity: 0; transform: translateY(-8px); } }
+    .toast.show { transform: translateX(0); }
+    .toast.ok { background: #f0fdf4; color: #047857; border: 1px solid #b7e4c7; }
+    .toast.err { background: #fef2f2; color: #c64545; border: 1px solid #f5c6cb; }
 
-    /* 模态框 */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; }
-    .modal { background: #fff; border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); width: 100%; max-width: 900px; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; }
-    .modal-header { padding: 14px 18px; border-bottom: 1px solid var(--slate-100); display: flex; align-items: center; justify-content: space-between; }
-    .modal-title { font-size: 14px; font-weight: 600; color: var(--slate-800); }
-    .modal-body { overflow: auto; padding: 0; }
-    .modal-close { color: var(--slate-400); cursor: pointer; font-size: 20px; line-height: 1; transition: color 0.12s; }
-    .modal-close:hover { color: var(--slate-600); }
-
-    /* 座位网格 */
-    .seat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; padding: 16px; }
-    .seat-card {
-      width: 70px; height: 76px; display: flex; flex-direction: column; align-items: center; justify-content: center;
-      border-radius: 8px; border: 1.5px solid var(--slate-200); background: #fff; position: relative;
+    /* === Stats Panel === */
+    .stats-panel {
+      margin-bottom: 16px;
     }
-    .seat-card.signed { background: var(--success-50); border-color: var(--success-400); }
-    .seat-card.empty { background: var(--slate-50); border-style: dashed; }
-    .seat-no { font-size: 9px; color: var(--slate-300); position: absolute; top: 4px; left: 6px; }
-    .seat-name { font-size: 11px; font-weight: 600; color: var(--slate-700); text-align: center; max-width: 56px; overflow: hidden; text-overflow: ellipsis; }
-    .seat-card.signed .seat-name { color: var(--success-700); }
-    .seat-class { font-size: 8px; color: var(--slate-400); text-align: center; max-width: 56px; overflow: hidden; text-overflow: ellipsis; }
 
-    /* 学生列表 */
-    .student-list { display: flex; flex-direction: column; }
-    .student-item {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 12px 16px; border-bottom: 1px solid var(--slate-100);
+    /* === Responsive === */
+    @media (max-width: 900px) {
+      .page-layout { grid-template-columns: 1fr; }
+      .compact-banner { flex-direction: column; gap: 12px; align-items: flex-start; }
+      .banner-stats { margin-left: 0; }
     }
-    .student-item:last-child { border-bottom: none; }
-    .student-item .name { font-size: 13px; font-weight: 500; color: var(--slate-800); }
-    .student-item .class { font-size: 11px; color: var(--slate-400); margin-top: 1px; }
-    .student-item .remark { font-size: 11px; color: var(--slate-500); background: var(--slate-50); padding: 2px 8px; border-radius: 4px; }
-
-    /* 页面背景 */
-    body { background: var(--page-bg-gradient); }
+    @media (max-width: 640px) {
+      .compact-banner { flex-direction: column; gap: 12px; align-items: flex-start; }
+      .banner-stats { margin-left: 0; width: 100%; justify-content: center; gap: 12px; }
+      .roster-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
-<body class="min-h-screen">
+<body>
 
-  <!-- 顶栏 -->
-  <header class="header-bar sticky top-0 z-20">
-    <div class="max-w-[1400px] mx-auto px-5 py-2.5 flex items-center justify-between">
-      <div class="flex items-center gap-3">
+  <!-- Header -->
+  <header class="header-bar">
+    <div class="header-inner">
+      <div class="header-left">
         <a href="/teacher/classes" class="nav-link">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+          <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
           </svg>
           返回
         </a>
-        <div class="w-[1px] h-4 bg-slate-200"></div>
-        <span class="nav-title">{{ cls.name }}</span>
+        <span style="color: var(--hairline);">|</span>
+        <span class="page-title text-lg">{{ cls.name }}</span>
       </div>
-      <div class="flex items-center gap-1">
-        <button id="pwdToggle" class="nav-action">修改密码</button>
-        <form method="post" action="/teacher/logout"><button class="nav-action" type="submit">退出</button></form>
+      <div class="header-right">
+        <form method="post" action="/teacher/logout" style="display: inline;">
+          <button class="nav-action" type="submit">退出</button>
+        </form>
       </div>
     </div>
   </header>
 
-  <!-- 密码面板 -->
-  <div id="pwdPanel" class="hidden header-bar border-t">
-    <div class="max-w-[1400px] mx-auto px-5 py-3">
-      <p class="text-sm font-medium text-slate-700 mb-2">修改密码</p>
-      <div class="flex flex-wrap gap-2 items-end">
-        <div><label class="block text-xs text-slate-400 mb-1">旧密码</label><input id="oldPwd" type="password" class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-sm w-32" /></div>
-        <div><label class="block text-xs text-slate-400 mb-1">新密码</label><input id="newPwd" type="password" class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-sm w-32" /></div>
-        <button id="changePwdBtn" class="btn-xs primary">确认修改</button>
+  <main style="max-width: 1300px; margin: 0 auto; padding: 20px 24px 48px;">
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Compact Banner -->
+    <div class="compact-banner">
+      <h1 class="banner-title">{{ cls.name }}</h1>
+      <div class="banner-stats">
+        <div class="banner-stat">
+          <p class="banner-stat-label">总人数</p>
+          <p id="totalCount" class="banner-stat-value">0</p>
+        </div>
+        <div class="banner-stat">
+          <p class="banner-stat-label">已签到</p>
+          <p id="signedCount" class="banner-stat-value accent">0</p>
+        </div>
+        <div class="banner-stat">
+          <p class="banner-stat-label">未签到</p>
+          <p id="absentCount" class="banner-stat-value muted">0</p>
+        </div>
       </div>
-      <div id="pwdMsg" class="hidden mt-1.5 text-xs"></div>
     </div>
-  </div>
 
-  <main class="max-w-[1400px] mx-auto px-5 py-5">
-    <div class="layout-wrapper">
+    <!-- Two Column Layout -->
+    <div class="page-layout">
 
-      <!-- 左侧栏 -->
-      <aside class="sidebar">
+      <!-- Left: Sidebar -->
+      <div class="sidebar">
 
-        <!-- 统计 -->
-        <div class="stats-row">
-          <div class="stat-mini"><div class="label">总人数</div><div id="totalCount" class="value">0</div></div>
-          <div class="stat-mini signed"><div class="label">已签到</div><div id="signedCount" class="value">0</div><div class="progress-mini"><div id="progressBar" class="bar" style="width:0%"></div></div></div>
-          <div class="stat-mini absent"><div class="label">未签到</div><div id="absentCount" class="value">0</div></div>
+        <!-- Quick Links -->
+        <div class="sidebar-card">
+          <div class="sidebar-card-header">
+            <p class="sidebar-card-title">课堂工具</p>
+          </div>
+          <div class="sidebar-card-body" style="display: flex; flex-direction: column; gap: 2px;">
+            <a href="/teacher/classes/{{ cls.id }}/seats" target="_blank" class="sidebar-link">
+              <span class="sidebar-link-icon" style="background: #fef3ec; color: var(--primary);">
+                <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                </svg>
+              </span>
+              座位表
+            </a>
+            <a href="/teacher/classes/{{ cls.id }}/students" target="_blank" class="sidebar-link">
+              <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
+                <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+              </span>
+              学生管理
+            </a>
+            <a href="/teacher/info?classId={{ cls.id }}" class="sidebar-link">
+              <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
+                <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+              </span>
+              信息收集
+            </a>
+            <button id="statsToggle" class="sidebar-btn">
+              <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
+                <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+              </span>
+              出勤统计
+            </button>
+            <button id="resetBtn" class="sidebar-btn">
+              <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
+                <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+              </span>
+              归档重置
+            </button>
+          </div>
         </div>
 
-        <!-- 签到入口 -->
-        <a href="/student?classId={{ cls.id }}" target="_blank" class="entry-card">
-          <div class="icon">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+        <!-- Time Window -->
+        <div class="sidebar-card">
+          <div class="sidebar-card-header" style="display: flex; align-items: center; justify-content: space-between;">
+            <p class="sidebar-card-title">签到时间段</p>
+            <button id="windowToggle" class="window-toggle" style="padding: 2px 6px; border: none; font-size: 11px;">
+              <svg id="windowChevron" style="width:12px;height:12px;transition: transform .15s;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </button>
           </div>
-          <div class="content">
-            <div class="title">学生签到入口</div>
-            <div class="url">/student?classId={{ cls.id }}</div>
+          <div id="windowBody" class="sidebar-card-body" style="display: none;">
+            <div class="window-status">
+              <span class="window-status-label">当前设置</span>
+              <strong id="windowText" class="window-status-value">不限</strong>
+            </div>
+            <button id="windowFieldsToggle" class="window-toggle" style="width: 100%; justify-content: center;">
+              <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              设置时间
+            </button>
+            <div id="windowPanel" class="hidden window-fields">
+              <div class="window-field">
+                <label>开始时间</label>
+                <input id="startTime" type="datetime-local" class="input-field" />
+              </div>
+              <div class="window-field">
+                <label>结束时间</label>
+                <input id="endTime" type="datetime-local" class="input-field" />
+              </div>
+              <div style="display: flex; gap: 6px;">
+                <button id="saveWindow" class="btn btn-primary" style="flex:1;">保存</button>
+                <button id="clearWindow" class="btn btn-secondary" style="flex:1;">清除</button>
+              </div>
+              <p class="sidebar-help">留空表示不限制，设置后立即生效。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Data Management -->
+        <div class="sidebar-card">
+          <div class="sidebar-card-header">
+            <p class="sidebar-card-title">数据管理</p>
+          </div>
+          <div class="sidebar-card-body" style="display: flex; flex-direction: column; gap: 2px;">
+            <button id="importBtn" class="sidebar-btn">
+              <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
+                <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+              </span>
+              导入名单
+            </button>
+            <a href="/api/export?classId={{ cls.id }}" class="sidebar-link">
+              <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
+                <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+              </span>
+              导出签到记录
+            </a>
+            <a href="/api/stats/export?classId={{ cls.id }}" class="sidebar-link">
+              <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
+                <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+              </span>
+              导出出勤统计
+            </a>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right: Main Content -->
+      <div>
+        <!-- Entry Card -->
+        <a href="/student?classId={{ cls.id }}" target="_blank" class="entry-card">
+          <div class="entry-icon">
+            <svg style="width:24px;height:24px;color:var(--on-primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+          </div>
+          <div class="entry-body">
+            <p class="entry-title">学生签到入口</p>
+            <p class="entry-url">/student?classId={{ cls.id }} <span style="margin-left: 4px; color: #6c6a64;">（点击新标签打开）</span></p>
+          </div>
+          <div class="entry-arrow">
+            <svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+            </svg>
           </div>
         </a>
 
-        <!-- 操作按钮 -->
-        <div class="side-card">
-          <div class="btn-group">
-            <button onclick="openModal('seat')" class="btn-xs primary block">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
-              座位表
-            </button>
-            <button onclick="openModal('student')" class="btn-xs secondary block">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-              学生管理
-            </button>
-            <a href="/teacher/info?classId={{ cls.id }}" class="btn-xs secondary block">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-              信息收集
-            </a>
+        <!-- Stats Panel (hidden by default) -->
+        <div id="statsPanel" class="hidden card stats-panel">
+          <div class="card-header">
+            <p class="card-title">出勤统计</p>
           </div>
+          <div id="statsContent" style="padding: 24px; text-align: center; font-size: 13px; color: var(--muted-soft);">加载中...</div>
         </div>
 
-        <!-- 数据 -->
-        <div class="side-card">
-          <div class="btn-group">
-            <button id="importBtn" class="btn-xs secondary block">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-              导入名单
-            </button>
-            <a href="/api/export?classId={{ cls.id }}" class="btn-xs secondary block">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-              导出记录
-            </a>
-            <a href="/api/stats/export?classId={{ cls.id }}" class="btn-xs secondary block">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-              导出统计
-            </a>
-          </div>
-        </div>
+        <!-- Message -->
+        <div id="msg" class="hidden" style="margin-bottom: 12px; padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;"></div>
 
-        <!-- 签到时间 -->
-        <div class="side-card">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">签到时间</span>
-            <span id="windowText" class="text-[10px] text-slate-400">不限</span>
-          </div>
-          <div class="time-window">
-            <div class="fields">
-              <div><label>开始</label><input id="startTime" type="datetime-local" /></div>
-              <div><label>结束</label><input id="endTime" type="datetime-local" /></div>
-            </div>
-            <div class="actions">
-              <button id="saveWindow" class="btn-xs primary" style="flex:1">保存</button>
-              <button id="clearWindow" class="btn-xs secondary" style="flex:1">清除</button>
+        <!-- Roster -->
+        <div class="card" style="margin-bottom: 16px;">
+          <div class="card-header">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <p class="card-title">当前签到名单</p>
+              <span id="rosterBadge" style="font-size: 11px; color: var(--muted-soft);"></span>
+              <span id="rosterDate" style="font-size: 11px; color: var(--muted-soft);"></span>
             </div>
           </div>
-        </div>
-
-        <!-- 危险操作 -->
-        <div class="side-card danger">
-          <div class="btn-group">
-            <button id="resetBtn" class="btn-xs danger block">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-              归档重置
-            </button>
-            <button id="clearRosterBtn" class="btn-xs danger block">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-              清空名单
-            </button>
-          </div>
-        </div>
-
-      </aside>
-
-      <!-- 右侧内容 -->
-      <div class="content-area">
-
-        <!-- 出勤统计 -->
-        <div id="statsPanel" class="hidden card overflow-hidden">
-          <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-            <p class="text-sm font-medium text-slate-700">出勤统计</p>
-            <button onclick="document.getElementById('statsPanel').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
-          </div>
-          <div id="statsContent" class="p-4 text-center text-sm text-slate-400">加载中...</div>
-        </div>
-
-        <!-- 通知 -->
-        <div id="msg" class="hidden toast"></div>
-
-        <!-- 签到名单 -->
-        <div class="card overflow-hidden" style="background:#fff; border:1px solid var(--slate-200); border-radius:12px;">
-          <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <p class="text-sm font-medium text-slate-700">签到名单</p>
-              <span id="rosterBadge" class="text-xs text-slate-400"></span>
-              <span id="rosterDate" class="text-xs text-slate-300"></span>
-            </div>
-            <button id="statsToggle" class="btn-xs secondary">
-              <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-              统计
-            </button>
-          </div>
-          <div class="p-3" style="background: var(--slate-50);">
+          <div style="padding: 12px; background: var(--canvas);">
             <div id="rosterCompactGrid" class="roster-grid"></div>
           </div>
         </div>
 
-        <!-- 历史批次 -->
-        <div class="card overflow-hidden" style="background:#fff; border:1px solid var(--slate-200); border-radius:12px;">
-          <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-            <p class="text-sm font-medium text-slate-700">历史批次</p>
-            <span id="sessionCount" class="text-xs text-slate-400"></span>
+        <!-- Sessions -->
+        <div class="card">
+          <div class="card-header">
+            <p class="card-title">历史批次</p>
+            <span id="sessionCount" style="font-size: 11px; color: var(--muted-soft);"></span>
           </div>
-          <div id="sessionList" class="session-list"></div>
+          <div id="sessionList">
+            <div style="padding: 24px; text-align: center; font-size: 13px; color: var(--muted-soft);">暂无历史批次</div>
+          </div>
         </div>
-
       </div>
+
     </div>
+
+    <!-- Hidden file input for import -->
+    <input type="file" id="importFile" accept=".xlsx,.xls" style="display: none;" />
+
   </main>
-
-  <!-- 隐藏 input -->
-  <input type="file" id="importFile" accept=".xlsx,.xls" class="hidden" />
-
-  <!-- 模态框 -->
-  <div id="modal" class="hidden modal-overlay">
-    <div class="modal">
-      <div class="modal-header">
-        <p id="modalTitle" class="modal-title"></p>
-        <button onclick="closeModal()" class="modal-close">&times;</button>
-      </div>
-      <div id="modalBody" class="modal-body"></div>
-    </div>
-  </div>
 
 <script>
 const CLASS_ID = {{ cls.id }}
-const msg = document.getElementById('msg')
-const modal = document.getElementById('modal')
-const modalTitle = document.getElementById('modalTitle')
-const modalBody = document.getElementById('modalBody')
 
-function notify(text, ok = true) {
-  msg.className = `toast ${ok ? 'success' : 'error'}`
-  msg.textContent = text
-  msg.classList.remove('hidden')
-  setTimeout(() => { msg.style.animation = 'fadeOut 0.2s forwards'; setTimeout(() => msg.classList.add('hidden'), 200) }, 2200)
+function showToast(text, ok = true) {
+  const t = document.getElementById('toast')
+  t.textContent = text
+  t.className = `toast ${ok ? 'ok' : 'err'} show`
+  setTimeout(() => t.classList.remove('show'), 2500)
 }
 
 async function parseResponse(res) {
   if (res.status === 401) { window.location.href = '/student'; return null }
-  if (!res.ok) { console.error('API error', res.status); return null }
+  if (!res.ok) { const t = await res.text(); console.error('API error', res.status, t); return null }
   return res.json()
 }
 
-function formatHomeClass(v) { const s = String(v||'').trim(); return !s ? '' : s.includes('班') ? s : `${s}班` }
-function formatRosterDate(v) { const d = v ? new Date(v) : new Date(); if (isNaN(d.getTime())) return ''; return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` }
-function formatSignedTime(v) { if (!v) return '-'; const d = new Date(v); if (isNaN(d.getTime())) { const m = String(v).match(/(\d{2}:\d{2}:\d{2})/); return m ? m[1] : v; } return d.toLocaleTimeString('zh-CN', {hour12:false}) }
+function formatHomeClass(homeClass) {
+  const value = String(homeClass || '').trim()
+  if (!value) return ''
+  return value.includes('班') ? value : `${value}班`
+}
 
-function renderRoster(roster, ipCount) {
+function formatRosterDate(value) {
+  const date = value ? new Date(value) : new Date()
+  if (Number.isNaN(date.getTime())) return ''
+  const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+  const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+  const w = weekdays[date.getDay()]
+  const m = months[date.getMonth()]
+  const d = date.getDate()
+  const y = date.getFullYear()
+  const hh = String(date.getHours()).padStart(2, '0')
+  const mm = String(date.getMinutes()).padStart(2, '0')
+  return `${w} ${m}${d}日 ${y}年 ${hh}:${mm}`
+}
+
+function formatSignedTime(value) {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    const match = String(value).match(/(\d{2}:\d{2}:\d{2})/)
+    return match ? match[1] : String(value)
+  }
+  return date.toLocaleTimeString('zh-CN', { hour12: false })
+}
+
+function renderRosterCompact(roster, ipCount) {
   const grid = document.getElementById('rosterCompactGrid')
-  grid.innerHTML = roster.length ? '' : '<div class="col-span-full px-4 py-10 text-sm text-slate-400 text-center bg-white rounded-lg border border-dashed">暂无学生</div>'
+  grid.innerHTML = ''
+
+  if (!roster || !roster.length) {
+    grid.innerHTML = '<div class="roster-empty">暂无学生</div>'
+    return
+  }
+
   roster.forEach(r => {
-    const isSigned = r.status === '已签到', dupIp = ipCount[(r.computerName||'').trim()] > 1
+    const isSigned = r.status === '已签到'
+    const dupIp = ipCount[(r.computerName || '').trim()] > 1
+    const itemClass = dupIp ? 'dup' : isSigned ? 'signed' : ''
+    const dotClass = dupIp ? 'dup' : isSigned ? 'signed' : 'unsigned'
+    const statusClass = dupIp ? 'dup' : isSigned ? 'signed' : 'unsigned'
+    const statusText = dupIp ? '重复IP' : isSigned ? '已签到' : '未签到'
+    const metaClass = dupIp ? 'dup' : ''
+
+    const revokeBtn = (isSigned && r.recordId)
+      ? `<button onclick="revokeRecord(${r.recordId})" class="roster-revoke">撤销</button>`
+      : ''
+
     const item = document.createElement('div')
-    item.className = `roster-card ${dupIp ? 'dup' : isSigned ? 'signed' : ''}`
-    const dot = dupIp ? 'dup' : isSigned ? 'signed' : 'unsigned'
-    const badge = dupIp ? 'dup' : isSigned ? 'signed' : 'unsigned'
-    const text = dupIp ? '重复 IP' : isSigned ? '已签到' : '未签到'
-    const revoke = (isSigned && r.recordId) ? `<button onclick="revokeRecord(${r.recordId})" class="btn-revoke">撤销</button>` : '<span></span>'
-    item.innerHTML = `<div class="row"><div class="name-row"><span class="status-dot ${dot}"></span><span class="student-name">${r.studentName}</span><span class="student-class">${formatHomeClass(r.homeClass) || ''}</span></div><span class="status-badge ${badge}">${text}</span></div><div class="meta"><span class="meta-info"><span class="ip">${r.computerName||'-'}</span><span>/</span><span>${isSigned ? formatSignedTime(r.signedAt) : '-'}</span></span>${revoke}</div>`
+    item.className = `roster-item ${itemClass}`
+    item.innerHTML = `
+      <div class="roster-line">
+        <div class="roster-name-wrap">
+          <span class="roster-dot ${dotClass}"></span>
+          <span class="roster-student-name">${r.studentName}</span>
+          <span class="roster-home-class">${formatHomeClass(r.homeClass)}</span>
+        </div>
+        <span class="roster-status ${statusClass}">${statusText}</span>
+      </div>
+      <div class="roster-meta">
+        <span class="roster-meta-text ${metaClass}"><span class="ip">${r.computerName || '-'}</span><span class="sep">/</span><span class="time">${isSigned ? formatSignedTime(r.signedAt) : '-'}</span></span>
+        ${revokeBtn}
+      </div>`
     grid.appendChild(item)
   })
 }
 
 async function refreshStatus() {
-  const res = await fetch(`/api/status?classId=${CLASS_ID}`), data = await parseResponse(res)
-  if (!data || !Array.isArray(data.roster)) return
-  document.getElementById('totalCount').textContent = data.totalCount
-  document.getElementById('signedCount').textContent = data.signedCount
+  const res = await fetch(`/api/status?classId=${CLASS_ID}`)
+  const data = await parseResponse(res)
+  if (!data) return
+  if (!Array.isArray(data.roster)) return
+
+  const total = data.totalCount, signed = data.signedCount
+  document.getElementById('totalCount').textContent = total
+  document.getElementById('signedCount').textContent = signed
   document.getElementById('absentCount').textContent = data.absentCount
-  document.getElementById('progressBar').style.width = data.totalCount > 0 ? (data.signedCount / data.totalCount * 100) + '%' : '0%'
-  document.getElementById('rosterBadge').textContent = `共 ${data.totalCount} 人`
-  document.getElementById('rosterDate').textContent = formatRosterDate(data.roster.find(r => r.signedAt)?.signedAt)
-  document.getElementById('windowText').textContent = (data.window.start || data.window.end) ? `${data.window.start||'不限'} 至 ${data.window.end||'不限'}` : '不限'
-  const ipCount = {}; data.roster.forEach(r => { const ip = (r.computerName||'').trim(); if (ip && ip!=='-') ipCount[ip]=(ipCount[ip]||0)+1 })
-  renderRoster(data.roster, ipCount)
+  document.getElementById('rosterBadge').textContent = `共 ${total} 人`
+  const firstSignedAt = data.roster.find(r => r.signedAt)?.signedAt
+  document.getElementById('rosterDate').textContent = formatRosterDate(firstSignedAt)
+
+  const wt = document.getElementById('windowText')
+  wt.textContent = (data.window.start || data.window.end)
+    ? `${data.window.start || '不限'} 至 ${data.window.end || '不限'}`
+    : '不限'
+
+  const ipCount = {}
+  data.roster.forEach(r => { const ip = (r.computerName||'').trim(); if (ip && ip!=='-') ipCount[ip]=(ipCount[ip]||0)+1 })
+  renderRosterCompact(data.roster, ipCount)
 }
 
 async function refreshSessions() {
-  const res = await fetch(`/api/sessions?classId=${CLASS_ID}`), data = await parseResponse(res)
+  const res = await fetch(`/api/sessions?classId=${CLASS_ID}`)
+  const data = await parseResponse(res)
   if (!data) return
+  const list = document.getElementById('sessionList')
   document.getElementById('sessionCount').textContent = data.length ? `共 ${data.length} 批次` : ''
-  if (!data.length) { document.getElementById('sessionList').innerHTML = '<div class="px-5 py-8 text-center text-sm text-slate-400">暂无历史批次</div>'; return }
-  document.getElementById('sessionList').innerHTML = data.map(s => `<div class="session-item"><div><div class="label">${s.label}</div><div class="count">签到人数：${s.count}</div></div><div class="session-actions"><button onclick="openSession(${s.id},'${s.label.replace(/'/g,"\\'")}')" class="btn-xs secondary">查看</button><a href="/teacher/sessions/${s.id}/seats" class="btn-xs secondary">座位表</a><a href="/api/sessions/${s.id}/export" class="btn-xs secondary">导出</a><button onclick="deleteSession(${s.id},'${s.label.replace(/'/g,"\\'")}')" class="btn-xs danger">删除</button></div></div>`).join('')
+  if (!data.length) { list.innerHTML = '<div style="padding: 24px; text-align: center; font-size: 13px; color: var(--muted-soft);">暂无历史批次</div>'; return }
+  list.innerHTML = data.map(s => `
+    <div class="session-item">
+      <div class="session-head">
+        <div>
+          <p class="session-label">${s.label}</p>
+          <p class="session-count">签到人数：${s.count}</p>
+        </div>
+        <div class="session-actions">
+          <a href="/teacher/sessions/${s.id}/seats"
+            class="session-action" style="color: var(--primary);" onmouseover="this.style.background='#fef3ec'" onmouseout="this.style.background=''">座位表</a>
+          <a href="/api/sessions/${s.id}/export"
+            class="session-action" style="color: var(--success);" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''">导出</a>
+          <button onclick="deleteSessionItem(${s.id}, this.dataset.label)" data-label="${s.label.replace(/"/g,'&quot;')}"
+            class="session-action" style="color: var(--error);" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background=''">删除</button>
+        </div>
+      </div>
+    </div>`).join('')
 }
 
-async function openSession(id, label) {
-  const res = await fetch(`/api/sessions/${id}`), data = await parseResponse(res)
+async function deleteSessionItem(sessionId, label) {
+  if (!confirm(`确认删除历史批次「${label}」？此操作不可恢复。`)) return
+  const res = await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' })
+  const data = await parseResponse(res)
   if (!data) return
-  modalTitle.textContent = label
-  modalBody.innerHTML = `<table class="w-full text-sm"><thead><tr class="text-xs text-slate-400 border-b border-slate-100"><th class="text-left px-4 py-2.5 font-medium">姓名</th><th class="text-left px-4 py-2.5 font-medium">班级</th><th class="text-left px-4 py-2.5 font-medium">状态</th><th class="text-left px-4 py-2.5 font-medium">IP</th><th class="text-left px-4 py-2.5 font-medium">时间</th></tr></thead><tbody>${(data.roster||[]).map(r => `<tr class="border-b border-slate-50"><td class="px-4 py-2.5 font-medium">${r.studentName}</td><td class="px-4 py-2.5 text-xs text-slate-400">${formatHomeClass(r.homeClass)}</td><td class="px-4 py-2.5 text-xs ${r.status==='已签到'?'text-emerald-600 font-semibold':'text-slate-400'}">${r.status==='已签到'?'✓ 已签到':'✗ 未签到'}</td><td class="px-4 py-2.5 text-xs font-mono text-slate-400">${r.computerName||'-'}</td><td class="px-4 py-2.5 text-xs text-slate-400">${r.signedAt||'-'}</td></tr>`).join('')}</tbody></table>`
-  modal.classList.remove('hidden')
-}
-
-async function deleteSession(id, label) {
-  if (!confirm(`确认删除「${label}」？`)) return
-  const res = await fetch(`/api/sessions/${id}`, {method:'DELETE'}), data = await parseResponse(res)
-  if (!data) return
-  notify('已删除')
-  modal.classList.add('hidden')
-  refreshSessions()
-}
-
-function openModal(type) {
-  modal.classList.remove('hidden')
-  if (type === 'seat') {
-    modalTitle.textContent = '座位表'
-    loadSeats()
-  } else if (type === 'student') {
-    modalTitle.textContent = '学生管理'
-    loadStudents()
+  showToast(data.message || '历史批次已删除', true)
+  await refreshSessions()
+  const statsPanel = document.getElementById('statsPanel')
+  if (!statsPanel.classList.contains('hidden')) {
+    await loadStats()
   }
-}
-function closeModal() { modal.classList.add('hidden') }
-
-async function loadSeats() {
-  modalBody.innerHTML = '<div class="p-8 text-center text-sm text-slate-400">加载中...</div>'
-  const res = await fetch(`/api/seats?classId=${CLASS_ID}`), data = await parseResponse(res)
-  if (!data) return
-  const seats = data.seats || [], students = data.students || []
-  const studentMap = Object.fromEntries(students.map(s => [s.id, s]))
-  modalBody.innerHTML = `<div class="seat-grid">${seats.map((seat, i) => {
-    const s = seat.studentId ? studentMap[seat.studentId] : null
-    const isSigned = s && data.roster?.find(r => r.studentId === s.id && r.status === '已签到')
-    return `<div class="seat-card ${!s?'empty':isSigned?'signed':''}"><span class="seat-no">#${i+1}</span>${s ? `<span class="seat-name">${s.name}</span><span class="seat-class">${formatHomeClass(s.homeClass)}</span>` : '<span class="seat-name" style="color:var(--slate-300)">空位</span>'}</div>`
-  }).join('')}</div>`
-}
-
-async function loadStudents() {
-  modalBody.innerHTML = '<div class="p-8 text-center text-sm text-slate-400">加载中...</div>'
-  const res = await fetch(`/api/students?classId=${CLASS_ID}`), data = await parseResponse(res)
-  if (!data) return
-  const students = data.students || [], roster = data.roster || []
-  const rosterMap = Object.fromEntries(roster.map(r => [r.studentId, r]))
-  modalBody.innerHTML = `<div class="student-list">${students.map(s => {
-    const r = rosterMap[s.id], isSigned = r?.status === '已签到'
-    return `<div class="student-item"><div><div class="name">${s.name} ${isSigned?'<span class="text-[10px] text-emerald-600 font-semibold ml-1">✓</span>':''}</div><div class="class">${formatHomeClass(s.homeClass) || '-'}</div></div><div class="flex items-center gap-2">${s.remark ? `<span class="remark">${s.remark}</span>` : ''}<button onclick="editStudent(${s.id},'${s.name.replace(/'/g,"\\'")}','${s.homeClass}','${(s.remark||'').replace(/'/g,"\\'")}')"><svg class="w-4 h-4 text-slate-400 hover:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button></div></div>`
-  }).join('')}</div><div class="p-3 border-t border-slate-100 flex justify-end"><button onclick="addStudent()" class="btn-xs primary">添加学生</button></div>`
-}
-
-window.editStudent = async (id, name, homeClass, remark) => {
-  const newName = prompt('姓名:', name)
-  if (!newName) return
-  const newHomeClass = prompt('班级:', homeClass) || ''
-  const newRemark = prompt('备注:', remark) || ''
-  const res = await fetch(`/api/students/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:newName, homeClass:newHomeClass, remark:newRemark})})
-  const data = await parseResponse(res)
-  if (data?.ok) { notify('已更新'); loadStudents(); refreshStatus() }
-}
-
-window.addStudent = async () => {
-  const name = prompt('姓名:')
-  if (!name) return
-  const homeClass = prompt('班级:') || ''
-  const res = await fetch(`/api/students`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({classId:CLASS_ID, name, homeClass, remark:''})})
-  const data = await parseResponse(res)
-  if (data?.ok) { notify('已添加'); loadStudents(); refreshStatus() }
-}
-
-async function revokeRecord(id) {
-  if (!confirm('确认撤销？')) return
-  const res = await fetch(`/api/signin/${id}`, {method:'DELETE'}), data = await parseResponse(res)
-  if (data?.ok) { notify('已撤销'); refreshStatus(); if (!modal.classList.contains('hidden')) { loadSeats(); loadStudents() } }
 }
 
 document.getElementById('statsToggle').addEventListener('click', async () => {
-  const panel = document.getElementById('statsPanel'); panel.classList.toggle('hidden')
-  if (!panel.classList.contains('hidden')) {
-    const content = document.getElementById('statsContent')
-    content.innerHTML = '<div class="py-6 text-center text-sm text-slate-400">加载中...</div>'
-    const res = await fetch(`/api/stats?classId=${CLASS_ID}`), data = await parseResponse(res)
-    if (!data || !data.students?.length) { content.innerHTML = '<div class="py-6 text-center text-sm text-slate-400">暂无数据</div>'; return }
-    content.innerHTML = `<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-xs text-slate-400 border-b border-slate-100"><th class="text-left px-4 py-2 font-medium">姓名</th><th class="text-left px-4 py-2 font-medium">班级</th><th class="text-center px-4 py-2 font-medium">签到</th><th class="text-center px-4 py-2 font-medium">缺勤</th><th class="text-center px-4 py-2 font-medium">出勤率</th></tr></thead><tbody>${data.students.map(s => {
-      const rate = parseFloat(s.rate), color = rate >= 80 ? 'text-emerald-600' : rate >= 60 ? 'text-amber-500' : 'text-red-500'
-      return `<tr class="border-b border-slate-50 hover:bg-slate-50"><td class="px-4 py-2 font-medium">${s.name}</td><td class="px-4 py-2 text-xs text-slate-400">${formatHomeClass(s.homeClass)}</td><td class="px-4 py-2 text-center">${s.signedCount}</td><td class="px-4 py-2 text-center text-slate-400">${s.absentCount}</td><td class="px-4 py-2 text-center font-semibold ${color}">${s.rate}%</td></tr>`
-    }).join('')}</tbody></table></div>`
-  }
+  const panel = document.getElementById('statsPanel')
+  panel.classList.toggle('hidden')
+  if (!panel.classList.contains('hidden')) await loadStats()
 })
 
-document.getElementById('pwdToggle').addEventListener('click', () => document.getElementById('pwdPanel').classList.toggle('hidden'))
-document.getElementById('changePwdBtn').addEventListener('click', async () => {
-  const res = await fetch('/api/change-password', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({old_password:document.getElementById('oldPwd').value, new_password:document.getElementById('newPwd').value})})
-  const data = await parseResponse(res)
-  if (!data) return
-  const pwdMsg = document.getElementById('pwdMsg')
-  pwdMsg.className = `mt-1.5 text-xs ${data.ok ? 'text-emerald-600' : 'text-red-500'}`; pwdMsg.textContent = data.message; pwdMsg.classList.remove('hidden')
-  if (data.ok) { document.getElementById('oldPwd').value = ''; document.getElementById('newPwd').value = '' }
+async function loadStats() {
+  const content = document.getElementById('statsContent')
+  content.innerHTML = '<div style="padding: 24px; text-align: center; font-size: 13px; color: var(--muted-soft);">加载中...</div>'
+  const res = await fetch('/api/stats?classId=' + CLASS_ID)
+  if (res.status === 401) { window.location.href = '/student'; return }
+  const data = await res.json()
+  if (!data.students || !data.students.length) {
+    content.innerHTML = '<div style="padding: 24px; text-align: center; font-size: 13px; color: var(--muted-soft);">暂无历史批次数据</div>'; return
+  }
+  content.innerHTML = `<div style="overflow-x: auto;">
+    <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+      <thead><tr style="border-bottom: 1px solid var(--hairline);">
+        <th style="text-align: left; padding: 10px 16px; font-size: 11px; font-weight: 500; color: var(--muted-soft);">姓名</th>
+        <th style="text-align: left; padding: 10px 16px; font-size: 11px; font-weight: 500; color: var(--muted-soft);">行政班级</th>
+        <th style="text-align: center; padding: 10px 16px; font-size: 11px; font-weight: 500; color: var(--muted-soft);">签到</th>
+        <th style="text-align: center; padding: 10px 16px; font-size: 11px; font-weight: 500; color: var(--muted-soft);">缺勤</th>
+        <th style="text-align: center; padding: 10px 16px; font-size: 11px; font-weight: 500; color: var(--muted-soft);">出勤率</th>
+      </tr></thead>
+      <tbody>${data.students.map(s => {
+        const rate = parseFloat(s.rate)
+        const color = rate >= 80 ? 'var(--success)' : rate >= 60 ? 'var(--warning)' : 'var(--error)'
+        return `<tr style="border-bottom: 1px solid var(--hairline);" onmouseover="this.style.background='var(--canvas)'" onmouseout="this.style.background=''">
+          <td style="padding: 10px 16px; font-weight: 500; color: var(--ink);">${s.name}</td>
+          <td style="padding: 10px 16px; font-size: 12px; color: var(--muted-soft);">${formatHomeClass(s.homeClass)}</td>
+          <td style="padding: 10px 16px; text-align: center; color: var(--body);">${s.signedCount}</td>
+          <td style="padding: 10px 16px; text-align: center; color: var(--muted-soft);">${s.absentCount}</td>
+          <td style="padding: 10px 16px; text-align: center; font-weight: 500; color: ${color};">${s.rate}%</td>
+        </tr>`
+      }).join('')}</tbody>
+    </table>
+    <p style="padding: 10px 16px; font-size: 11px; color: var(--muted-soft); border-top: 1px solid var(--hairline);">共 ${data.totalSessions} 个历史批次</p>
+  </div>`
+}
+
+async function revokeRecord(recordId) {
+  if (!confirm('确认撤销该签到记录？')) return
+  const res = await fetch('/api/signin/' + recordId, { method: 'DELETE' })
+  if (res.status === 401) { window.location.href = '/student'; return }
+  const data = await res.json()
+  if (!data.ok) { showToast(data.message, false); return }
+  showToast('已撤销')
+  refreshStatus()
+}
+
+document.getElementById('windowToggle').addEventListener('click', () => {
+  const body = document.getElementById('windowBody')
+  const chevron = document.getElementById('windowChevron')
+  const isHidden = body.style.display === 'none'
+  body.style.display = isHidden ? '' : 'none'
+  chevron.style.transform = isHidden ? 'rotate(180deg)' : ''
+})
+
+document.getElementById('windowFieldsToggle').addEventListener('click', () => {
+  const panel = document.getElementById('windowPanel')
+  panel.classList.toggle('hidden')
 })
 
 document.getElementById('saveWindow').addEventListener('click', async () => {
-  const res = await fetch('/api/window', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({classId:CLASS_ID, start_time:document.getElementById('startTime').value||null, end_time:document.getElementById('endTime').value||null})})
+  const res = await fetch('/api/window', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ classId: CLASS_ID, start_time: document.getElementById('startTime').value||null, end_time: document.getElementById('endTime').value||null })
+  })
   const data = await parseResponse(res)
-  if (data) { notify(data.message, data.ok); refreshStatus() }
+  if (!data) return
+  showToast(data.message, data.ok)
+  refreshStatus()
 })
 
 document.getElementById('clearWindow').addEventListener('click', async () => {
-  document.getElementById('startTime').value = ''; document.getElementById('endTime').value = ''
-  const res = await fetch('/api/window', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({classId:CLASS_ID, start_time:null, end_time:null})})
+  document.getElementById('startTime').value = ''
+  document.getElementById('endTime').value = ''
+  const res = await fetch('/api/window', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ classId: CLASS_ID, start_time: null, end_time: null })
+  })
   const data = await parseResponse(res)
-  if (data) { notify('已清除', data.ok); refreshStatus() }
+  if (!data) return
+  showToast('已清除时间限制', data.ok)
+  refreshStatus()
 })
 
 document.getElementById('resetBtn').addEventListener('click', async () => {
-  if (!confirm('确认归档重置？')) return
-  const res = await fetch('/api/reset', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({classId:CLASS_ID})})
+  if (!confirm('确认归档当前签到记录并重置？')) return
+  const res = await fetch('/api/reset', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ classId: CLASS_ID })
+  })
   const data = await parseResponse(res)
-  if (data) { notify(data.message, data.ok); refreshStatus(); refreshSessions() }
+  if (!data) return
+  showToast(data.message, data.ok)
+  refreshStatus()
+  refreshSessions()
 })
 
-document.getElementById('clearRosterBtn').addEventListener('click', async () => {
-  if (!confirm('确认清空名单？此操作不可恢复！')) return
-  const res = await fetch('/api/clear-roster', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({classId:CLASS_ID})})
-  const data = await parseResponse(res)
-  if (data) { notify(data.message, data.ok); refreshStatus() }
+document.getElementById('importBtn').addEventListener('click', () => {
+  document.getElementById('importFile').click()
 })
-
-document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click())
 document.getElementById('importFile').addEventListener('change', async (e) => {
-  const file = e.target.files[0]; if (!file) return
-  const fd = new FormData(); fd.append('file', file); fd.append('classId', CLASS_ID)
-  notify('导入中...')
-  const res = await fetch('/api/import', {method:'POST', body:fd}); const data = await parseResponse(res)
+  const file = e.target.files[0]
+  if (!file) return
+  const fd = new FormData()
+  fd.append('file', file)
+  fd.append('classId', CLASS_ID)
+  showToast('导入中...', true)
+  const res = await fetch('/api/import', { method: 'POST', body: fd })
+  const data = await parseResponse(res)
   e.target.value = ''
-  if (data) { notify(data.message, data.ok); if (data.ok) refreshStatus() }
+  if (!data) return
+  showToast(data.message, data.ok)
+  if (data.ok) refreshStatus()
 })
 
-document.getElementById('modal').addEventListener('click', (e) => { if (e.target === modal) closeModal() })
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal() })
-
-refreshStatus(); refreshSessions(); setInterval(refreshStatus, 4000)
+refreshStatus()
+refreshSessions()
+setInterval(refreshStatus, 4000)
 </script>
 </body>
 </html>

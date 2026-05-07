@@ -27,8 +27,27 @@ export async function getClasses(teacherId) {
 }
 
 /**
+ * 查找第一个缺失的班级 ID（用于复用已删除的 ID）。
+ * @param {number} teacherId
+ * @returns {Promise<number>} 可用的 ID
+ */
+async function findNextAvailableId(teacherId) {
+  const classes = await prisma.class.findMany({
+    where: { teacherId },
+    select: { id: true },
+    orderBy: { id: 'asc' },
+  })
+  const ids = classes.map(c => c.id)
+  for (let i = 1; i <= ids.length; i++) {
+    if (ids[i - 1] !== i) return i
+  }
+  return ids.length + 1
+}
+
+/**
  * 创建班级，同时创建对应的 SignInConfig（startTime/endTime 为 null）。
  * 同一教师下班级名唯一（@@unique([teacherId, name])）。
+ * 会自动复用已删除的班级 ID。
  * @param {number} teacherId
  * @param {string} name
  * @returns {Promise<object>} 创建的 Class 记录
@@ -43,8 +62,11 @@ export async function createClass(teacherId, name) {
     throw err
   }
 
+  const nextId = await findNextAvailableId(teacherId)
+
   return prisma.class.create({
     data: {
+      id: nextId,
       name,
       teacherId,
       signInConfig: {

@@ -41,6 +41,17 @@ export async function createTeacher(username, password, isAdmin = false) {
     throw err
   }
 
+  // Check password uniqueness across all teachers
+  const allTeachers = await prisma.teacher.findMany({ select: { passwordHash: true } })
+  for (const teacher of allTeachers) {
+    const match = await bcrypt.compare(password, teacher.passwordHash)
+    if (match) {
+      const err = new Error('该密码已被其他教师使用')
+      err.code = 'PASSWORD_DUPLICATE'
+      throw err
+    }
+  }
+
   const passwordHash = await bcrypt.hash(password, 10)
   return prisma.teacher.create({
     data: { username, passwordHash, isAdmin },
@@ -61,6 +72,17 @@ export async function changePassword(teacherId, oldPassword, newPassword) {
   const match = await bcrypt.compare(oldPassword, teacher.passwordHash)
   if (!match) return { ok: false, message: '旧密码不正确' }
 
+  // Check password uniqueness
+  const allTeachers = await prisma.teacher.findMany({
+    where: { id: { not: teacherId } },
+    select: { passwordHash: true },
+  })
+  for (const other of allTeachers) {
+    if (await bcrypt.compare(newPassword, other.passwordHash)) {
+      return { ok: false, message: '该密码已被其他教师使用' }
+    }
+  }
+
   const passwordHash = await bcrypt.hash(newPassword, 10)
   await prisma.teacher.update({
     where: { id: teacherId },
@@ -79,6 +101,17 @@ export async function changePassword(teacherId, oldPassword, newPassword) {
 export async function resetTeacherPasswordByAdmin(targetTeacherId, newPassword) {
   const teacher = await prisma.teacher.findUnique({ where: { id: targetTeacherId } })
   if (!teacher) return { ok: false, message: '教师不存在' }
+
+  // Check password uniqueness
+  const allTeachers = await prisma.teacher.findMany({
+    where: { id: { not: targetTeacherId } },
+    select: { passwordHash: true },
+  })
+  for (const other of allTeachers) {
+    if (await bcrypt.compare(newPassword, other.passwordHash)) {
+      return { ok: false, message: '该密码已被其他教师使用' }
+    }
+  }
 
   const passwordHash = await bcrypt.hash(newPassword, 10)
   await prisma.teacher.update({

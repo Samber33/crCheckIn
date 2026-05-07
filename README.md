@@ -67,7 +67,7 @@ npm install
 
 ```env
 DATABASE_URL="file:./attendance.db"
-PORT=5000
+PORT=15123
 HOST=0.0.0.0
 SECRET_KEY="please-change-this-secret-key"
 AUTO_DB_DEPLOY=true

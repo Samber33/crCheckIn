@@ -11,20 +11,21 @@
   <link rel="stylesheet" href="/public/tailwind.min.css">
   <style>
     :root {
-      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      --font-mono: 'JetBrains Mono', monospace;
-      /* 品牌色别名 - 兼容 design-system.css */
-      --brand: var(--brand-600);
-      --brand-light: var(--brand-400);
-      --brand-dark: var(--brand-700);
-      /* 成功色别名 */
-      --success: var(--success-500);
-      --success-light: var(--success-100);
-      --success-dark: var(--success-700);
-      /* 错误色别名 */
-      --error: var(--error-500);
-      --error-light: var(--error-50);
-      --error-dark: var(--error-700);
+      --canvas: #faf9f5;
+      --surface-card: #efe9de;
+      --surface-dark: #181715;
+      --primary: #cc785c;
+      --primary-active: #a9583e;
+      --ink: #141413;
+      --body: #3d3d3a;
+      --muted: #6c6a64;
+      --muted-soft: #8e8b82;
+      --hairline: #e6dfd8;
+      --on-primary: #ffffff;
+      --on-dark: #faf9f5;
+      --success: #5db872;
+      --error: #c64545;
+      --warning: #d4a017;
     }
 
     * {
@@ -33,517 +34,331 @@
     }
 
     body {
-      font-family: var(--font-sans);
-      background: var(--slate-50);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+      background: var(--canvas);
+      color: var(--body);
       margin: 0;
     }
 
-    .container {
+    /* === Split Layout === */
+    .signin-page {
+      display: flex;
+      min-height: 100vh;
+    }
+    .signin-hero {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 64px 48px;
+      background: var(--surface-dark);
+      color: var(--on-dark);
       position: relative;
-      width: 100%;
-      max-width: 460px;
+      overflow: hidden;
     }
-
-    /* 头部徽章 */
-    .header-section {
-      text-align: center;
-      margin-bottom: 28px;
+    .signin-hero::before {
+      content: '';
+      position: absolute;
+      top: -40%;
+      right: -20%;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(204,120,92,.15), transparent 70%);
+      pointer-events: none;
     }
-
-    .brand-badge {
+    .signin-hero-title {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 42px;
+      font-weight: 400;
+      line-height: 1.15;
+      letter-spacing: -1px;
+      color: var(--on-dark);
+      margin-bottom: 16px;
+      position: relative;
+    }
+    .signin-hero-sub {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #a09d96;
+      max-width: 380px;
+      position: relative;
+    }
+    .signin-hero-badge {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 6px 14px;
-      background: #fff;
-      border: 1px solid var(--slate-200);
-      border-radius: 100px;
-      margin-bottom: 16px;
-      transition: all 0.12s ease;
-    }
-
-    .brand-badge:hover {
-      box-shadow: var(--shadow-sm);
-    }
-
-    .brand-badge-icon {
-      width: 18px;
-      height: 18px;
-      color: var(--brand);
-    }
-
-    .brand-badge span {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--slate-600);
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-    }
-
-    .header-section h1 {
-      font-size: 26px;
-      font-weight: 700;
-      color: var(--slate-900);
-      margin: 0 0 8px 0;
-      letter-spacing: -0.02em;
-    }
-
-    .header-section .subtitle {
-      font-size: 14px;
-      color: var(--slate-600);
-      font-family: var(--font-mono);
+      margin-top: 32px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.1);
+      color: #a09d96;
+      font-size: 13px;
       font-weight: 500;
-    }
-
-    .header-section .subtitle span {
-      color: var(--slate-900);
-      font-weight: 600;
-    }
-
-    /* 主卡片 */
-    .card {
-      background: #fff;
-      border-radius: 10px;
-      padding: 28px;
-      box-shadow: var(--shadow-md);
-      border: 1px solid var(--slate-200);
-    }
-
-    /* 表单样式 */
-    .form-group {
-      margin-bottom: 18px;
-    }
-
-    .form-label {
-      display: block;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--slate-600);
-      margin-bottom: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-
-    .input-wrapper {
       position: relative;
     }
-
-    .input-icon {
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 16px;
-      height: 16px;
-      color: var(--slate-400);
-      pointer-events: none;
-      transition: color 0.15s ease;
+    .signin-hero-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
     }
 
-    .form-input {
+    .signin-form-side {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 48px;
+      max-width: 560px;
+    }
+    .signin-form-wrapper {
       width: 100%;
-      padding: 11px 14px 11px 38px;
+      max-width: 460px;
+    }
+    .signin-form-header {
+      margin-bottom: 36px;
+    }
+    .signin-form-header h2 {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 28px;
+      font-weight: 400;
+      letter-spacing: -0.5px;
+      color: var(--ink);
+      margin: 0 0 8px 0;
+    }
+    .signin-form-header p {
       font-size: 14px;
-      font-family: var(--font-sans);
-      color: var(--slate-800);
-      background: var(--slate-50);
-      border: 1px solid var(--slate-200);
+      color: var(--muted);
+      margin: 0;
+    }
+
+    #suggestions {
+      max-height: 220px;
+      overflow-y: auto;
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      margin-top: 4px;
+      background: #fff;
+      border: 1px solid var(--hairline);
       border-radius: 8px;
-      transition: all 0.15s ease;
+      box-shadow: 0 8px 24px rgba(20,20,19,.1);
+      overflow: hidden;
+      display: none;
+    }
+    .field-group {
+      margin-bottom: 20px;
+      position: relative;
+    }
+    .field-label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink);
+    }
+    .field-input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--hairline);
+      font-size: 15px;
+      line-height: 1.5;
+      color: var(--ink);
+      background: var(--canvas);
+      transition: border-color .15s, box-shadow .15s;
       box-sizing: border-box;
     }
-
-    .form-input::placeholder {
-      color: var(--slate-400);
-    }
-
-    .form-input:hover {
-      background: #fff;
-      border-color: var(--slate-300);
-    }
-
-    .form-input:focus {
+    .field-input::placeholder { color: var(--muted-soft); }
+    .field-input:focus {
       outline: none;
-      background: #fff;
-      border-color: var(--brand-500);
-      box-shadow: 0 0 0 3px var(--brand-100);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(204,120,92,.15);
     }
-
-    .form-input:focus + .input-icon {
-      color: var(--brand);
-    }
-
-    /* 下拉建议 */
-    .suggestions {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      margin-top: 6px;
-      background: #fff;
-      border: 1px solid var(--slate-200);
+    .submit-btn {
+      width: 100%;
+      padding: 12px 20px;
+      border: none;
       border-radius: 8px;
-      box-shadow: var(--shadow-lg);
-      overflow: hidden;
-      z-index: 10;
-      max-height: 260px;
-      overflow-y: auto;
+      background: var(--primary);
+      color: var(--on-primary);
+      font-size: 15px;
+      font-weight: 500;
+      height: 48px;
+      cursor: pointer;
+      transition: background .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
-
-    .suggestion-item {
+    .submit-btn:hover { background: var(--primary-active); }
+    .submit-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .status-panel {
+      text-align: center;
+      padding: 32px 24px;
+      border-radius: 12px;
+      border: 1px solid #b7e4c7;
+      background: #f0fdf4;
+    }
+    .selected-chip {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 11px 12px;
-      cursor: pointer;
-      transition: background 0.12s;
-      border-bottom: 1px solid var(--slate-50);
-      width: 100%;
-      text-align: left;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: #fef3ec;
+      border: 1px solid #f5d0b5;
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: var(--primary-active);
+    }
+    .selected-chip button {
       background: none;
-    }
-
-    .suggestion-item:last-child {
-      border-bottom: none;
-    }
-
-    .suggestion-item:hover {
-      background: var(--slate-50);
-    }
-
-    .suggestion-item .main {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .suggestion-avatar {
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
-      background: linear-gradient(135deg, var(--brand-400) 0%, var(--brand-600) 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      font-weight: 600;
-      color: #fff;
-      flex-shrink: 0;
-    }
-
-    .suggestion-name {
-      font-weight: 500;
-      color: var(--slate-700);
-      font-size: 14px;
-    }
-
-    .suggestion-class {
-      font-size: 11px;
-      color: var(--slate-400);
-    }
-
-    .suggestion-chevron {
-      width: 14px;
-      height: 14px;
-      color: var(--slate-300);
-      opacity: 0;
-      transition: opacity 0.12s;
-    }
-
-    .suggestion-item:hover .suggestion-chevron {
-      opacity: 1;
-    }
-
-    .suggestion-empty {
-      padding: 20px 12px;
-      text-align: center;
-      color: var(--slate-400);
-      font-size: 13px;
-    }
-
-    /* 已选信息显示 */
-    .selected-info {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 12px;
-      background: var(--brand-50);
-      border: 1px solid var(--brand-200);
-      border-radius: 8px;
-      margin-bottom: 16px;
-    }
-
-    .selected-info-text {
-      font-size: 12px;
-      color: var(--slate-700);
-      font-weight: 500;
-    }
-
-    .selected-info-text strong {
-      color: var(--brand-700);
-    }
-
-    .btn-clear {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 4px 6px;
-      background: transparent;
       border: none;
-      color: var(--slate-400);
-      font-size: 11px;
+      color: var(--primary);
       cursor: pointer;
-      transition: color 0.12s;
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: background .15s;
     }
-
-    .btn-clear:hover {
-      color: var(--slate-600);
-    }
-
-    /* 提交按钮 */
-    .btn-submit {
-      width: 100%;
-      padding: 12px;
-      font-size: 14px;
-      font-weight: 600;
-      font-family: var(--font-sans);
-      color: #fff;
-      background: var(--brand-600);
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .btn-submit:hover {
-      background: var(--brand-700);
-      box-shadow: var(--shadow-md);
-    }
-
-    .btn-submit:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    /* 消息提示 */
-    .toast {
-      padding: 11px 14px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 500;
-      margin-top: 14px;
-      border: 1px solid transparent;
-    }
-
-    .toast-success {
-      background: var(--success-100);
-      color: var(--success-700);
-      border-color: var(--success-100);
-    }
-
-    .toast-error {
-      background: var(--error-50);
-      color: var(--error-700);
-      border-color: var(--error-100);
-    }
-
-    /* 已签到面板 */
-    .signed-panel {
-      text-align: center;
-      padding: 20px;
-    }
-
-    .signed-icon-wrapper {
-      width: 64px;
-      height: 64px;
-      margin: 0 auto 16px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--success-500) 0%, var(--success-700) 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: var(--shadow-md);
-    }
-
-    .signed-icon {
-      width: 32px;
-      height: 32px;
-      color: #fff;
-    }
-
-    .signed-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--slate-800);
-      margin: 0 0 6px 0;
-    }
-
-    .signed-text {
-      font-size: 13px;
-      color: var(--slate-500);
-      line-height: 1.5;
-    }
-
-    /* 信息收集提示 */
-    .info-notice {
+    .selected-chip button:hover { background: rgba(204,120,92,.1); }
+    .msg-box {
       margin-top: 16px;
-      padding: 14px;
-      background: var(--brand-50);
-      border: 1px solid var(--brand-200);
+      padding: 12px 14px;
       border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
     }
-
-    .info-notice-header {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-    }
-
-    .info-notice-icon {
-      width: 18px;
-      height: 18px;
-      color: var(--brand-600);
-      flex-shrink: 0;
-    }
-
-    .info-notice-content {
-      flex: 1;
-    }
-
-    .info-notice-title {
+    .signin-footer {
+      margin-top: 32px;
       font-size: 12px;
-      font-weight: 600;
-      color: var(--slate-700);
-      margin: 0 0 3px 0;
+      color: var(--muted-soft);
+      text-align: center;
     }
 
-    .info-notice-desc {
-      font-size: 11px;
-      color: var(--slate-500);
-      margin: 0 0 10px 0;
-    }
-
-    .info-notice-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--brand-600);
-      text-decoration: none;
-      padding: 6px 10px;
-      border-radius: 6px;
-      background: var(--brand-100);
-      transition: background 0.12s;
-    }
-
-    .info-notice-link:hover {
-      background: var(--brand-200);
-    }
-
-    .info-notice-link svg {
-      width: 12px;
-      height: 12px;
-    }
-
-    /* 响应式 */
-    @media (max-width: 520px) {
-      .card {
-        padding: 22px 18px;
+    /* === Responsive: stack on mobile === */
+    @media (max-width: 900px) {
+      .signin-page { flex-direction: column; }
+      .signin-hero {
+        padding: 40px 24px;
+        min-height: auto;
       }
-
-      .header-section h1 {
-        font-size: 20px;
+      .signin-hero-title { font-size: 28px; }
+      .signin-form-side {
+        max-width: 100%;
+        padding: 32px 24px;
+      }
+    }
       }
     }
   </style>
 </head>
-<body>
-  <div class="container">
-    <!-- 头部 -->
-    <div class="header-section">
-      <div class="brand-badge">
-        <svg class="brand-badge-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-        </svg>
-        <span>Attendance</span>
+  <div class="signin-page">
+
+    <!-- Left: Hero / Branding -->
+    <div class="signin-hero">
+      <div>
+        <h1 class="signin-hero-title">
+          {% if cls %}{{ cls.name }}{% else %}机房签到{% endif %}
+        </h1>
+        <p class="signin-hero-sub">
+          {% if cls %}
+          请输入你的姓名，从搜索列表中选择后提交签到。签到结果将记录到当前班级。
+          {% else %}
+          请输入你的姓名，从搜索列表中选择对应的班级后提交签到。系统将自动匹配你的信息。
+          {% endif %}
+        </p>
+        <div class="signin-hero-badge">
+          <span class="dot"></span>
+          <span>当前设备：{{ computer_name }}</span>
+        </div>
+        {% if cls %}
+        <div class="signin-hero-badge" style="margin-top: 12px;">
+          <span style="font-weight: 600; color: var(--on-dark);">{{ studentCount }}</span>
+          <span>名学生</span>
+        </div>
+        {% endif %}
+        {% if not cls %}
+        <div class="signin-hero-badge" style="margin-top: 12px;">
+          <span style="color: var(--warning);">!</span>
+          <span>未指定班级，将搜索全部学生</span>
+        </div>
+        {% endif %}
       </div>
-      <h1>{% if cls %}{{ cls.name }}{% else %}机房签到{% endif %}</h1>
-      <p class="subtitle">设备：<span>{{ computer_name }}</span></p>
     </div>
 
-    <!-- 主卡片 -->
-    <div class="card">
-      <!-- 已签到状态 -->
-      <div id="alreadySignedPanel" class="signed-panel hidden">
-        <div class="signed-icon-wrapper">
-          <svg class="signed-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-          </svg>
-        </div>
-        <h2 class="signed-title">签到成功</h2>
-        <p class="signed-text" id="alreadySignedText"></p>
-      </div>
+    <!-- Right: Form -->
+    <div class="signin-form-side">
+      <div class="signin-form-wrapper">
 
-      <!-- 信息收集提示 -->
-      <div id="infoCollectionPanel" class="info-notice hidden">
-        <div class="info-notice-header">
-          <svg class="info-notice-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-          </svg>
-          <div class="info-notice-content">
-            <p class="info-notice-title">需要提交信息</p>
-            <p class="info-notice-desc">老师要求提交相关信息，请点击下方按钮完成提交</p>
-            <a id="infoSubmitLink" href="#" class="info-notice-link">
-              去提交
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-              </svg>
-            </a>
-          </div>
+        <div class="signin-form-header">
+          <h2>提交签到</h2>
+          <p>输入姓名搜索，选择后点击提交</p>
         </div>
-      </div>
 
-      <!-- 签到表单 -->
-      <div id="signInForm">
-        <div class="form-group">
-          <label class="form-label">学生姓名</label>
-          <div class="input-wrapper">
-            <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+        <!-- 已签到状态 -->
+        <div id="alreadySignedPanel" class="status-panel hidden">
+          <div class="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4" style="background: #d1fae5;">
+            <svg class="w-7 h-7" style="color: var(--success);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
             </svg>
-            <input
-              id="nameInput"
-              type="text"
-              class="form-input"
-              placeholder="请输入姓名搜索..."
-              autocomplete="off"
-            />
-            <div id="suggestions" class="suggestions hidden"></div>
+          </div>
+          <p class="text-base font-medium" style="color: #047857;" id="alreadySignedText"></p>
+          <p class="text-sm mt-2" style="color: var(--muted);">本设备已完成签到，如需重新签到请联系老师</p>
+        </div>
+
+        <!-- 信息收集提示 -->
+        <div id="infoCollectionPanel" class="hidden" style="margin-top: 16px; padding: 14px; background: #fef3ec; border: 1px solid #f5d0b5; border-radius: 8px;">
+          <div style="display: flex; align-items: flex-start; gap: 10px;">
+            <svg style="width: 18px; height: 18px; color: var(--primary); flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div style="flex: 1;">
+              <p style="font-size: 12px; font-weight: 600; color: var(--ink); margin: 0 0 3px;">需要提交信息</p>
+              <p style="font-size: 11px; color: var(--muted); margin: 0 0 10px;">老师要求提交相关信息，请点击下方按钮完成提交</p>
+              <a id="infoSubmitLink" href="#" style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: var(--primary); text-decoration: none; padding: 6px 10px; border-radius: 6px; background: rgba(204,120,92,.1); transition: background .12s;" onmouseover="this.style.background='rgba(204,120,92,.2)'" onmouseout="this.style.background='rgba(204,120,92,.1)'">
+                去提交
+                <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+              </a>
+            </div>
           </div>
         </div>
 
-        <div id="selectedInfo" class="selected-info hidden">
-          <span class="selected-info-text" id="selectedText"></span>
-          <button id="clearSelection" class="btn-clear">
-            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        <!-- 签到表单 -->
+        <div id="signInForm">
+          <div class="field-group">
+            <label class="field-label">姓名</label>
+            <input id="nameInput" type="text" autocomplete="off" placeholder="输入姓名片段搜索..." class="field-input" />
+            <div id="suggestions"></div>
+          </div>
+
+          <div id="selectedInfo" class="selected-chip hidden">
+            <span id="selectedText"></span>
+            <button id="clearSelection">重新选择</button>
+          </div>
+
+          <button id="signinBtn" class="submit-btn">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
             </svg>
-            清除
+            提交签到
           </button>
+
+          <div id="msg" class="msg-box hidden"></div>
         </div>
 
-        <button id="signinBtn" class="btn-submit">
-          提交签到
-        </button>
+        <div class="signin-footer">
+          教师请输入密码登录管理端
+        </div>
 
-        <div id="msg" class="toast hidden"></div>
       </div>
     </div>
   </div>
@@ -601,7 +416,10 @@ async function checkInfoCollection() {
 }
 
 function setMessage(text, ok = false) {
-  msg.className = `toast ${ok ? 'toast-success' : 'toast-error'}`
+  msg.className = 'msg-box'
+  msg.style.background = ok ? '#f0fdf4' : '#fef2f2'
+  msg.style.color = ok ? '#047857' : '#c64545'
+  msg.style.border = ok ? '1px solid #b7e4c7' : '1px solid #f5c6cb'
   msg.textContent = text
   msg.classList.remove('hidden')
 }
@@ -614,7 +432,7 @@ function selectStudent(studentName, classId, className, homeClass, studentId, re
   const remarkBadge = remark ? `<span class="ml-2 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-amber-100 text-amber-700 border border-amber-200">${remark}</span>` : ''
   selectedText.innerHTML = `已选择：<strong>${studentName}</strong>（${homeLabel}${className}）${remarkBadge}`
   selectedInfo.classList.remove('hidden')
-  suggestions.classList.add('hidden')
+  suggestions.style.display = 'none'
   suggestions.innerHTML = ''
 }
 
@@ -628,45 +446,34 @@ document.getElementById('clearSelection').addEventListener('click', () => {
 
 async function fetchSuggestions() {
   const q = input.value.trim()
-  if (!q) { suggestions.classList.add('hidden'); suggestions.innerHTML = ''; return }
+  if (!q) { suggestions.style.display = 'none'; suggestions.innerHTML = ''; return }
   try {
     const url = '/api/students/match?q=' + encodeURIComponent(q) + (CLASS_ID ? '&classId=' + CLASS_ID : '')
     const res = await fetch(url)
     const data = await res.json()
     suggestions.innerHTML = ''
     if (!data.length) {
-      suggestions.innerHTML = '<div class="suggestion-empty">未找到匹配学生</div>'
-      suggestions.classList.remove('hidden')
+      const empty = document.createElement('div')
+      empty.style.cssText = 'padding: 14px; text-align: center; font-size: 14px; color: var(--muted-soft);'
+      empty.textContent = '未找到匹配学生'
+      suggestions.appendChild(empty)
+      suggestions.style.display = 'block'
       return
     }
     data.forEach(item => {
       const btn = document.createElement('button')
       btn.type = 'button'
-      btn.className = 'suggestion-item'
-      const initial = item.studentName.charAt(0).toUpperCase()
-      const homeLabel = item.homeClass ? item.homeClass + ' · ' : ''
+      btn.style.cssText = 'display: block; width: 100%; text-align: left; padding: 10px 14px; font-size: 14px; border: none; background: none; cursor: pointer; border-bottom: 1px solid var(--hairline); color: var(--body); transition: background .1s;'
+      btn.onmouseover = () => { btn.style.background = 'var(--canvas)' }
+      btn.onmouseout = () => { btn.style.background = '' }
       const remarkBadge = item.remark ? `<span class="ml-2 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-amber-100 text-amber-700 border border-amber-200">${item.remark}</span>` : ''
-      btn.innerHTML = `
-        <div class="main">
-          <div class="suggestion-avatar">${initial}</div>
-          <div>
-            <div class="suggestion-name flex items-center flex-wrap">
-              ${item.studentName}
-              ${remarkBadge}
-            </div>
-            <div class="suggestion-class">${homeLabel}${item.className}</div>
-          </div>
-        </div>
-        <svg class="suggestion-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-        </svg>
-      `
+      btn.innerHTML = `<span style="font-weight:500; color: var(--ink);">${item.studentName} ${remarkBadge}</span><span style="color: var(--muted-soft); margin-left: 4px; font-size: 13px;">${item.homeClass ? item.homeClass + ' · ' : ''}${item.className}</span>`
       btn.addEventListener('click', () => selectStudent(item.studentName, item.classId, item.className, item.homeClass, item.studentId, item.remark))
       suggestions.appendChild(btn)
     })
-    suggestions.classList.remove('hidden')
+    suggestions.style.display = 'block'
   } catch (e) {
-    suggestions.classList.add('hidden')
+    suggestions.style.display = 'none'
   }
 }
 
@@ -677,7 +484,7 @@ input.addEventListener('input', () => {
 })
 
 document.addEventListener('click', e => {
-  if (!suggestions.contains(e.target) && e.target !== input) suggestions.classList.add('hidden')
+  if (!suggestions.contains(e.target) && e.target !== input) suggestions.style.display = 'none'
 })
 
 const signinBtn = document.getElementById('signinBtn')
@@ -687,7 +494,7 @@ signinBtn.addEventListener('click', async () => {
   if (signinBtn.disabled) return
 
   signinBtn.disabled = true
-  signinBtn.textContent = '提交中…'
+  signinBtn.innerHTML = '<svg class="w-4 h-4" style="animation: spin 1s linear infinite;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> 提交中...'
 
   try {
     const loginRes = await fetch('/api/teacher-login', {
@@ -726,7 +533,7 @@ signinBtn.addEventListener('click', async () => {
     }
   } finally {
     signinBtn.disabled = false
-    signinBtn.textContent = '提交签到'
+    signinBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> 提交签到'
   }
 })
 
