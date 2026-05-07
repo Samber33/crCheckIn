@@ -104,7 +104,8 @@
       margin-bottom: 20px;
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 16px;
+      flex-wrap: wrap;
     }
     .banner-title {
       font-family: Georgia, 'Times New Roman', serif;
@@ -142,6 +143,39 @@
     }
     .banner-stat-value.accent { color: var(--primary); }
     .banner-stat-value.muted { color: #8e8b82; }
+    .signin-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 24px;
+      border-radius: 10px;
+      background: var(--primary);
+      color: var(--on-primary);
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 700;
+      transition: all .15s;
+      flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(204,120,92,.35);
+    }
+    .signin-badge:hover { background: var(--primary-active); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(204,120,92,.45); }
+    .signin-url {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 14px;
+      font-weight: 600;
+      background: rgba(255,255,255,.18);
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+    }
+    .signin-url .classid {
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: 1px;
+    }
 
     /* === Layout === */
     .page-layout {
@@ -170,72 +204,6 @@
       font-weight: 600;
       color: var(--ink);
       margin: 0;
-    }
-
-    /* === Entry Card === */
-    .entry-card {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      padding: 24px 28px;
-      background: var(--surface-dark);
-      color: var(--on-dark);
-      border-radius: 14px;
-      text-decoration: none;
-      transition: transform .15s, box-shadow .15s;
-      margin-bottom: 16px;
-      position: relative;
-      overflow: hidden;
-    }
-    .entry-card::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      right: -10%;
-      width: 200px;
-      height: 200px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(204,120,92,.2), transparent 70%);
-      pointer-events: none;
-    }
-    .entry-card:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(204,120,92,.25); }
-    .entry-icon {
-      width: 52px;
-      height: 52px;
-      border-radius: 14px;
-      background: var(--primary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      position: relative;
-    }
-    .entry-body { flex: 1; position: relative; }
-    .entry-title {
-      font-family: Georgia, serif;
-      font-size: 18px;
-      font-weight: 400;
-      color: var(--on-dark);
-      margin: 0 0 4px;
-      letter-spacing: -0.3px;
-    }
-    .entry-url {
-      font-size: 12px;
-      color: #a09d96;
-      margin: 0;
-    }
-    .entry-arrow {
-      flex-shrink: 0;
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      background: rgba(255,255,255,.08);
-      border: 1px solid rgba(255,255,255,.1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--on-dark);
-      position: relative;
     }
 
     /* === Roster === */
@@ -346,8 +314,181 @@
       border-radius: 8px;
     }
 
+    /* === Stats Panel === */
+    .stats-panel {
+      margin-bottom: 16px;
+    }
+    .stats-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .stats-table thead th {
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--hairline);
+      background: var(--canvas);
+      box-sizing: border-box;
+    }
+    .stats-table thead th.center { text-align: center; }
+    .stats-table tbody tr {
+      border-bottom: 1px solid var(--hairline);
+      transition: background .12s;
+    }
+    .stats-table tbody tr:hover { background: var(--surface-card); }
+    .stats-table tbody tr:last-child { border-bottom: none; }
+    .stats-table td {
+      padding: 10px 16px;
+      color: var(--body);
+      box-sizing: border-box;
+      text-align: left;
+    }
+    .stats-table td.name {
+      font-weight: 500;
+      color: var(--ink);
+    }
+    .stats-table td.muted {
+      font-size: 12px;
+      color: var(--muted-soft);
+    }
+    .stats-table td.center { text-align: center; }
+    .stats-table td.rate {
+      text-align: center;
+      font-weight: 600;
+      font-family: Georgia, serif;
+    }
+    .stats-table td.rate.high { color: var(--success); }
+    .stats-table td.rate.mid { color: var(--warning); }
+    .stats-table td.rate.low { color: var(--error); }
+    .stats-footer {
+      padding: 10px 16px;
+      font-size: 11px;
+      color: var(--muted-soft);
+      border-top: 1px solid var(--hairline);
+      background: var(--canvas);
+    }
+    .roster-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 8px;
+      padding: 16px;
+    }
+    .roster-item {
+      border: 1px solid var(--hairline);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: var(--canvas);
+      transition: border-color .12s, box-shadow .12s;
+    }
+    .roster-item:hover {
+      box-shadow: 0 2px 8px rgba(20,20,19,.05);
+    }
+    .roster-item.signed { border-color: #b7e4c7; background: #f0fdf4; }
+    .roster-item.dup { border-color: #f5c6cb; background: #fef2f2; }
+    .roster-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .roster-name-wrap {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .roster-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .roster-dot.signed { background: var(--success); }
+    .roster-dot.unsigned { background: var(--muted-soft); }
+    .roster-dot.dup { background: var(--error); }
+    .roster-student-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .roster-home-class {
+      font-size: 10px;
+      color: var(--muted-soft);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .roster-status {
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 6px;
+      border-radius: 9999px;
+      line-height: 1;
+    }
+    .roster-status.signed { color: #047857; background: #d1fae5; }
+    .roster-status.unsigned { color: var(--muted); background: var(--surface-card); }
+    .roster-status.dup { color: var(--error); background: #fecaca; }
+    .roster-meta {
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .roster-meta-text {
+      font-size: 10px;
+      color: var(--muted-soft);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
+    .roster-meta-text .ip { color: var(--muted); }
+    .roster-meta-text .time { color: #047857; }
+    .roster-meta-text.dup .ip,
+    .roster-meta-text.dup .time { color: var(--error); }
+    .roster-meta-text .sep { color: var(--hairline); margin: 0 3px; }
+    .roster-revoke {
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid #f5c6cb;
+      background: #fef2f2;
+      color: var(--error);
+      transition: background .12s;
+    }
+    .roster-revoke:hover { background: #fecaca; }
+    .roster-empty {
+      grid-column: 1 / -1;
+      padding: 24px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted-soft);
+      border: 1px dashed var(--hairline);
+      border-radius: 8px;
+    }
+
     /* === Sidebar === */
-    .sidebar { display: flex; flex-direction: column; gap: 16px; }
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: sticky;
+      top: 80px;
+      max-height: calc(100vh - 96px);
+      overflow-y: auto;
+    }
     .sidebar-card {
       background: #fff;
       border-radius: 10px;
@@ -551,16 +692,13 @@
     .toast.ok { background: #f0fdf4; color: #047857; border: 1px solid #b7e4c7; }
     .toast.err { background: #fef2f2; color: #c64545; border: 1px solid #f5c6cb; }
 
-    /* === Stats Panel === */
-    .stats-panel {
-      margin-bottom: 16px;
-    }
-
     /* === Responsive === */
     @media (max-width: 900px) {
       .page-layout { grid-template-columns: 1fr; }
       .compact-banner { flex-direction: column; gap: 12px; align-items: flex-start; }
       .banner-stats { margin-left: 0; }
+      .signin-badge { width: 100%; justify-content: center; }
+      .signin-url { display: none; }
     }
     @media (max-width: 640px) {
       .compact-banner { flex-direction: column; gap: 12px; align-items: flex-start; }
@@ -600,6 +738,10 @@
     <!-- Compact Banner -->
     <div class="compact-banner">
       <h1 class="banner-title">{{ cls.name }}</h1>
+      <a href="/student?classId={{ cls.id }}" class="signin-badge">
+        学生签到
+        <span class="signin-url">ID: <span class="classid">{{ cls.id }}</span></span>
+      </a>
       <div class="banner-stats">
         <div class="banner-stat">
           <p class="banner-stat-label">总人数</p>
@@ -628,7 +770,7 @@
             <p class="sidebar-card-title">课堂工具</p>
           </div>
           <div class="sidebar-card-body" style="display: flex; flex-direction: column; gap: 2px;">
-            <a href="/teacher/classes/{{ cls.id }}/seats" target="_blank" class="sidebar-link">
+            <a href="/teacher/classes/{{ cls.id }}/seats" class="sidebar-link">
               <span class="sidebar-link-icon" style="background: #fef3ec; color: var(--primary);">
                 <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
@@ -636,7 +778,7 @@
               </span>
               座位表
             </a>
-            <a href="/teacher/classes/{{ cls.id }}/students" target="_blank" class="sidebar-link">
+            <a href="/teacher/classes/{{ cls.id }}/students" class="sidebar-link">
               <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
                 <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -747,34 +889,6 @@
 
       <!-- Right: Main Content -->
       <div>
-        <!-- Entry Card -->
-        <a href="/student?classId={{ cls.id }}" target="_blank" class="entry-card">
-          <div class="entry-icon">
-            <svg style="width:24px;height:24px;color:var(--on-primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-          </div>
-          <div class="entry-body">
-            <p class="entry-title">学生签到入口</p>
-            <p class="entry-url">/student?classId={{ cls.id }} <span style="margin-left: 4px; color: #6c6a64;">（点击新标签打开）</span></p>
-          </div>
-          <div class="entry-arrow">
-            <svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-            </svg>
-          </div>
-        </a>
-
-        <!-- Stats Panel (hidden by default) -->
-        <div id="statsPanel" class="hidden card stats-panel">
-          <div class="card-header">
-            <p class="card-title">出勤统计</p>
-          </div>
-          <div id="statsContent" style="padding: 24px; text-align: center; font-size: 13px; color: var(--muted-soft);">加载中...</div>
-        </div>
-
-        <!-- Message -->
-        <div id="msg" class="hidden" style="margin-bottom: 12px; padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;"></div>
 
         <!-- Roster -->
         <div class="card" style="margin-bottom: 16px;">
@@ -788,6 +902,14 @@
           <div style="padding: 12px; background: var(--canvas);">
             <div id="rosterCompactGrid" class="roster-grid"></div>
           </div>
+        </div>
+
+        <!-- Stats Panel (hidden by default) -->
+        <div id="statsPanel" class="hidden card stats-panel">
+          <div class="card-header">
+            <p class="card-title">出勤统计</p>
+          </div>
+          <div id="statsContent" style="text-align: center; font-size: 13px; color: var(--muted-soft); padding: 24px;">加载中...</div>
         </div>
 
         <!-- Sessions -->
@@ -974,29 +1096,29 @@ async function loadStats() {
   if (!data.students || !data.students.length) {
     content.innerHTML = '<div style="padding: 24px; text-align: center; font-size: 13px; color: var(--muted-soft);">暂无历史批次数据</div>'; return
   }
-  content.innerHTML = `<div style="overflow-x: auto;">
-    <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
-      <thead><tr style="border-bottom: 1px solid var(--hairline);">
-        <th style="text-align: left; padding: 10px 16px; font-size: 11px; font-weight: 500; color: var(--muted-soft);">姓名</th>
-        <th style="text-align: left; padding: 10px 16px; font-size: 11px; font-weight: 500; color: var(--muted-soft);">行政班级</th>
-        <th style="text-align: center; padding: 10px 16px; font-size: 11px; font-weight: 500; color: var(--muted-soft);">签到</th>
-        <th style="text-align: center; padding: 10px 16px; font-size: 11px; font-weight: 500; color: var(--muted-soft);">缺勤</th>
-        <th style="text-align: center; padding: 10px 16px; font-size: 11px; font-weight: 500; color: var(--muted-soft);">出勤率</th>
-      </tr></thead>
-      <tbody>${data.students.map(s => {
-        const rate = parseFloat(s.rate)
-        const color = rate >= 80 ? 'var(--success)' : rate >= 60 ? 'var(--warning)' : 'var(--error)'
-        return `<tr style="border-bottom: 1px solid var(--hairline);" onmouseover="this.style.background='var(--canvas)'" onmouseout="this.style.background=''">
-          <td style="padding: 10px 16px; font-weight: 500; color: var(--ink);">${s.name}</td>
-          <td style="padding: 10px 16px; font-size: 12px; color: var(--muted-soft);">${formatHomeClass(s.homeClass)}</td>
-          <td style="padding: 10px 16px; text-align: center; color: var(--body);">${s.signedCount}</td>
-          <td style="padding: 10px 16px; text-align: center; color: var(--muted-soft);">${s.absentCount}</td>
-          <td style="padding: 10px 16px; text-align: center; font-weight: 500; color: ${color};">${s.rate}%</td>
-        </tr>`
-      }).join('')}</tbody>
-    </table>
-    <p style="padding: 10px 16px; font-size: 11px; color: var(--muted-soft); border-top: 1px solid var(--hairline);">共 ${data.totalSessions} 个历史批次</p>
-  </div>`
+  const rateClass = (rate) => {
+    const v = parseFloat(rate)
+    return v >= 80 ? 'high' : v >= 60 ? 'mid' : 'low'
+  }
+  content.innerHTML = `<table class="stats-table">
+    <thead><tr>
+      <th style="width:18%">姓名</th>
+      <th style="width:20%">行政班级</th>
+      <th class="center" style="width:14%">签到</th>
+      <th class="center" style="width:14%">缺勤</th>
+      <th class="center" style="width:34%">出勤率</th>
+    </tr></thead>
+    <tbody>${data.students.map(s => {
+      return `<tr>
+        <td class="name">${s.name}</td>
+        <td class="muted">${formatHomeClass(s.homeClass)}</td>
+        <td class="center">${s.signedCount}</td>
+        <td class="center muted">${s.absentCount}</td>
+        <td class="rate ${rateClass(s.rate)}">${s.rate}%</td>
+      </tr>`
+    }).join('')}</tbody>
+  </table>
+  <div class="stats-footer">共 ${data.totalSessions} 个历史批次</div>`
 }
 
 async function revokeRecord(recordId) {
