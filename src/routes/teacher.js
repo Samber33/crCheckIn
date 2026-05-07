@@ -3,6 +3,13 @@ import { isTeacherLoggedIn, teacherRequired, classOwnerRequired } from '../utils
 import { prisma } from '../plugins/db.js'
 import { getSessionDetailForTeacher } from '../services/attendance.js'
 
+// Set cache-control headers on all teacher-rendered pages
+function noCache(reply) {
+  reply.header('Cache-Control', 'no-cache, no-store, must-revalidate')
+  reply.header('Pragma', 'no-cache')
+  reply.header('Expires', '0')
+}
+
 export default async function teacherRoutes(app) {
   app.get('/teacher/login', async (request, reply) => {
     if (isTeacherLoggedIn(request)) {
@@ -29,6 +36,7 @@ export default async function teacherRoutes(app) {
     const teacherId = request.session.teacherId
     const classes = await getClasses(teacherId)
     const teacher = await prisma.teacher.findUnique({ where: { id: teacherId } })
+    noCache(reply)
     return reply.view('teacher/classes.html', {
       classes,
       teacher: { id: teacher.id, username: teacher.username, isAdmin: teacher.isAdmin },
@@ -40,6 +48,7 @@ export default async function teacherRoutes(app) {
     const teacherId = request.session.teacherId
     const isAdmin = request.session.isAdmin === true
     const cls = await prisma.class.findUnique({ where: { id: classId } })
+    noCache(reply)
     return reply.view('teacher/class.html', { cls, teacherId, isAdmin })
   })
 
@@ -53,6 +62,7 @@ export default async function teacherRoutes(app) {
       getSeatGridTeacher(classId),
     ])
     const signedCount = teacherGrid.flat().reduce((acc, cell) => acc + cell.students.length, 0)
+    noCache(reply)
     return reply.view('teacher/seat_view.html', {
       cls,
       classId,
@@ -85,6 +95,7 @@ export default async function teacherRoutes(app) {
     const { studentGrid, teacherGrid } = getSeatGridsFromArchivedRecords(session.records ?? [])
     const signedCount = teacherGrid.flat().reduce((acc, cell) => acc + cell.students.length, 0)
 
+    noCache(reply)
     return reply.view('teacher/seat_view.html', {
       cls: session.class,
       classId: session.classId,
@@ -115,6 +126,7 @@ export default async function teacherRoutes(app) {
         ? prisma.class.findMany({ orderBy: { name: 'asc' } })
         : prisma.class.findMany({ where: { teacherId }, orderBy: { name: 'asc' } }),
     ])
+    noCache(reply)
     return reply.view('teacher/students.html', { cls, students, classes: allClasses })
   })
 }

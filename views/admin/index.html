@@ -7,138 +7,437 @@
   <link rel="stylesheet" href="/public/tailwind.min.css">
   <style>
     :root {
-      --page-bg:#f6f8fc;
-      --card-bg:rgba(255,255,255,.78);
-      --card-border:rgba(15,23,42,.08);
-      --card-shadow:0 20px 52px rgba(15,23,42,.08);
-      --soft-shadow:0 10px 24px rgba(15,23,42,.05);
+      --canvas: #faf9f5;
+      --surface-card: #efe9de;
+      --surface-dark: #181715;
+      --primary: #cc785c;
+      --primary-active: #a9583e;
+      --ink: #141413;
+      --body: #3d3d3a;
+      --muted: #6c6a64;
+      --muted-soft: #8e8b82;
+      --hairline: #e6dfd8;
+      --on-primary: #ffffff;
+      --on-dark: #faf9f5;
+      --success: #5db872;
+      --error: #c64545;
+      --warning: #d4a017;
     }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
-      background:
-        radial-gradient(circle at top left, rgba(99,102,241,.10), transparent 26%),
-        radial-gradient(circle at top right, rgba(56,189,248,.10), transparent 24%),
-        linear-gradient(180deg, #fbfcfe 0%, var(--page-bg) 100%);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: var(--canvas);
+      color: var(--body);
+      margin: 0;
     }
-    .header-blur { background:rgba(255,255,255,.82); backdrop-filter:blur(18px); }
-    .topbar-shell { min-height:84px; padding:16px 0; }
+
+    /* === Header === */
+    .header-bar {
+      background: #fff;
+      border-bottom: 1px solid var(--hairline);
+      height: 64px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
     .nav-link {
-      display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;
-      color:#475569;font-size:14px;font-weight:500;transition:all .15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      transition: all .15s ease;
+      text-decoration: none;
     }
-    .nav-link:hover { background:rgba(255,255,255,.7); color:#0f172a; }
-    .nav-title { color:#0f172a;font-size:18px;font-weight:700;letter-spacing:.01em; }
+    .nav-link:hover { background: var(--surface-card); color: var(--ink); }
+    .page-title {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-weight: 400;
+      letter-spacing: -0.3px;
+      color: var(--ink);
+    }
     .nav-action {
-      display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:12px;
-      color:#475569;font-size:14px;font-weight:500;transition:all .15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 14px;
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      transition: all .15s ease;
+      border: none;
+      background: none;
+      cursor: pointer;
     }
-    .nav-action:hover { background:rgba(255,255,255,.72); color:#0f172a; }
+    .nav-action:hover { background: var(--surface-card); color: var(--ink); }
+
+    /* === Compact Banner === */
+    .compact-banner {
+      background: var(--surface-dark);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+    }
+    .banner-title {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--on-dark);
+      margin: 0;
+      letter-spacing: -0.3px;
+    }
+    .banner-sub {
+      font-size: 13px;
+      color: #a09d96;
+      margin: 4px 0 0;
+    }
+    .banner-stat {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.08);
+      font-size: 13px;
+      color: #a09d96;
+    }
+    .banner-stat strong {
+      font-family: Georgia, serif;
+      font-size: 18px;
+      font-weight: 400;
+      color: var(--on-dark);
+    }
+
+    /* === Two Column Layout === */
+    .page-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    /* === Card === */
     .card {
-      background:var(--card-bg); border-radius:20px; border:1px solid var(--card-border);
-      box-shadow:var(--card-shadow); backdrop-filter:blur(14px);
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid var(--hairline);
+      overflow: hidden;
     }
+    .card-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--hairline);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0;
+    }
+
+    /* === Teacher Item === */
+    .teacher-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--hairline);
+      transition: background .12s;
+    }
+    .teacher-item:last-child { border-bottom: none; }
+    .teacher-item:hover { background: var(--canvas); }
+    .teacher-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .teacher-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--surface-card);
+      border: 1px solid var(--hairline);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    .teacher-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink);
+    }
+    .teacher-meta {
+      font-size: 12px;
+      color: var(--muted-soft);
+      margin-top: 2px;
+    }
+    .teacher-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 500;
+      background: #fef3ec;
+      color: var(--primary-active);
+      border: 1px solid #f5d0b5;
+      margin-left: 8px;
+    }
+    .teacher-actions {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .teacher-action {
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      background: transparent;
+      transition: all .12s;
+      white-space: nowrap;
+    }
+
+    /* === Sidebar Card === */
+    .sidebar-card {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid var(--hairline);
+      overflow: hidden;
+    }
+    .sidebar-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--hairline);
+    }
+    .sidebar-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0;
+    }
+    .sidebar-body { padding: 16px 20px; }
+    .form-field {
+      margin-bottom: 12px;
+    }
+    .form-field label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .form-check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .form-check label {
+      font-size: 13px;
+      color: var(--body);
+    }
+
+    /* === Input === */
+    .input-field {
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--hairline);
+      font-size: 14px;
+      color: var(--ink);
+      background: var(--canvas);
+      transition: border-color .15s, box-shadow .15s;
+      box-sizing: border-box;
+    }
+    .input-field::placeholder { color: var(--muted-soft); }
+    .input-field:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(204,120,92,.15);
+    }
+
+    /* === Button === */
     .btn {
-      display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border-radius:12px;font-size:13px;font-weight:500;
-      transition:all .15s;cursor:pointer;text-decoration:none;box-shadow:var(--soft-shadow);border:none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all .15s;
+      cursor: pointer;
+      border: none;
+      text-decoration: none;
+      width: 100%;
     }
-    .btn-primary { background:linear-gradient(135deg,#6366f1,#5b6ee8); color:#fff; }
+    .btn-primary { background: var(--primary); color: var(--on-primary); }
+    .btn-primary:hover { background: var(--primary-active); }
+
+    /* === Toast === */
+    .toast {
+      position: fixed;
+      top: 80px;
+      right: 24px;
+      z-index: 50;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 8px 24px rgba(20,20,19,.12);
+      transform: translateX(120%);
+      transition: transform .25s ease;
+    }
+    .toast.show { transform: translateX(0); }
+    .toast.ok { background: #f0fdf4; color: #047857; border: 1px solid #b7e4c7; }
+    .toast.err { background: #fef2f2; color: #c64545; border: 1px solid #f5c6cb; }
+
+    /* === Error Banner === */
+    .error-banner {
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      background: #fef2f2;
+      border: 1px solid #f5c6cb;
+      color: var(--error);
+      margin-bottom: 16px;
+    }
+
+    /* === Empty === */
+    .empty-state {
+      padding: 32px 20px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted-soft);
+    }
+
+    /* === Responsive === */
+    @media (max-width: 900px) {
+      .page-layout { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
-<body class="min-h-screen">
+<body>
 
-  <!-- 顶栏 -->
-  <header class="header-blur border-b border-white/60 sticky top-0 z-20">
-    <div class="max-w-3xl mx-auto px-4 topbar-shell flex items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
+  <!-- Header -->
+  <header class="header-bar">
+    <div style="padding: 0 24px; height: 100%; display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 12px;">
         <a href="/teacher/classes" class="nav-link">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
           </svg>
           教师端
         </a>
-        <span class="text-slate-300">/</span>
-        <span class="nav-title">管理员面板</span>
+        <span style="color: var(--hairline);">|</span>
+        <span class="page-title text-lg">管理员面板</span>
       </div>
-      <form method="post" action="/teacher/logout">
+      <form method="post" action="/teacher/logout" style="display: inline;">
         <button class="nav-action" type="submit">退出</button>
       </form>
     </div>
   </header>
 
-  <main class="max-w-3xl mx-auto px-4 py-8 space-y-6">
+  <main style="max-width: 1300px; margin: 0 auto; padding: 20px 24px 48px;">
 
-    <!-- 错误提示（从 URL query 参数读取） -->
-    <div id="errorBanner" class="hidden px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-600"></div>
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
 
-    <!-- 通知 -->
-    <div id="msg" class="hidden px-4 py-3 rounded-xl text-sm font-medium"></div>
-
-    <!-- 教师列表 -->
-    <div class="card overflow-hidden">
-      <div class="px-5 py-4 border-b border-slate-50 flex items-center justify-between">
-        <p class="text-sm font-medium text-slate-700">教师账号</p>
-        <span class="text-xs text-slate-400">{{ teachers | length }} 个账号</span>
+    <!-- Compact Banner -->
+    <div class="compact-banner">
+      <h1 class="banner-title">管理员面板</h1>
+      <p class="banner-sub">管理教师账号，创建新账号或重置密码</p>
+      <div class="banner-stat">
+        <strong>{{ teachers | length }}</strong>
+        <span>个教师账号</span>
       </div>
-
-      <ul class="divide-y divide-slate-50">
-        {% for t in teachers %}
-        <li class="flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition">
-          <div class="flex items-center gap-3 min-w-0">
-            <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
-              <span class="text-xs font-medium text-slate-600">{{ t.username[0] | upper }}</span>
-            </div>
-            <div class="min-w-0">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-medium text-slate-800">{{ t.username }}</span>
-                {% if t.isAdmin %}
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-100">管理员</span>
-                {% endif %}
-              </div>
-              <p class="text-xs text-slate-400 mt-0.5">{{ t.classCount }} 个班级</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-2 ml-4">
-            <button onclick="resetTeacherPassword({{ t.id }}, '{{ t.username }}')"
-              class="text-xs px-3 py-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 transition flex-shrink-0">改密</button>
-            {% if not t.isAdmin %}
-            <button onclick="deleteTeacher({{ t.id }}, '{{ t.username }}')"
-              class="text-xs px-3 py-1.5 rounded-lg text-red-500 hover:bg-red-50 transition flex-shrink-0">删除</button>
-            {% endif %}
-          </div>
-        </li>
-        {% endfor %}
-      </ul>
     </div>
 
-    <!-- 创建教师 -->
-    <div class="card p-5">
-      <p class="text-sm font-medium text-slate-700 mb-4">创建教师账号</p>
-      <div class="space-y-3">
-        <div>
-          <label class="block text-xs text-slate-500 mb-1">用户名</label>
-          <input type="text" id="newUsername"
-            class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800
-                   focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent transition text-sm" />
+    <!-- Error Banner -->
+    <div id="errorBanner" class="hidden error-banner"></div>
+
+    <!-- Two Column Layout -->
+    <div class="page-layout">
+
+      <!-- Left: Create Teacher -->
+      <div class="sidebar-card">
+        <div class="sidebar-header">
+          <p class="sidebar-title">创建教师账号</p>
         </div>
-        <div>
-          <label class="block text-xs text-slate-500 mb-1">密码</label>
-          <input type="password" id="newPassword"
-            class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800
-                   focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent transition text-sm" />
+        <div class="sidebar-body">
+          <div class="form-field">
+            <label for="newUsername">用户名</label>
+            <input type="text" id="newUsername" class="input-field" placeholder="输入用户名" />
+          </div>
+          <div class="form-field">
+            <label for="newPassword">密码</label>
+            <input type="password" id="newPassword" class="input-field" placeholder="输入密码" />
+          </div>
+          <div class="form-check">
+            <input type="checkbox" id="isAdminCheck"
+              style="width: 16px; height: 16px; border-radius: 4px; accent-color: var(--primary);" />
+            <label for="isAdminCheck">设为管理员</label>
+          </div>
+          <button id="createTeacherBtn" class="btn btn-primary">创建账号</button>
         </div>
-        <div class="flex items-center gap-2">
-          <input type="checkbox" id="isAdminCheck"
-            class="w-4 h-4 rounded border-slate-300 text-slate-800 focus:ring-slate-800" />
-          <label for="isAdminCheck" class="text-sm text-slate-600">设为管理员</label>
-        </div>
-        <button id="createTeacherBtn" class="btn btn-primary w-full py-2.5">创建账号</button>
       </div>
+
+      <!-- Right: Teacher List -->
+      <div class="card">
+        <div class="card-header">
+          <p class="card-title">教师账号</p>
+          <span style="font-size: 12px; color: var(--muted-soft); background: var(--surface-card); padding: 3px 10px; border-radius: 9999px;">{{ teachers | length }} 个</span>
+        </div>
+
+        {% if teachers.length === 0 %}
+        <div class="empty-state">暂无教师账号</div>
+        {% else %}
+        {% for t in teachers %}
+        <div class="teacher-item">
+          <div class="teacher-info">
+            <div class="teacher-avatar">{{ t.username[0] | upper }}</div>
+            <div style="min-width: 0;">
+              <div style="display: flex; align-items: center;">
+                <span class="teacher-name">{{ t.username }}</span>
+                {% if t.isAdmin %}
+                <span class="teacher-badge">管理员</span>
+                {% endif %}
+              </div>
+              <p class="teacher-meta">{{ t.classCount }} 个班级</p>
+            </div>
+          </div>
+          <div class="teacher-actions">
+            <button onclick="resetTeacherPassword({{ t.id }}, '{{ t.username }}')"
+              class="teacher-action" style="color: var(--primary);" onmouseover="this.style.background='#fef3ec'" onmouseout="this.style.background=''">改密</button>
+            {% if not t.isAdmin %}
+            <button onclick="deleteTeacher({{ t.id }}, '{{ t.username }}')"
+              class="teacher-action" style="color: var(--error);" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background=''">删除</button>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+      </div>
+
     </div>
 
   </main>
 
 <script>
-// 读取 URL query 参数中的 error
 const params = new URLSearchParams(window.location.search)
 const error = params.get('error')
 if (error) {
@@ -147,21 +446,18 @@ if (error) {
   banner.classList.remove('hidden')
 }
 
-const msg = document.getElementById('msg')
-
-function notify(text, ok = true) {
-  msg.className = `px-4 py-3 rounded-xl text-sm font-medium ${ok
-    ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-    : 'bg-red-50 text-red-600 border border-red-100'}`
-  msg.textContent = text
-  msg.classList.remove('hidden')
+function showToast(text, ok = true) {
+  const t = document.getElementById('toast')
+  t.textContent = text
+  t.className = `toast ${ok ? 'ok' : 'err'} show`
+  setTimeout(() => t.classList.remove('show'), 3000)
 }
 
 document.getElementById('createTeacherBtn').addEventListener('click', async () => {
   const username = document.getElementById('newUsername').value.trim()
   const password = document.getElementById('newPassword').value
   const isAdmin = document.getElementById('isAdminCheck').checked
-  if (!username || !password) { notify('请填写用户名和密码', false); return }
+  if (!username || !password) { showToast('请填写用户名和密码', false); return }
   const res = await fetch('/admin/teachers', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -172,7 +468,7 @@ document.getElementById('createTeacherBtn').addEventListener('click', async () =
   if (data.ok) {
     window.location.reload()
   } else {
-    notify(data.message || '创建失败', false)
+    showToast(data.message || '创建失败', false)
   }
 })
 
@@ -184,7 +480,7 @@ async function deleteTeacher(id, username) {
   if (data.ok) {
     window.location.reload()
   } else {
-    notify(data.message || '删除失败', false)
+    showToast(data.message || '删除失败', false)
   }
 }
 
@@ -193,7 +489,7 @@ async function resetTeacherPassword(id, username) {
   if (password == null) return
   const val = password.trim()
   if (!val) {
-    notify('新密码不能为空', false)
+    showToast('新密码不能为空', false)
     return
   }
   const res = await fetch(`/admin/teachers/${id}/password`, {
@@ -204,9 +500,9 @@ async function resetTeacherPassword(id, username) {
   if (res.status === 401) { window.location.href = '/student'; return }
   const data = await res.json()
   if (data.ok) {
-    notify(`已重置 ${username} 的密码`, true)
+    showToast(`已重置 ${username} 的密码`)
   } else {
-    notify(data.message || '重置密码失败', false)
+    showToast(data.message || '重置密码失败', false)
   }
 }
 </script>

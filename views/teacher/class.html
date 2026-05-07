@@ -7,433 +7,779 @@
   <link rel="stylesheet" href="/public/tailwind.min.css">
   <style>
     :root {
-      --page-bg:#f6f8fc;
-      --card-bg:rgba(255,255,255,.78);
-      --card-border:rgba(15,23,42,.08);
-      --card-shadow:0 20px 52px rgba(15,23,42,.08);
-      --soft-shadow:0 10px 24px rgba(15,23,42,.05);
-      --text-main:#0f172a;
-      --text-soft:#64748b;
-      --accent:#4f46e5;
-      --accent-2:#2563eb;
-      --accent-soft:#eef2ff;
+      --canvas: #faf9f5;
+      --surface-card: #efe9de;
+      --surface-dark: #181715;
+      --primary: #cc785c;
+      --primary-active: #a9583e;
+      --ink: #141413;
+      --body: #3d3d3a;
+      --muted: #6c6a64;
+      --muted-soft: #8e8b82;
+      --hairline: #e6dfd8;
+      --on-primary: #ffffff;
+      --on-dark: #faf9f5;
+      --success: #5db872;
+      --error: #c64545;
+      --warning: #d4a017;
     }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-      color:var(--text-main);
-      background:
-        radial-gradient(circle at top left, rgba(99,102,241,.10), transparent 26%),
-        radial-gradient(circle at top right, rgba(56,189,248,.10), transparent 24%),
-        linear-gradient(180deg, #fbfcfe 0%, var(--page-bg) 100%);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: var(--canvas);
+      color: var(--body);
+      margin: 0;
     }
-    .fade { animation: fadeIn .15s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
-    .progress-bar { transition: width 0.4s ease; }
-    .card {
-      background:var(--card-bg);
-      border-radius:20px;
-      border:1px solid var(--card-border);
-      box-shadow:var(--card-shadow);
-      backdrop-filter:blur(14px);
+
+    /* === Header === */
+    .header-bar {
+      background: #fff;
+      border-bottom: 1px solid var(--hairline);
+      height: 64px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
     }
-    .btn {
-      display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:12px;font-size:13px;font-weight:500;
-      transition:all .15s;cursor:pointer;border:none;text-decoration:none;box-shadow:var(--soft-shadow);
-    }
-    .btn-primary { background:linear-gradient(135deg,#6366f1,#5b6ee8);color:#fff; }
-    .btn-primary:hover { transform:translateY(-1px); box-shadow:0 14px 28px rgba(99,102,241,.18); }
-    .btn-gray { background:rgba(255,255,255,.82);color:#334155;border:1px solid rgba(148,163,184,.18); }
-    .btn-gray:hover { background:#fff; }
-    .btn-danger { background:#fff;color:#dc2626;border:1px solid rgba(248,113,113,.26); }
-    .btn-danger:hover { background:#fff5f5; }
-    .section-label { font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;margin-bottom:10px; }
-    .entry-card {
-      position:relative;display:flex;align-items:center;justify-content:space-between;padding:18px 22px;
-      background:linear-gradient(135deg,#312e81 0%,#4f46e5 42%,#2563eb 100%);
-      color:#fff;border-radius:20px;text-decoration:none;transition:transform .18s ease, box-shadow .18s ease;
-      box-shadow:0 22px 42px rgba(59,130,246,.18);overflow:hidden;
-    }
-    .entry-card::after {
-      content:'';position:absolute;inset:0;
-      background:linear-gradient(120deg,rgba(255,255,255,.13),transparent 34%,transparent 70%,rgba(255,255,255,.10));
-      pointer-events:none;
-    }
-    .entry-card:hover { transform:translateY(-1px); box-shadow:0 26px 48px rgba(79,70,229,.22); }
-    .divider { height:1px;background:linear-gradient(90deg,transparent,rgba(148,163,184,.2),transparent);margin:8px 0; }
-    .roster-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px; }
-    .roster-list-item {
-      border:1px solid rgba(148,163,184,.16);border-radius:16px;padding:12px;background:rgba(255,255,255,.88);
-      transition:transform .14s ease, background .14s ease, border-color .14s ease, box-shadow .14s ease;
-      box-shadow:0 10px 24px rgba(15,23,42,.04);
-    }
-    .roster-list-item:hover { background:#fff; transform:translateY(-1px); box-shadow:0 16px 30px rgba(15,23,42,.06); }
-    .roster-list-item.signed { border-color:rgba(52,211,153,.26); background:linear-gradient(180deg, rgba(236,253,245,.96), rgba(240,253,244,.78)); }
-    .roster-list-item.unsigned { border-color:rgba(148,163,184,.18); background:rgba(255,255,255,.82); }
-    .roster-list-item.dup { border-color:rgba(239,68,68,.24); background:linear-gradient(180deg, rgba(255,241,242,.98), rgba(255,255,255,.92)); }
-    .roster-dot { width:8px;height:8px;border-radius:9999px;flex-shrink:0; box-shadow:0 0 0 4px rgba(255,255,255,.7); }
-    .roster-dot.signed { background:#10b981; }
-    .roster-dot.unsigned { background:#cbd5e1; }
-    .roster-dot.dup { background:#ef4444; }
-    .roster-line { display:flex;align-items:flex-start;justify-content:space-between;gap:10px; }
-    .roster-name { min-width:0; display:flex;align-items:center;gap:8px; }
-    .roster-student { min-width:0; display:flex;align-items:baseline;gap:6px; }
-    .roster-student strong { display:block;font-size:14px;line-height:1.2;font-weight:600;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-    .roster-student span { display:block;font-size:11px;line-height:1;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0; }
-    .roster-status {
-      flex-shrink:0;display:inline-flex;align-items:center;padding:4px 8px;border-radius:9999px;
-      font-size:11px;line-height:1;font-weight:600;border:1px solid transparent;
-    }
-    .roster-status.signed { color:#047857;background:rgba(209,250,229,.88);border-color:rgba(16,185,129,.16); }
-    .roster-status.unsigned { color:#64748b;background:rgba(241,245,249,.92);border-color:rgba(203,213,225,.5); }
-    .roster-status.dup { color:#dc2626;background:rgba(254,226,226,.92);border-color:rgba(248,113,113,.24); }
-    .roster-meta { margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:10px; }
-    .roster-meta-text {
-      min-width:0;display:inline-flex;align-items:center;padding:5px 8px;border-radius:10px;
-      font-size:11px;line-height:1.1;color:#64748b;background:rgba(248,250,252,.96);border:1px solid rgba(226,232,240,.9);
-      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-    }
-    .roster-meta-text.signed { color:#334155; background:rgba(255,255,255,.72); }
-    .roster-meta-text.dup { color:#b91c1c; background:rgba(254,242,242,.96); border-color:rgba(248,113,113,.24); }
-    .roster-action {
-      flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;min-width:42px;height:28px;
-      padding:0 8px;border-radius:9px;font-size:11px;line-height:1;font-weight:500;
-    }
-    .roster-action.revoke { color:#dc2626;background:rgba(255,255,255,.86);border:1px solid rgba(248,113,113,.24); }
-    .roster-action.empty { opacity:0;pointer-events:none;border:1px solid transparent; }
-    .subtle-panel { background:linear-gradient(180deg,rgba(248,250,252,.62),rgba(255,255,255,.54)); }
-    .header-blur { background:rgba(255,255,255,.82); backdrop-filter:blur(18px); }
-    .topbar-shell { min-height:84px; padding:16px 0; }
     .nav-link {
-      display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;
-      color:#475569;font-size:14px;font-weight:500;transition:all .15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      transition: all .15s ease;
+      text-decoration: none;
     }
-    .nav-link:hover { background:rgba(255,255,255,.7); color:#0f172a; }
-    .nav-link svg { color:#64748b; }
-    .nav-title { color:#0f172a;font-size:17px;font-weight:700;letter-spacing:.01em; }
+    .nav-link:hover { background: var(--surface-card); color: var(--ink); }
+    .page-title {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-weight: 400;
+      letter-spacing: -0.3px;
+      color: var(--ink);
+    }
     .nav-action {
-      display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:12px;
-      color:#475569;font-size:14px;font-weight:500;transition:all .15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 14px;
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      transition: all .15s ease;
+      border: none;
+      background: none;
+      cursor: pointer;
+      text-decoration: none;
     }
-    .nav-action:hover { background:rgba(255,255,255,.72); color:#0f172a; }
-    .nav-divider { color:#cbd5e1; }
-    .metric-card { position:relative; overflow:hidden; }
-    .metric-card::before {
-      content:''; position:absolute; inset:auto auto 0 0; width:100%; height:3px;
-      background:linear-gradient(90deg,rgba(31,122,91,.88),rgba(31,122,91,.14));
+    .nav-action:hover { background: var(--surface-card); color: var(--ink); }
+
+    /* === Compact Banner === */
+    .compact-banner {
+      background: var(--surface-dark);
+      border-radius: 12px;
+      padding: 16px 24px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
     }
-    .metric-card.soft::before { background:linear-gradient(90deg,rgba(148,163,184,.48),rgba(148,163,184,.08)); }
-    .roster-meta-piece.ip { color:#64748b; }
-    .roster-meta-piece.time { color:#0f766e; }
-    .roster-meta-text.unsigned .roster-meta-piece.ip,
-    .roster-meta-text.unsigned .roster-meta-piece.time { color:#94a3b8; }
-    .roster-meta-text.dup .roster-meta-piece.ip,
-    .roster-meta-text.dup .roster-meta-piece.time { color:#b91c1c; }
-    .roster-meta-slash { color:#cbd5e1; margin:0 4px; }
-    .window-card { position:relative; overflow:hidden; }
-    .window-card::after {
-      content:''; position:absolute; inset:0 0 auto 0; height:1px;
-      background:linear-gradient(90deg, rgba(99,102,241,.18), rgba(56,189,248,.14), transparent);
-      pointer-events:none;
+    .banner-title {
+      font-family: Georgia, serif;
+      font-size: 20px;
+      font-weight: 400;
+      color: var(--on-dark);
+      margin: 0;
+      letter-spacing: -0.3px;
     }
-    .window-trigger {
-      width:100%; display:flex; align-items:center; justify-content:space-between; gap:16px;
-      padding:20px 24px; text-align:left; transition:background .15s ease;
+    .banner-stats {
+      display: flex;
+      gap: 20px;
+      margin-left: auto;
     }
-    .window-trigger:hover { background:rgba(248,250,252,.66); }
-    .window-info { display:flex; align-items:flex-start; gap:14px; min-width:0; }
-    .window-icon {
-      width:42px; height:42px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
-      border-radius:14px; color:#4f46e5; background:linear-gradient(180deg, rgba(238,242,255,.96), rgba(239,246,255,.88));
-      border:1px solid rgba(99,102,241,.12);
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.8);
+    .banner-stat {
+      text-align: center;
     }
-    .window-copy { min-width:0; }
-    .window-copy strong { display:block; font-size:15px; line-height:1.2; font-weight:600; color:#0f172a; }
-    .window-copy p { margin-top:6px; font-size:12px; line-height:1.5; color:#64748b; }
-    .window-summary {
-      display:inline-flex; align-items:center; gap:8px; flex-shrink:0;
-      padding:10px 12px; border-radius:14px; background:rgba(248,250,252,.9); border:1px solid rgba(226,232,240,.95);
-      color:#475569;
+    .banner-stat-label {
+      font-size: 11px;
+      color: #8e8b82;
+      font-weight: 500;
     }
-    .window-summary span { font-size:12px; color:#94a3b8; }
-    .window-summary strong { font-size:13px; font-weight:600; color:#334155; }
-    .window-chevron { width:16px; height:16px; color:#94a3b8; transition:transform .18s ease; }
-    .window-body { padding:0 24px 22px; border-top:1px solid rgba(241,245,249,.9); }
-    .window-fields { display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end; padding-top:18px; }
-    .window-field label { display:block; font-size:12px; color:#94a3b8; margin-bottom:6px; }
-    .window-help { margin-top:14px; font-size:12px; color:#94a3b8; }
+    .banner-stat-value {
+      font-family: Georgia, serif;
+      font-size: 24px;
+      color: var(--on-dark);
+      line-height: 1.2;
+    }
+    .banner-stat-value.accent { color: var(--primary); }
+    .banner-stat-value.muted { color: #6c6a64; }
+
+    /* === Layout === */
+    .page-layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    /* === Card === */
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid var(--hairline);
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--hairline);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0;
+    }
+
+    /* === Entry Card === */
+    .entry-card {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 24px 28px;
+      background: var(--surface-dark);
+      color: var(--on-dark);
+      border-radius: 14px;
+      text-decoration: none;
+      transition: transform .15s, box-shadow .15s;
+      margin-bottom: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+    .entry-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -10%;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(204,120,92,.2), transparent 70%);
+      pointer-events: none;
+    }
+    .entry-card:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(204,120,92,.25); }
+    .entry-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .entry-body { flex: 1; position: relative; }
+    .entry-title {
+      font-family: Georgia, serif;
+      font-size: 18px;
+      font-weight: 400;
+      color: var(--on-dark);
+      margin: 0 0 4px;
+      letter-spacing: -0.3px;
+    }
+    .entry-url {
+      font-size: 12px;
+      color: #a09d96;
+      margin: 0;
+    }
+    .entry-arrow {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--on-dark);
+      position: relative;
+    }
+
+    /* === Roster === */
+    .roster-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 8px;
+      padding: 16px;
+    }
+    .roster-item {
+      border: 1px solid var(--hairline);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: var(--canvas);
+      transition: border-color .12s, box-shadow .12s;
+    }
+    .roster-item:hover {
+      box-shadow: 0 2px 8px rgba(20,20,19,.05);
+    }
+    .roster-item.signed { border-color: #b7e4c7; background: #f0fdf4; }
+    .roster-item.dup { border-color: #f5c6cb; background: #fef2f2; }
+    .roster-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .roster-name-wrap {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .roster-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .roster-dot.signed { background: var(--success); }
+    .roster-dot.unsigned { background: var(--muted-soft); }
+    .roster-dot.dup { background: var(--error); }
+    .roster-student-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .roster-home-class {
+      font-size: 10px;
+      color: var(--muted-soft);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .roster-status {
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 6px;
+      border-radius: 9999px;
+      line-height: 1;
+    }
+    .roster-status.signed { color: #047857; background: #d1fae5; }
+    .roster-status.unsigned { color: var(--muted); background: var(--surface-card); }
+    .roster-status.dup { color: var(--error); background: #fecaca; }
+    .roster-meta {
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .roster-meta-text {
+      font-size: 10px;
+      color: var(--muted-soft);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
+    .roster-meta-text .ip { color: var(--muted); }
+    .roster-meta-text .time { color: #047857; }
+    .roster-meta-text.dup .ip,
+    .roster-meta-text.dup .time { color: var(--error); }
+    .roster-meta-text .sep { color: var(--hairline); margin: 0 3px; }
+    .roster-revoke {
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid #f5c6cb;
+      background: #fef2f2;
+      color: var(--error);
+      transition: background .12s;
+    }
+    .roster-revoke:hover { background: #fecaca; }
+    .roster-empty {
+      grid-column: 1 / -1;
+      padding: 24px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted-soft);
+      border: 1px dashed var(--hairline);
+      border-radius: 8px;
+    }
+
+    /* === Sidebar === */
+    .sidebar { display: flex; flex-direction: column; gap: 16px; }
+    .sidebar-card {
+      background: #fff;
+      border-radius: 10px;
+      border: 1px solid var(--hairline);
+      overflow: hidden;
+    }
+    .sidebar-card-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--hairline);
+    }
+    .sidebar-card-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0;
+      letter-spacing: 0.3px;
+    }
+    .sidebar-card-body { padding: 12px 16px; }
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--body);
+      transition: background .12s;
+    }
+    .sidebar-link:hover { background: var(--canvas); }
+    .sidebar-link-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .sidebar-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--body);
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+      transition: background .12s;
+    }
+    .sidebar-btn:hover { background: var(--canvas); }
+    .sidebar-btn.danger { color: var(--error); }
+    .sidebar-btn.danger:hover { background: #fef2f2; }
+    .sidebar-divider { height: 1px; background: var(--hairline); margin: 4px 0; }
+    .sidebar-help {
+      font-size: 11px;
+      color: var(--muted-soft);
+      line-height: 1.5;
+      margin-top: 8px;
+    }
+
+    /* === Time Window === */
+    .window-status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: var(--canvas);
+      border: 1px solid var(--hairline);
+      margin-bottom: 10px;
+    }
+    .window-status-label { font-size: 11px; color: var(--muted-soft); }
+    .window-status-value { font-size: 12px; font-weight: 500; color: var(--body); }
+    .window-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--primary);
+      background: none;
+      border: 1px solid #f5d0b5;
+      cursor: pointer;
+      transition: background .12s;
+    }
+    .window-toggle:hover { background: #fef3ec; }
+    .window-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .window-field label {
+      display: block;
+      font-size: 11px;
+      color: var(--muted-soft);
+      margin-bottom: 4px;
+    }
+
+    /* === Sessions === */
+    .session-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--hairline);
+      transition: background .12s;
+    }
+    .session-item:last-child { border-bottom: none; }
+    .session-item:hover { background: var(--canvas); }
+    .session-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .session-label { font-size: 13px; font-weight: 500; color: var(--body); }
+    .session-count { font-size: 11px; color: var(--muted-soft); margin-top: 2px; }
+    .session-actions {
+      display: flex;
+      gap: 4px;
+    }
+    .session-action {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      background: none;
+      transition: background .12s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    /* === Input === */
+    .input-field {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--hairline);
+      font-size: 13px;
+      color: var(--ink);
+      background: var(--canvas);
+      transition: border-color .15s, box-shadow .15s;
+      box-sizing: border-box;
+    }
+    .input-field::placeholder { color: var(--muted-soft); }
+    .input-field:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(204,120,92,.12);
+    }
+
+    /* === Buttons === */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all .15s;
+      cursor: pointer;
+      border: none;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .btn-primary { background: var(--primary); color: var(--on-primary); }
+    .btn-primary:hover { background: var(--primary-active); }
+    .btn-secondary {
+      background: var(--canvas);
+      color: var(--ink);
+      border: 1px solid var(--hairline);
+    }
+    .btn-secondary:hover { background: var(--surface-card); }
+
+    /* === Toast === */
+    .toast {
+      position: fixed;
+      top: 80px;
+      right: 24px;
+      z-index: 50;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 8px 24px rgba(20,20,19,.12);
+      transform: translateX(120%);
+      transition: transform .25s ease;
+    }
+    .toast.show { transform: translateX(0); }
+    .toast.ok { background: #f0fdf4; color: #047857; border: 1px solid #b7e4c7; }
+    .toast.err { background: #fef2f2; color: #c64545; border: 1px solid #f5c6cb; }
+
+    /* === Stats Panel === */
+    .stats-panel {
+      margin-bottom: 16px;
+    }
+
+    /* === Responsive === */
+    @media (max-width: 900px) {
+      .page-layout { grid-template-columns: 1fr; }
+      .compact-banner { flex-direction: column; gap: 12px; align-items: flex-start; }
+      .banner-stats { margin-left: 0; }
+    }
+    @media (max-width: 640px) {
+      .banner-stats { gap: 12px; }
+      .roster-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
-<body class="min-h-screen">
+<body>
 
-  <!-- 顶栏 -->
-  <header class="header-blur border-b border-white/60 sticky top-0 z-20">
-    <div class="max-w-5xl mx-auto px-4 topbar-shell flex items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
+  <!-- Header -->
+  <header class="header-bar">
+    <div style="padding: 0 24px; height: 100%; display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 12px;">
         <a href="/teacher/classes" class="nav-link">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
           </svg>
-          班级列表
+          返回
         </a>
-        <span class="nav-divider">|</span>
-        <span class="nav-title">{{ cls.name }}</span>
+        <span style="color: var(--hairline);">|</span>
+        <span class="page-title text-lg">{{ cls.name }}</span>
       </div>
-      <div class="flex items-center gap-2">
-        <button id="pwdToggle" class="nav-action">修改密码</button>
-        <form method="post" action="/teacher/logout">
+      <div style="display: flex; align-items: center; gap: 4px;">
+        <form method="post" action="/teacher/logout" style="display: inline;">
           <button class="nav-action" type="submit">退出</button>
         </form>
       </div>
     </div>
   </header>
 
-  <!-- 修改密码面板 -->
-  <div id="pwdPanel" class="hidden header-blur border-b border-white/60">
-    <div class="max-w-5xl mx-auto px-4 py-4 fade">
-      <p class="text-sm font-medium text-slate-700 mb-3">修改密码</p>
-      <div class="flex flex-wrap gap-2 items-end">
-        <div>
-          <label class="block text-xs text-slate-400 mb-1">旧密码</label>
-          <input id="oldPwd" type="password" class="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-800 w-36" />
-        </div>
-        <div>
-          <label class="block text-xs text-slate-400 mb-1">新密码</label>
-          <input id="newPwd" type="password" class="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-800 w-36" />
-        </div>
-        <button id="changePwdBtn" class="btn btn-primary">确认修改</button>
-      </div>
-      <div id="pwdMsg" class="hidden mt-2 text-sm"></div>
-    </div>
-  </div>
+  <main style="max-width: 1300px; margin: 0 auto; padding: 20px 24px 48px;">
 
-  <main class="max-w-5xl mx-auto px-4 py-8 space-y-5">
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
 
-    <!-- 统计卡片 -->
-    <div class="grid grid-cols-3 gap-3">
-      <div class="card metric-card p-4">
-        <p class="text-xs text-slate-400 mb-1">总人数</p>
-        <p id="totalCount" class="text-2xl font-bold text-slate-800">0</p>
-      </div>
-      <div class="card metric-card p-4">
-        <p class="text-xs text-slate-400 mb-1">已签到</p>
-        <p id="signedCount" class="text-2xl font-bold text-emerald-600">0</p>
-        <div class="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-          <div id="progressBar" class="progress-bar h-full bg-emerald-400 rounded-full" style="width:0%"></div>
+    <!-- Compact Banner -->
+    <div class="compact-banner">
+      <h1 class="banner-title">{{ cls.name }}</h1>
+      <div class="banner-stats">
+        <div class="banner-stat">
+          <p class="banner-stat-label">总人数</p>
+          <p id="totalCount" class="banner-stat-value">0</p>
         </div>
-      </div>
-      <div class="card metric-card soft p-4">
-        <p class="text-xs text-slate-400 mb-1">未签到</p>
-        <p id="absentCount" class="text-2xl font-bold text-slate-300">0</p>
+        <div class="banner-stat">
+          <p class="banner-stat-label">已签到</p>
+          <p id="signedCount" class="banner-stat-value accent">0</p>
+        </div>
+        <div class="banner-stat">
+          <p class="banner-stat-label">未签到</p>
+          <p id="absentCount" class="banner-stat-value muted">0</p>
+        </div>
       </div>
     </div>
 
-    <!-- 学生签到入口 -->
-    <a href="/student?classId={{ cls.id }}" target="_blank" class="entry-card block">
+    <!-- Two Column Layout -->
+    <div class="page-layout">
+
+      <!-- Left: Sidebar -->
+      <div class="sidebar">
+
+        <!-- Quick Links -->
+        <div class="sidebar-card">
+          <div class="sidebar-card-header">
+            <p class="sidebar-card-title">课堂工具</p>
+          </div>
+          <div class="sidebar-card-body" style="display: flex; flex-direction: column; gap: 2px;">
+            <a href="/teacher/classes/{{ cls.id }}/seats" target="_blank" class="sidebar-link">
+              <span class="sidebar-link-icon" style="background: #fef3ec; color: var(--primary);">
+                <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                </svg>
+              </span>
+              座位表
+            </a>
+            <a href="/teacher/classes/{{ cls.id }}/students" target="_blank" class="sidebar-link">
+              <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
+                <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+              </span>
+              学生管理
+            </a>
+            <button id="statsToggle" class="sidebar-btn">
+              <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
+                <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+              </span>
+              出勤统计
+            </button>
+            <button id="resetBtn" class="sidebar-btn">
+              <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
+                <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+              </span>
+              归档重置
+            </button>
+          </div>
+        </div>
+
+        <!-- Time Window -->
+        <div class="sidebar-card">
+          <div class="sidebar-card-header" style="display: flex; align-items: center; justify-content: space-between;">
+            <p class="sidebar-card-title">签到时间段</p>
+            <button id="windowToggle" class="window-toggle" style="padding: 2px 6px; border: none; font-size: 11px;">
+              <svg id="windowChevron" style="width:12px;height:12px;transition: transform .15s;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </button>
+          </div>
+          <div id="windowBody" class="sidebar-card-body" style="display: none;">
+            <div class="window-status">
+              <span class="window-status-label">当前设置</span>
+              <strong id="windowText" class="window-status-value">不限</strong>
+            </div>
+            <button id="windowFieldsToggle" class="window-toggle" style="width: 100%; justify-content: center;">
+              <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              设置时间
+            </button>
+            <div id="windowPanel" class="hidden window-fields">
+              <div class="window-field">
+                <label>开始时间</label>
+                <input id="startTime" type="datetime-local" class="input-field" />
+              </div>
+              <div class="window-field">
+                <label>结束时间</label>
+                <input id="endTime" type="datetime-local" class="input-field" />
+              </div>
+              <div style="display: flex; gap: 6px;">
+                <button id="saveWindow" class="btn btn-primary" style="flex:1;">保存</button>
+                <button id="clearWindow" class="btn btn-secondary" style="flex:1;">清除</button>
+              </div>
+              <p class="sidebar-help">留空表示不限制，设置后立即生效。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Data Management -->
+        <div class="sidebar-card">
+          <div class="sidebar-card-header">
+            <p class="sidebar-card-title">数据管理</p>
+          </div>
+          <div class="sidebar-card-body" style="display: flex; flex-direction: column; gap: 2px;">
+            <button id="importBtn" class="sidebar-btn">
+              <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
+                <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+              </span>
+              导入名单
+            </button>
+            <a href="/api/export?classId={{ cls.id }}" class="sidebar-link">
+              <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
+                <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+              </span>
+              导出签到记录
+            </a>
+            <a href="/api/stats/export?classId={{ cls.id }}" class="sidebar-link">
+              <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
+                <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+              </span>
+              导出出勤统计
+            </a>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right: Main Content -->
       <div>
-        <p class="text-sm font-semibold">学生签到入口</p>
-        <p class="text-xs text-slate-400 mt-0.5">/student?classId={{ cls.id }}</p>
-      </div>
-      <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-      </svg>
-    </a>
-
-    <!-- 操作区 -->
-    <div class="card p-5 space-y-4">
-
-      <!-- 主要操作 -->
-      <div>
-        <p class="section-label">课堂工具</p>
-        <div class="flex flex-wrap gap-2">
-          <a href="/teacher/classes/{{ cls.id }}/seats" class="btn btn-primary">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-            </svg>
-            座位表
-          </a>
-          <a href="/teacher/classes/{{ cls.id }}/students" class="btn btn-gray">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-            </svg>
-            学生管理
-          </a>
-          <button id="statsToggle" class="btn btn-gray">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-            </svg>
-            出勤统计
-          </button>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
-      <!-- 数据操作 -->
-      <div>
-        <p class="section-label">数据管理</p>
-        <div class="flex flex-wrap gap-2">
-          <button id="importBtn" class="btn btn-gray">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-            </svg>
-            导入名单
-          </button>
-          <a href="/api/export?classId={{ cls.id }}" class="btn btn-gray">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-            </svg>
-            导出签到记录
-          </a>
-          <a href="/api/stats/export?classId={{ cls.id }}" class="btn btn-gray">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-            </svg>
-            导出出勤统计
-          </a>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
-      <!-- 危险操作 -->
-      <div>
-        <p class="section-label">危险操作</p>
-        <div class="flex flex-wrap gap-2">
-          <button id="resetBtn" class="btn btn-danger">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-            </svg>
-            归档重置
-          </button>
-          <button id="clearRosterBtn" class="btn btn-danger">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-            </svg>
-            清空名单
-          </button>
-        </div>
-        <p class="mt-2 text-xs text-slate-400">归档重置：将当前签到存为历史批次并清空状态。清空名单：删除全部学生及记录，不可恢复。</p>
-      </div>
-    </div>
-
-    <!-- 签到时间段（可折叠） -->
-    <div class="card window-card">
-      <button id="windowToggle" class="window-trigger">
-        <div class="window-info">
-          <div class="window-icon">
-            <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        <!-- Entry Card -->
+        <a href="/student?classId={{ cls.id }}" target="_blank" class="entry-card">
+          <div class="entry-icon">
+            <svg style="width:24px;height:24px;color:var(--on-primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
           </div>
-          <div class="window-copy">
-            <strong>签到时间段</strong>
-            <p>设置开始和结束时间后，学生只可在允许的时间范围内完成签到。</p>
+          <div class="entry-body">
+            <p class="entry-title">学生签到入口</p>
+            <p class="entry-url">/student?classId={{ cls.id }} <span style="margin-left: 4px; color: #6c6a64;">（点击新标签打开）</span></p>
+          </div>
+          <div class="entry-arrow">
+            <svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+            </svg>
+          </div>
+        </a>
+
+        <!-- Stats Panel (hidden by default) -->
+        <div id="statsPanel" class="hidden card stats-panel">
+          <div class="card-header">
+            <p class="card-title">出勤统计</p>
+          </div>
+          <div id="statsContent" style="padding: 24px; text-align: center; font-size: 13px; color: var(--muted-soft);">加载中...</div>
+        </div>
+
+        <!-- Message -->
+        <div id="msg" class="hidden" style="margin-bottom: 12px; padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;"></div>
+
+        <!-- Roster -->
+        <div class="card" style="margin-bottom: 16px;">
+          <div class="card-header">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <p class="card-title">当前签到名单</p>
+              <span id="rosterBadge" style="font-size: 11px; color: var(--muted-soft);"></span>
+              <span id="rosterDate" style="font-size: 11px; color: var(--muted-soft);"></span>
+            </div>
+          </div>
+          <div style="padding: 12px; background: var(--canvas);">
+            <div id="rosterCompactGrid" class="roster-grid"></div>
           </div>
         </div>
-        <div class="window-summary">
-          <div class="text-right">
-            <span>当前设置</span>
-            <strong id="windowText">不限</strong>
+
+        <!-- Sessions -->
+        <div class="card">
+          <div class="card-header">
+            <p class="card-title">历史批次</p>
+            <span id="sessionCount" style="font-size: 11px; color: var(--muted-soft);"></span>
           </div>
-          <svg id="windowChevron" class="window-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-          </svg>
-        </div>
-      </button>
-      <div id="windowPanel" class="hidden window-body">
-        <div class="window-fields">
-          <div class="window-field">
-            <label>开始时间</label>
-            <input id="startTime" type="datetime-local" class="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-800" />
+          <div id="sessionList">
+            <div style="padding: 24px; text-align: center; font-size: 13px; color: var(--muted-soft);">暂无历史批次</div>
           </div>
-          <div class="window-field">
-            <label>结束时间</label>
-            <input id="endTime" type="datetime-local" class="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-800" />
-          </div>
-          <button id="saveWindow" class="btn btn-primary">保存</button>
-          <button id="clearWindow" class="btn btn-gray">清除限制</button>
-        </div>
-        <p class="window-help">留空表示不限制，设置后会立即对学生签到入口生效。</p>
-      </div>
-    </div>
-
-    <!-- 出勤统计面板 -->
-    <div id="statsPanel" class="hidden card overflow-hidden">
-      <div class="px-5 py-4 border-b border-slate-50 flex items-center justify-between">
-        <p class="text-sm font-medium text-slate-700">出勤统计</p>
-      </div>
-      <div id="statsContent" class="px-5 py-8 text-center text-sm text-slate-400">加载中...</div>
-    </div>
-
-    <!-- 通知 -->
-    <div id="msg" class="hidden px-4 py-3 rounded-xl text-sm font-medium fade"></div>
-
-    <!-- 签到名单 -->
-    <div class="card overflow-hidden">
-      <div class="px-5 py-4 border-b border-slate-50 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <p class="text-sm font-medium text-slate-700">当前签到名单</p>
-          <span id="rosterBadge" class="text-xs text-slate-400"></span>
-          <span id="rosterDate" class="text-xs text-slate-300"></span>
         </div>
       </div>
-      <div class="p-5 subtle-panel">
-        <div id="rosterCompactGrid" class="roster-grid"></div>
-      </div>
+
     </div>
 
-    <!-- 历史批次 -->
-    <div class="card overflow-hidden">
-      <div class="px-5 py-4 border-b border-slate-50 flex items-center justify-between">
-        <p class="text-sm font-medium text-slate-700">历史批次</p>
-        <span id="sessionCount" class="text-xs text-slate-400"></span>
-      </div>
-      <div id="sessionList">
-        <div class="px-5 py-8 text-center text-sm text-slate-400">暂无历史批次</div>
-      </div>
-    </div>
-
-    <!-- 导入名单隐藏 input -->
-    <input type="file" id="importFile" accept=".xlsx,.xls" class="hidden" />
-
-    <!-- 历史批次详情弹窗 -->
-    <div id="sessionModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
-        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <p id="modalTitle" class="text-sm font-semibold text-slate-800"></p>
-          <button id="modalClose" class="text-slate-400 hover:text-slate-600 transition text-xl leading-none">&times;</button>
-        </div>
-        <div class="overflow-auto flex-1">
-          <table class="w-full text-sm">
-            <thead class="sticky top-0 bg-white">
-              <tr class="text-xs text-slate-400 border-b border-slate-100">
-                <th class="text-left px-5 py-3 font-medium">姓名</th>
-                <th class="text-left px-5 py-3 font-medium">行政班级</th>
-                <th class="text-left px-5 py-3 font-medium">签到状态</th>
-                <th class="text-left px-5 py-3 font-medium">计算机 IP</th>
-                <th class="text-left px-5 py-3 font-medium">签到时间</th>
-              </tr>
-            </thead>
-            <tbody id="modalBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+    <!-- Hidden file input for import -->
+    <input type="file" id="importFile" accept=".xlsx,.xls" style="display: none;" />
 
   </main>
 
 <script>
 const CLASS_ID = {{ cls.id }}
-const msg = document.getElementById('msg')
 
-function notify(text, ok = true) {
-  msg.className = `px-4 py-3 rounded-xl text-sm font-medium fade ${ok
-    ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-    : 'bg-red-50 text-red-600 border border-red-100'}`
-  msg.textContent = text
-  msg.classList.remove('hidden')
-  setTimeout(() => msg.classList.add('hidden'), 2500)
+function showToast(text, ok = true) {
+  const t = document.getElementById('toast')
+  t.textContent = text
+  t.className = `toast ${ok ? 'ok' : 'err'} show`
+  setTimeout(() => t.classList.remove('show'), 2500)
 }
 
 async function parseResponse(res) {
@@ -451,10 +797,15 @@ function formatHomeClass(homeClass) {
 function formatRosterDate(value) {
   const date = value ? new Date(value) : new Date()
   if (Number.isNaN(date.getTime())) return ''
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+  const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+  const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+  const w = weekdays[date.getDay()]
+  const m = months[date.getMonth()]
+  const d = date.getDate()
+  const y = date.getFullYear()
+  const hh = String(date.getHours()).padStart(2, '0')
+  const mm = String(date.getMinutes()).padStart(2, '0')
+  return `${w} ${m}${d}日 ${y}年 ${hh}:${mm}`
 }
 
 function formatSignedTime(value) {
@@ -471,42 +822,41 @@ function renderRosterCompact(roster, ipCount) {
   const grid = document.getElementById('rosterCompactGrid')
   grid.innerHTML = ''
 
+  if (!roster || !roster.length) {
+    grid.innerHTML = '<div class="roster-empty">暂无学生</div>'
+    return
+  }
+
   roster.forEach(r => {
     const isSigned = r.status === '已签到'
     const dupIp = ipCount[(r.computerName || '').trim()] > 1
-    const item = document.createElement('div')
-    item.className = `roster-list-item ${dupIp ? 'dup' : isSigned ? 'signed' : 'unsigned'}`
+    const itemClass = dupIp ? 'dup' : isSigned ? 'signed' : ''
     const dotClass = dupIp ? 'dup' : isSigned ? 'signed' : 'unsigned'
     const statusClass = dupIp ? 'dup' : isSigned ? 'signed' : 'unsigned'
-    const statusText = dupIp ? '重复 IP' : isSigned ? '已签到' : '未签到'
-    const metaClass = dupIp ? 'dup' : isSigned ? 'signed' : 'unsigned'
-    const metaHtml = `<span class="roster-meta-piece ip">${r.computerName || '-'}</span><span class="roster-meta-slash">/</span><span class="roster-meta-piece time">${isSigned ? formatSignedTime(r.signedAt) : '-'}</span>`
+    const statusText = dupIp ? '重复IP' : isSigned ? '已签到' : '未签到'
+    const metaClass = dupIp ? 'dup' : ''
 
     const revokeBtn = (isSigned && r.recordId)
-      ? `<button onclick="revokeRecord(${r.recordId})" class="roster-action revoke">撤销</button>`
-      : '<span class="roster-action empty">占位</span>'
+      ? `<button onclick="revokeRecord(${r.recordId})" class="roster-revoke">撤销</button>`
+      : ''
 
+    const item = document.createElement('div')
+    item.className = `roster-item ${itemClass}`
     item.innerHTML = `
       <div class="roster-line">
-        <div class="roster-name">
+        <div class="roster-name-wrap">
           <span class="roster-dot ${dotClass}"></span>
-          <div class="roster-student">
-            <strong>${r.studentName}</strong>
-            <span>${formatHomeClass(r.homeClass) || '&nbsp;'}</span>
-          </div>
+          <span class="roster-student-name">${r.studentName}</span>
+          <span class="roster-home-class">${formatHomeClass(r.homeClass)}</span>
         </div>
         <span class="roster-status ${statusClass}">${statusText}</span>
       </div>
       <div class="roster-meta">
-        <span class="roster-meta-text ${metaClass}">${metaHtml}</span>
+        <span class="roster-meta-text ${metaClass}"><span class="ip">${r.computerName || '-'}</span><span class="sep">/</span><span class="time">${isSigned ? formatSignedTime(r.signedAt) : '-'}</span></span>
         ${revokeBtn}
       </div>`
     grid.appendChild(item)
   })
-
-  if (!roster.length) {
-    grid.innerHTML = '<div class="col-span-full px-4 py-6 text-sm text-slate-400 text-center bg-white rounded-xl border border-dashed border-slate-200">暂无学生</div>'
-  }
 }
 
 async function refreshStatus() {
@@ -519,7 +869,6 @@ async function refreshStatus() {
   document.getElementById('totalCount').textContent = total
   document.getElementById('signedCount').textContent = signed
   document.getElementById('absentCount').textContent = data.absentCount
-  document.getElementById('progressBar').style.width = total > 0 ? (signed / total * 100) + '%' : '0%'
   document.getElementById('rosterBadge').textContent = `共 ${total} 人`
   const firstSignedAt = data.roster.find(r => r.signedAt)?.signedAt
   document.getElementById('rosterDate').textContent = formatRosterDate(firstSignedAt)
@@ -540,40 +889,24 @@ async function refreshSessions() {
   if (!data) return
   const list = document.getElementById('sessionList')
   document.getElementById('sessionCount').textContent = data.length ? `共 ${data.length} 批次` : ''
-  if (!data.length) { list.innerHTML = '<div class="px-5 py-8 text-center text-sm text-slate-400">暂无历史批次</div>'; return }
+  if (!data.length) { list.innerHTML = '<div style="padding: 24px; text-align: center; font-size: 13px; color: var(--muted-soft);">暂无历史批次</div>'; return }
   list.innerHTML = data.map(s => `
-    <div class="px-5 py-3 border-b border-slate-50 last:border-0 flex items-center justify-between hover:bg-slate-50 transition">
-      <div>
-        <p class="text-sm text-slate-700">${s.label}</p>
-        <p class="text-xs text-slate-400 mt-0.5">签到人数：${s.count}</p>
-      </div>
-      <div class="flex gap-2">
-        <button onclick="openSession(${s.id}, this.dataset.label)" data-label="${s.label.replace(/"/g,'&quot;')}"
-          class="text-xs px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition">查看</button>
-        <a href="/teacher/sessions/${s.id}/seats"
-          class="text-xs px-3 py-1.5 rounded-lg text-sky-600 hover:bg-sky-50 transition">座位表</a>
-        <a href="/api/sessions/${s.id}/export"
-          class="text-xs px-3 py-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition">导出</a>
-        <button onclick="deleteSessionItem(${s.id}, this.dataset.label)" data-label="${s.label.replace(/"/g,'&quot;')}"
-          class="text-xs px-3 py-1.5 rounded-lg text-red-500 hover:bg-red-50 transition">删除</button>
+    <div class="session-item">
+      <div class="session-head">
+        <div>
+          <p class="session-label">${s.label}</p>
+          <p class="session-count">签到人数：${s.count}</p>
+        </div>
+        <div class="session-actions">
+          <a href="/teacher/sessions/${s.id}/seats"
+            class="session-action" style="color: var(--primary);" onmouseover="this.style.background='#fef3ec'" onmouseout="this.style.background=''">座位表</a>
+          <a href="/api/sessions/${s.id}/export"
+            class="session-action" style="color: var(--success);" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''">导出</a>
+          <button onclick="deleteSessionItem(${s.id}, this.dataset.label)" data-label="${s.label.replace(/"/g,'&quot;')}"
+            class="session-action" style="color: var(--error);" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background=''">删除</button>
+        </div>
       </div>
     </div>`).join('')
-}
-
-async function openSession(sessionId, label) {
-  const res = await fetch(`/api/sessions/${sessionId}`)
-  const data = await parseResponse(res)
-  if (!data) return
-  document.getElementById('modalTitle').textContent = label
-  document.getElementById('modalBody').innerHTML = (data.roster||[]).map(r => `
-    <tr class="border-b border-slate-50 last:border-0">
-      <td class="px-5 py-3 text-slate-800">${r.studentName}</td>
-      <td class="px-5 py-3 text-slate-400 text-xs">${formatHomeClass(r.homeClass)}</td>
-      <td class="px-5 py-3 text-xs ${r.status === '已签到' ? 'text-emerald-600' : 'text-slate-400'}">${r.status === '已签到' ? '✓ 已签到' : '✗ 未签到'}</td>
-      <td class="px-5 py-3 font-mono text-xs text-slate-400">${r.computerName || '-'}</td>
-      <td class="px-5 py-3 text-slate-400 text-xs">${r.signedAt || '-'}</td>
-    </tr>`).join('')
-  document.getElementById('sessionModal').classList.remove('hidden')
 }
 
 async function deleteSessionItem(sessionId, label) {
@@ -581,18 +914,13 @@ async function deleteSessionItem(sessionId, label) {
   const res = await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' })
   const data = await parseResponse(res)
   if (!data) return
-  notify(data.message || '历史批次已删除', true)
-  document.getElementById('sessionModal').classList.add('hidden')
+  showToast(data.message || '历史批次已删除', true)
   await refreshSessions()
   const statsPanel = document.getElementById('statsPanel')
   if (!statsPanel.classList.contains('hidden')) {
     await loadStats()
   }
 }
-
-document.getElementById('modalClose').addEventListener('click', () => {
-  document.getElementById('sessionModal').classList.add('hidden')
-})
 
 document.getElementById('statsToggle').addEventListener('click', async () => {
   const panel = document.getElementById('statsPanel')
@@ -602,35 +930,35 @@ document.getElementById('statsToggle').addEventListener('click', async () => {
 
 async function loadStats() {
   const content = document.getElementById('statsContent')
-  content.innerHTML = '<div class="py-8 text-center text-sm text-slate-400">加载中...</div>'
+  content.innerHTML = '<div style="padding: 24px; text-align: center; font-size: 13px; color: var(--muted-soft);">加载中...</div>'
   const res = await fetch('/api/stats?classId=' + CLASS_ID)
   if (res.status === 401) { window.location.href = '/student'; return }
   const data = await res.json()
   if (!data.students || !data.students.length) {
-    content.innerHTML = '<div class="py-8 text-center text-sm text-slate-400">暂无历史批次数据</div>'; return
+    content.innerHTML = '<div style="padding: 24px; text-align: center; font-size: 13px; color: var(--muted-soft);">暂无历史批次数据</div>'; return
   }
-  content.innerHTML = `<div class="overflow-x-auto">
-    <table class="w-full text-sm">
-      <thead><tr class="text-xs text-slate-400 border-b border-slate-50">
-        <th class="text-left px-5 py-3 font-medium">姓名</th>
-        <th class="text-left px-5 py-3 font-medium">行政班级</th>
-        <th class="text-center px-5 py-3 font-medium">签到</th>
-        <th class="text-center px-5 py-3 font-medium">缺勤</th>
-        <th class="text-center px-5 py-3 font-medium">出勤率</th>
+  content.innerHTML = `<div style="overflow-x: auto;">
+    <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+      <thead><tr style="border-bottom: 1px solid var(--hairline);">
+        <th style="text-align: left; padding: 10px 16px; font-size: 11px; font-weight: 500; color: var(--muted-soft);">姓名</th>
+        <th style="text-align: left; padding: 10px 16px; font-size: 11px; font-weight: 500; color: var(--muted-soft);">行政班级</th>
+        <th style="text-align: center; padding: 10px 16px; font-size: 11px; font-weight: 500; color: var(--muted-soft);">签到</th>
+        <th style="text-align: center; padding: 10px 16px; font-size: 11px; font-weight: 500; color: var(--muted-soft);">缺勤</th>
+        <th style="text-align: center; padding: 10px 16px; font-size: 11px; font-weight: 500; color: var(--muted-soft);">出勤率</th>
       </tr></thead>
       <tbody>${data.students.map(s => {
         const rate = parseFloat(s.rate)
-        const color = rate >= 80 ? 'text-emerald-600' : rate >= 60 ? 'text-amber-500' : 'text-red-500'
-        return `<tr class="border-b border-slate-50 last:border-0 hover:bg-slate-50">
-          <td class="px-5 py-3 font-medium text-slate-800">${s.name}</td>
-          <td class="px-5 py-3 text-xs text-slate-400">${formatHomeClass(s.homeClass)}</td>
-          <td class="px-5 py-3 text-center text-slate-600">${s.signedCount}</td>
-          <td class="px-5 py-3 text-center text-slate-400">${s.absentCount}</td>
-          <td class="px-5 py-3 text-center font-semibold ${color}">${s.rate}%</td>
+        const color = rate >= 80 ? 'var(--success)' : rate >= 60 ? 'var(--warning)' : 'var(--error)'
+        return `<tr style="border-bottom: 1px solid var(--hairline);" onmouseover="this.style.background='var(--canvas)'" onmouseout="this.style.background=''">
+          <td style="padding: 10px 16px; font-weight: 500; color: var(--ink);">${s.name}</td>
+          <td style="padding: 10px 16px; font-size: 12px; color: var(--muted-soft);">${formatHomeClass(s.homeClass)}</td>
+          <td style="padding: 10px 16px; text-align: center; color: var(--body);">${s.signedCount}</td>
+          <td style="padding: 10px 16px; text-align: center; color: var(--muted-soft);">${s.absentCount}</td>
+          <td style="padding: 10px 16px; text-align: center; font-weight: 500; color: ${color};">${s.rate}%</td>
         </tr>`
       }).join('')}</tbody>
     </table>
-    <p class="px-5 py-3 text-xs text-slate-400 border-t border-slate-50">共 ${data.totalSessions} 个历史批次</p>
+    <p style="padding: 10px 16px; font-size: 11px; color: var(--muted-soft); border-top: 1px solid var(--hairline);">共 ${data.totalSessions} 个历史批次</p>
   </div>`
 }
 
@@ -639,34 +967,22 @@ async function revokeRecord(recordId) {
   const res = await fetch('/api/signin/' + recordId, { method: 'DELETE' })
   if (res.status === 401) { window.location.href = '/student'; return }
   const data = await res.json()
-  if (!data.ok) { notify(data.message, false); return }
-  notify('已撤销')
+  if (!data.ok) { showToast(data.message, false); return }
+  showToast('已撤销')
   refreshStatus()
 }
 
-document.getElementById('pwdToggle').addEventListener('click', () => {
-  document.getElementById('pwdPanel').classList.toggle('hidden')
-})
-
-document.getElementById('changePwdBtn').addEventListener('click', async () => {
-  const pwdMsg = document.getElementById('pwdMsg')
-  const res = await fetch('/api/change-password', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ old_password: document.getElementById('oldPwd').value, new_password: document.getElementById('newPwd').value })
-  })
-  const data = await parseResponse(res)
-  if (!data) return
-  pwdMsg.className = `mt-2 text-sm ${data.ok ? 'text-emerald-600' : 'text-red-500'}`
-  pwdMsg.textContent = data.message
-  pwdMsg.classList.remove('hidden')
-  if (data.ok) { document.getElementById('oldPwd').value = ''; document.getElementById('newPwd').value = '' }
-})
-
 document.getElementById('windowToggle').addEventListener('click', () => {
-  const panel = document.getElementById('windowPanel')
+  const body = document.getElementById('windowBody')
   const chevron = document.getElementById('windowChevron')
+  const isHidden = body.style.display === 'none'
+  body.style.display = isHidden ? '' : 'none'
+  chevron.style.transform = isHidden ? 'rotate(180deg)' : ''
+})
+
+document.getElementById('windowFieldsToggle').addEventListener('click', () => {
+  const panel = document.getElementById('windowPanel')
   panel.classList.toggle('hidden')
-  chevron.style.transform = panel.classList.contains('hidden') ? '' : 'rotate(180deg)'
 })
 
 document.getElementById('saveWindow').addEventListener('click', async () => {
@@ -676,7 +992,7 @@ document.getElementById('saveWindow').addEventListener('click', async () => {
   })
   const data = await parseResponse(res)
   if (!data) return
-  notify(data.message, data.ok)
+  showToast(data.message, data.ok)
   refreshStatus()
 })
 
@@ -689,7 +1005,7 @@ document.getElementById('clearWindow').addEventListener('click', async () => {
   })
   const data = await parseResponse(res)
   if (!data) return
-  notify('已清除时间限制', data.ok)
+  showToast('已清除时间限制', data.ok)
   refreshStatus()
 })
 
@@ -701,21 +1017,9 @@ document.getElementById('resetBtn').addEventListener('click', async () => {
   })
   const data = await parseResponse(res)
   if (!data) return
-  notify(data.message, data.ok)
+  showToast(data.message, data.ok)
   refreshStatus()
   refreshSessions()
-})
-
-document.getElementById('clearRosterBtn').addEventListener('click', async () => {
-  if (!confirm('确认清空名单及全部签到记录？此操作不可恢复！')) return
-  const res = await fetch('/api/clear-roster', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ classId: CLASS_ID })
-  })
-  const data = await parseResponse(res)
-  if (!data) return
-  notify(data.message, data.ok)
-  refreshStatus()
 })
 
 document.getElementById('importBtn').addEventListener('click', () => {
@@ -727,12 +1031,12 @@ document.getElementById('importFile').addEventListener('change', async (e) => {
   const fd = new FormData()
   fd.append('file', file)
   fd.append('classId', CLASS_ID)
-  notify('导入中...', true)
+  showToast('导入中...', true)
   const res = await fetch('/api/import', { method: 'POST', body: fd })
   const data = await parseResponse(res)
   e.target.value = ''
   if (!data) return
-  notify(data.message, data.ok)
+  showToast(data.message, data.ok)
   if (data.ok) refreshStatus()
 })
 

@@ -307,6 +307,7 @@ export default async function apiRoutes(fastify) {
   // PATCH /api/students/:studentId — 更新学生信息，需要 teacherRequired
   fastify.patch('/api/students/:studentId', { preHandler: teacherRequired }, async (request, reply) => {
     const studentId = parseInt(request.params.studentId, 10)
+    if (isNaN(studentId)) return reply.code(400).send({ ok: false, message: '学生ID无效' })
     const teacherId = request.session.teacherId
     const isAdmin = request.session.isAdmin === true
     const result = await updateStudent(studentId, request.body, teacherId, isAdmin)
@@ -317,6 +318,7 @@ export default async function apiRoutes(fastify) {
   // DELETE /api/students/:studentId — 删除学生，需要 teacherRequired
   fastify.delete('/api/students/:studentId', { preHandler: teacherRequired }, async (request, reply) => {
     const studentId = parseInt(request.params.studentId, 10)
+    if (isNaN(studentId)) return reply.code(400).send({ ok: false, message: '学生ID无效' })
     const teacherId = request.session.teacherId
     const isAdmin = request.session.isAdmin === true
     const result = await deleteStudent(studentId, teacherId, isAdmin)
@@ -327,6 +329,7 @@ export default async function apiRoutes(fastify) {
   // POST /api/students/:studentId/transfer — 转移学生，需要 teacherRequired
   fastify.post('/api/students/:studentId/transfer', { preHandler: teacherRequired }, async (request, reply) => {
     const studentId = parseInt(request.params.studentId, 10)
+    if (isNaN(studentId)) return reply.code(400).send({ ok: false, message: '学生ID无效' })
     const targetClassId = parseInt(request.body.targetClassId, 10)
     const teacherId = request.session.teacherId
     const isAdmin = request.session.isAdmin === true

@@ -7,136 +7,330 @@
   <link rel="stylesheet" href="/public/tailwind.min.css">
   <style>
     :root {
-      --page-bg:#eef3fb;
-      --card-bg:rgba(255,255,255,.96);
-      --card-border:rgba(203,213,225,.56);
-      --card-shadow:0 22px 50px rgba(148,163,184,.18);
+      --canvas: #faf9f5;
+      --surface-card: #efe9de;
+      --surface-dark: #181715;
+      --primary: #cc785c;
+      --primary-active: #a9583e;
+      --ink: #141413;
+      --body: #3d3d3a;
+      --muted: #6c6a64;
+      --muted-soft: #8e8b82;
+      --hairline: #e6dfd8;
+      --on-primary: #ffffff;
+      --on-dark: #faf9f5;
+      --success: #5db872;
+      --error: #c64545;
+      --warning: #d4a017;
     }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
-      background:
-        radial-gradient(circle at top left, rgba(255,255,255,.9), transparent 28%),
-        radial-gradient(circle at top right, rgba(191,219,254,.35), transparent 24%),
-        linear-gradient(180deg, #f8fbff 0%, var(--page-bg) 100%);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+      background: var(--canvas);
+      color: var(--body);
+      margin: 0;
     }
-    #suggestions { max-height: 200px; overflow-y: auto; }
-    .sign-card {
-      border-radius:22px;
-      border:1px solid var(--card-border);
-      background:var(--card-bg);
-      box-shadow:var(--card-shadow);
-      padding:24px;
+
+    /* === Split Layout === */
+    .signin-page {
+      display: flex;
+      min-height: 100vh;
+    }
+    .signin-hero {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 64px 48px;
+      background: var(--surface-dark);
+      color: var(--on-dark);
+      position: relative;
+      overflow: hidden;
+    }
+    .signin-hero::before {
+      content: '';
+      position: absolute;
+      top: -40%;
+      right: -20%;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(204,120,92,.15), transparent 70%);
+      pointer-events: none;
+    }
+    .signin-hero-title {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 42px;
+      font-weight: 400;
+      line-height: 1.15;
+      letter-spacing: -1px;
+      color: var(--on-dark);
+      margin-bottom: 16px;
+      position: relative;
+    }
+    .signin-hero-sub {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #a09d96;
+      max-width: 380px;
+      position: relative;
+    }
+    .signin-hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 32px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.1);
+      color: #a09d96;
+      font-size: 13px;
+      font-weight: 500;
+      position: relative;
+    }
+    .signin-hero-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+    }
+
+    .signin-form-side {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 48px;
+      max-width: 560px;
+    }
+    .signin-form-wrapper {
+      width: 100%;
+      max-width: 460px;
+    }
+    .signin-form-header {
+      margin-bottom: 36px;
+    }
+    .signin-form-header h2 {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 28px;
+      font-weight: 400;
+      letter-spacing: -0.5px;
+      color: var(--ink);
+      margin: 0 0 8px 0;
+    }
+    .signin-form-header p {
+      font-size: 14px;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    #suggestions {
+      max-height: 220px;
+      overflow-y: auto;
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      margin-top: 4px;
+      background: #fff;
+      border: 1px solid var(--hairline);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(20,20,19,.1);
+      overflow: hidden;
+      display: none;
+    }
+    .field-group {
+      margin-bottom: 20px;
+      position: relative;
     }
     .field-label {
-      display:block;
-      margin-bottom:8px;
-      font-size:14px;
-      line-height:1.2;
-      font-weight:600;
-      color:#334155;
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink);
     }
     .field-input {
-      width:100%;
-      padding:10px 16px;
-      border-radius:14px;
-      border:1px solid #e2e8f0;
-      font-size:16px;
-      line-height:1.2;
-      color:#334155;
-      background:#fff;
-      transition:border-color .15s ease, box-shadow .15s ease;
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--hairline);
+      font-size: 15px;
+      line-height: 1.5;
+      color: var(--ink);
+      background: var(--canvas);
+      transition: border-color .15s, box-shadow .15s;
+      box-sizing: border-box;
     }
-    .field-input::placeholder { color:#cbd5e1; }
+    .field-input::placeholder { color: var(--muted-soft); }
     .field-input:focus {
-      outline:none;
-      border-color:#c7d2fe;
-      box-shadow:0 0 0 4px rgba(79,70,229,.08);
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(204,120,92,.15);
     }
     .submit-btn {
-      width:100%;
-      margin-top:0;
-      padding:10px 16px;
-      border:none;
-      border-radius:14px;
-      background:linear-gradient(135deg, #6366f1 0%, #5b6ee8 42%, #4f7ae8 100%);
-      color:#fff;
-      font-size:16px;
-      line-height:1;
-      font-weight:600;
-      letter-spacing:.01em;
-      transition:transform .15s ease, box-shadow .15s ease, opacity .15s ease;
-      box-shadow:0 12px 22px rgba(99,102,241,.14);
+      width: 100%;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      background: var(--primary);
+      color: var(--on-primary);
+      font-size: 15px;
+      font-weight: 500;
+      height: 48px;
+      cursor: pointer;
+      transition: background .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
-    .submit-btn:hover { transform:translateY(-1px); box-shadow:0 16px 26px rgba(99,102,241,.17); }
-    .submit-btn:disabled { opacity:.6; cursor:not-allowed; transform:none; box-shadow:none; }
+    .submit-btn:hover { background: var(--primary-active); }
+    .submit-btn:disabled { opacity: .5; cursor: not-allowed; }
     .status-panel {
-      text-align:center;
-      padding:20px 16px;
-      border-radius:16px;
-      border:1px solid #bbf7d0;
-      background:linear-gradient(180deg, rgba(240,253,244,.96), rgba(236,253,245,.84));
+      text-align: center;
+      padding: 32px 24px;
+      border-radius: 12px;
+      border: 1px solid #b7e4c7;
+      background: #f0fdf4;
     }
-    .floating-note {
-      margin-top:16px;
-      padding:12px 14px;
-      border-radius:14px;
-      font-size:14px;
-      line-height:1.5;
+    .selected-chip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: #fef3ec;
+      border: 1px solid #f5d0b5;
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: var(--primary-active);
     }
-    @media (max-width: 640px) {
-      .sign-card { padding:20px; border-radius:20px; }
+    .selected-chip button {
+      background: none;
+      border: none;
+      color: var(--primary);
+      cursor: pointer;
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: background .15s;
+    }
+    .selected-chip button:hover { background: rgba(204,120,92,.1); }
+    .msg-box {
+      margin-top: 16px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .signin-footer {
+      margin-top: 32px;
+      font-size: 12px;
+      color: var(--muted-soft);
+      text-align: center;
+    }
+
+    /* === Responsive: stack on mobile === */
+    @media (max-width: 900px) {
+      .signin-page { flex-direction: column; }
+      .signin-hero {
+        padding: 40px 24px;
+        min-height: auto;
+      }
+      .signin-hero-title { font-size: 28px; }
+      .signin-form-side {
+        max-width: 100%;
+        padding: 32px 24px;
+      }
     }
   </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
-  <div class="w-full max-w-md">
+<body>
 
-    <div class="text-center mb-8">
-      <h1 class="text-2xl font-semibold text-slate-800">
-        {% if cls %}{{ cls.name }}{% else %}机房签到{% endif %}
-      </h1>
-      <p class="text-sm text-slate-400 mt-1">当前设备：<span class="font-mono text-slate-500">{{ computer_name }}</span></p>
-      {% if not cls %}
-      <p class="text-xs text-amber-500 mt-1">未指定班级，将搜索全部学生</p>
-      {% endif %}
+  <div class="signin-page">
+
+    <!-- Left: Hero / Branding -->
+    <div class="signin-hero">
+      <div>
+        <h1 class="signin-hero-title">
+          {% if cls %}{{ cls.name }}{% else %}机房签到{% endif %}
+        </h1>
+        <p class="signin-hero-sub">
+          {% if cls %}
+          请输入你的姓名，从搜索列表中选择后提交签到。签到结果将记录到当前班级。
+          {% else %}
+          请输入你的姓名，从搜索列表中选择对应的班级后提交签到。系统将自动匹配你的信息。
+          {% endif %}
+        </p>
+        <div class="signin-hero-badge">
+          <span class="dot"></span>
+          <span>当前设备：{{ computer_name }}</span>
+        </div>
+        {% if cls %}
+        <div class="signin-hero-badge" style="margin-top: 12px;">
+          <span style="font-weight: 600; color: var(--on-dark);">{{ studentCount }}</span>
+          <span>名学生</span>
+        </div>
+        {% endif %}
+        {% if not cls %}
+        <div class="signin-hero-badge" style="margin-top: 12px;">
+          <span style="color: var(--warning);">!</span>
+          <span>未指定班级，将搜索全部学生</span>
+        </div>
+        {% endif %}
+      </div>
     </div>
 
-    <div class="sign-card">
+    <!-- Right: Form -->
+    <div class="signin-form-side">
+      <div class="signin-form-wrapper">
 
-      <!-- 已签到状态 -->
-      <div id="alreadySignedPanel" class="status-panel hidden">
-        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-100 mb-3">
-          <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-          </svg>
+        <div class="signin-form-header">
+          <h2>提交签到</h2>
+          <p>输入姓名搜索，选择后点击提交</p>
         </div>
-        <p class="text-sm font-medium text-emerald-700" id="alreadySignedText"></p>
-        <p class="text-xs text-slate-400 mt-1">本设备已完成签到，如需重新签到请联系老师</p>
-      </div>
 
-      <!-- 签到表单 -->
-      <div id="signInForm">
-        <div class="mb-4 relative">
-          <label class="field-label">姓名</label>
-          <input id="nameInput" type="text" autocomplete="off" placeholder="请输入姓名片段搜索"
-            class="field-input" />
-          <div id="suggestions"
-            class="absolute z-10 w-full mt-1 bg-white border border-slate-100 rounded-xl shadow-lg overflow-hidden hidden">
+        <!-- 已签到状态 -->
+        <div id="alreadySignedPanel" class="status-panel hidden">
+          <div class="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4" style="background: #d1fae5;">
+            <svg class="w-7 h-7" style="color: var(--success);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
           </div>
+          <p class="text-base font-medium" style="color: #047857;" id="alreadySignedText"></p>
+          <p class="text-sm mt-2" style="color: var(--muted);">本设备已完成签到，如需重新签到请联系老师</p>
         </div>
 
-        <div id="selectedInfo" class="floating-note hidden mb-4 bg-indigo-50 border border-indigo-100 text-indigo-700">
-          <span id="selectedText"></span>
-          <button id="clearSelection" class="ml-2 text-indigo-400 hover:text-indigo-600 transition text-xs">✕ 重新选择</button>
+        <!-- 签到表单 -->
+        <div id="signInForm">
+          <div class="field-group">
+            <label class="field-label">姓名</label>
+            <input id="nameInput" type="text" autocomplete="off" placeholder="输入姓名片段搜索..." class="field-input" />
+            <div id="suggestions"></div>
+          </div>
+
+          <div id="selectedInfo" class="selected-chip hidden">
+            <span id="selectedText"></span>
+            <button id="clearSelection">重新选择</button>
+          </div>
+
+          <button id="signinBtn" class="submit-btn">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            提交签到
+          </button>
+
+          <div id="msg" class="msg-box hidden"></div>
         </div>
 
-        <button id="signinBtn" class="submit-btn">
-          提交签到
-        </button>
+        <div class="signin-footer">
+          教师请输入密码登录管理端
+        </div>
 
-        <div id="msg" class="floating-note hidden font-medium"></div>
       </div>
-
     </div>
 
   </div>
@@ -171,9 +365,10 @@ function checkAlreadySigned() {
 }
 
 function setMessage(text, ok = false) {
-  msg.className = `floating-note font-medium ${ok
-    ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-    : 'bg-red-50 text-red-600 border border-red-100'}`
+  msg.className = 'msg-box'
+  msg.style.background = ok ? '#f0fdf4' : '#fef2f2'
+  msg.style.color = ok ? '#047857' : '#c64545'
+  msg.style.border = ok ? '1px solid #b7e4c7' : '1px solid #f5c6cb'
   msg.textContent = text
   msg.classList.remove('hidden')
 }
@@ -184,7 +379,7 @@ function selectStudent(studentName, classId, className, homeClass) {
   const homeLabel = homeClass ? `${homeClass} · ` : ''
   selectedText.textContent = `已选择：${studentName}（${homeLabel}${className}）`
   selectedInfo.classList.remove('hidden')
-  suggestions.classList.add('hidden')
+  suggestions.style.display = 'none'
   suggestions.innerHTML = ''
 }
 
@@ -198,7 +393,7 @@ document.getElementById('clearSelection').addEventListener('click', () => {
 
 async function fetchSuggestions() {
   const q = input.value.trim()
-  if (!q) { suggestions.classList.add('hidden'); suggestions.innerHTML = ''; return }
+  if (!q) { suggestions.style.display = 'none'; suggestions.innerHTML = ''; return }
   try {
     const url = '/api/students/match?q=' + encodeURIComponent(q) + (CLASS_ID ? '&classId=' + CLASS_ID : '')
     const res = await fetch(url)
@@ -206,23 +401,25 @@ async function fetchSuggestions() {
     suggestions.innerHTML = ''
     if (!data.length) {
       const empty = document.createElement('div')
-      empty.className = 'px-4 py-3 text-sm text-slate-400 text-center'
+      empty.style.cssText = 'padding: 14px; text-align: center; font-size: 14px; color: var(--muted-soft);'
       empty.textContent = '未找到匹配学生'
       suggestions.appendChild(empty)
-      suggestions.classList.remove('hidden')
+      suggestions.style.display = 'block'
       return
     }
     data.forEach(item => {
       const btn = document.createElement('button')
       btn.type = 'button'
-      btn.className = 'w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition border-b border-slate-50 last:border-0'
-      btn.innerHTML = `<span class="font-medium">${item.studentName}</span><span class="text-slate-400 ml-1">（${item.homeClass ? item.homeClass + ' · ' : ''}${item.className}）</span>`
+      btn.style.cssText = 'display: block; width: 100%; text-align: left; padding: 10px 14px; font-size: 14px; border: none; background: none; cursor: pointer; border-bottom: 1px solid var(--hairline); color: var(--body); transition: background .1s;'
+      btn.onmouseover = () => { btn.style.background = 'var(--canvas)' }
+      btn.onmouseout = () => { btn.style.background = '' }
+      btn.innerHTML = `<span style="font-weight:500; color: var(--ink);">${item.studentName}</span><span style="color: var(--muted-soft); margin-left: 4px; font-size: 13px;">${item.homeClass ? item.homeClass + ' · ' : ''}${item.className}</span>`
       btn.addEventListener('click', () => selectStudent(item.studentName, item.classId, item.className, item.homeClass))
       suggestions.appendChild(btn)
     })
-    suggestions.classList.remove('hidden')
+    suggestions.style.display = 'block'
   } catch (e) {
-    suggestions.classList.add('hidden')
+    suggestions.style.display = 'none'
   }
 }
 
@@ -233,7 +430,7 @@ input.addEventListener('input', () => {
 })
 
 document.addEventListener('click', e => {
-  if (!suggestions.contains(e.target) && e.target !== input) suggestions.classList.add('hidden')
+  if (!suggestions.contains(e.target) && e.target !== input) suggestions.style.display = 'none'
 })
 
 const signinBtn = document.getElementById('signinBtn')
@@ -243,10 +440,9 @@ signinBtn.addEventListener('click', async () => {
   if (signinBtn.disabled) return
 
   signinBtn.disabled = true
-  signinBtn.textContent = '提交中…'
+  signinBtn.innerHTML = '<svg class="w-4 h-4" style="animation: spin 1s linear infinite;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> 提交中...'
 
   try {
-    // 先尝试教师/管理员口令登录
     const loginRes = await fetch('/api/teacher-login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -258,7 +454,6 @@ signinBtn.addEventListener('click', async () => {
       return
     }
 
-    // 否则走学生签到流程
     if (!selectedClassId) { setMessage('请从列表中选择学生'); return }
     const res = await fetch('/api/signin', {
       method: 'POST',
@@ -283,7 +478,7 @@ signinBtn.addEventListener('click', async () => {
     }
   } finally {
     signinBtn.disabled = false
-    signinBtn.textContent = '提交签到'
+    signinBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> 提交签到'
   }
 })
 
