@@ -124,7 +124,6 @@
     .banner-stats {
       display: flex;
       gap: 12px;
-      margin-left: auto;
       flex-shrink: 0;
     }
     .banner-stat {
@@ -162,6 +161,7 @@
       font-weight: 700;
       transition: all .15s;
       flex-shrink: 0;
+      margin-left: auto;
       box-shadow: 0 4px 14px rgba(204,120,92,.35);
     }
     .signin-badge:hover { background: var(--primary-active); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(204,120,92,.45); }
@@ -492,8 +492,6 @@
       gap: 16px;
       position: sticky;
       top: 80px;
-      max-height: calc(100vh - 96px);
-      overflow-y: auto;
     }
     .sidebar-card {
       background: #fff;
@@ -595,8 +593,6 @@
       flex-direction: column;
       gap: 8px;
       margin-top: 10px;
-      max-height: 200px;
-      overflow-y: auto;
     }
     .window-field label {
       display: block;
@@ -811,10 +807,6 @@
     <!-- Compact Banner -->
     <div class="compact-banner">
       <h1 class="banner-title">{{ cls.name }}</h1>
-      <a href="/student?classId={{ cls.id }}" class="signin-badge">
-        学生签到
-        <span class="signin-url">ID: <span class="classid">{{ cls.id }}</span></span>
-      </a>
       <div class="banner-stats">
         <div class="banner-stat">
           <p class="banner-stat-label">总人数</p>
@@ -829,6 +821,10 @@
           <p id="absentCount" class="banner-stat-value muted">0</p>
         </div>
       </div>
+      <a href="/student?classId={{ cls.id }}" class="signin-badge">
+        学生签到
+        <span class="signin-url">ID: <span class="classid">{{ cls.id }}</span></span>
+      </a>
     </div>
 
     <!-- Two Column Layout -->
@@ -895,45 +891,6 @@
           </div>
         </div>
 
-        <!-- Time Window -->
-        <div class="sidebar-card">
-          <div class="sidebar-card-header" style="display: flex; align-items: center; justify-content: space-between;">
-            <p class="sidebar-card-title">签到时间段</p>
-            <button id="windowToggle" class="window-toggle" style="padding: 2px 6px; border: none; font-size: 11px;">
-              <svg id="windowChevron" style="width:12px;height:12px;transition: transform .15s;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-              </svg>
-            </button>
-          </div>
-          <div id="windowBody" class="sidebar-card-body" style="display: none;">
-            <div class="window-status">
-              <span class="window-status-label">当前设置</span>
-              <strong id="windowText" class="window-status-value">不限</strong>
-            </div>
-            <button id="windowFieldsToggle" class="window-toggle" style="width: 100%; justify-content: center;">
-              <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-              设置时间
-            </button>
-            <div id="windowPanel" class="hidden window-fields">
-              <div class="window-field">
-                <label>开始时间</label>
-                <input id="startTime" type="datetime-local" class="input-field" />
-              </div>
-              <div class="window-field">
-                <label>结束时间</label>
-                <input id="endTime" type="datetime-local" class="input-field" />
-              </div>
-              <div style="display: flex; gap: 6px;">
-                <button id="saveWindow" class="btn btn-primary" style="flex:1;">保存</button>
-                <button id="clearWindow" class="btn btn-secondary" style="flex:1;">清除</button>
-              </div>
-              <p class="sidebar-help">留空表示不限制，设置后立即生效。</p>
-            </div>
-          </div>
-        </div>
-
         <!-- Data Management -->
         <div class="sidebar-card">
           <div class="sidebar-card-header">
@@ -967,6 +924,44 @@
           </div>
         </div>
 
+        <!-- Time Window -->
+        <div class="sidebar-card">
+          <div class="sidebar-card-header" style="display: flex; align-items: center; justify-content: space-between;">
+            <p class="sidebar-card-title">签到时间段</p>
+            <button id="windowToggle" class="window-toggle" style="padding: 2px 6px; border: none; font-size: 11px;">
+              <svg id="windowChevron" style="width:12px;height:12px;transition: transform .15s; transform: rotate(180deg);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </button>
+          </div>
+          <div id="windowBody" class="sidebar-card-body" style="display: flex; flex-direction: column; gap: 2px;">
+            <div class="window-status">
+              <span class="window-status-label">当前设置</span>
+              <strong id="windowText" class="window-status-value">不限</strong>
+            </div>
+            <button id="windowFieldsToggle" class="window-toggle" style="width: 100%; justify-content: center;">
+              <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              设置时间
+            </button>
+            <div id="windowPanel" class="hidden window-fields">
+              <div class="window-field">
+                <label>开始时间</label>
+                <input id="startTime" type="datetime-local" class="input-field" />
+              </div>
+              <div class="window-field">
+                <label>结束时间</label>
+                <input id="endTime" type="datetime-local" class="input-field" />
+              </div>
+              <div style="display: flex; gap: 6px;">
+                <button id="saveWindow" class="btn btn-primary" style="flex:1;">保存</button>
+                <button id="clearWindow" class="btn btn-secondary" style="flex:1;">清除</button>
+              </div>
+              <p class="sidebar-help">留空表示不限制，设置后立即生效。</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Right: Main Content -->
