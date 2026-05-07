@@ -189,8 +189,14 @@
       border-radius: 12px;
       border: 1px solid var(--hairline);
       overflow: hidden;
+      position: sticky;
+      top: 80px;
+      max-height: calc(100vh - 96px);
+      display: flex;
+      flex-direction: column;
     }
     .roster-card-header {
+      flex-shrink: 0;
       padding: 14px 16px;
       border-bottom: 1px solid var(--hairline);
       display: flex;
@@ -205,8 +211,9 @@
     }
     .roster-card-body {
       padding: 10px;
-      max-height: 70vh;
       overflow-y: auto;
+      flex: 1;
+      min-height: 0;
     }
     .roster-item {
       display: flex;
@@ -278,13 +285,20 @@
     .seat-card.dup { background: #fef2f2; border-color: #f5c6cb; }
     .seat-card.empty-slot { background: var(--canvas); border: 1.5px dashed var(--hairline); }
     .seat-card .seat-no {
-      font-size: 10px;
-      color: var(--muted-soft);
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary);
       line-height: 1;
-      margin-bottom: 2px;
+      margin-bottom: 3px;
     }
-    .seat-card.signed .seat-no { color: #86efac; }
-    .seat-card.dup .seat-no { color: #f5c6cb; }
+    .seat-card .seat-no svg { opacity: .4; }
+    .seat-card.signed .seat-no { color: var(--success); }
+    .seat-card.signed .seat-no svg { opacity: .6; }
+    .seat-card.dup .seat-no { color: var(--error); }
+    .seat-card.dup .seat-no svg { opacity: .6; }
     .seat-card .home-class {
       font-size: 9px;
       color: var(--muted-soft);
@@ -307,7 +321,7 @@
       text-align: center;
     }
     .seat-card.dup .stu-name { color: var(--error); font-size: 11px; }
-    .seat-card.empty-slot .seat-no { color: var(--hairline); font-size: 13px; margin: 0; }
+    .seat-card.empty-slot .seat-no { color: var(--hairline); font-size: 13px; }
     .aisle { width: 16px; flex-shrink: 0; }
     .podium {
       display: flex;
@@ -478,6 +492,7 @@ const STUDENT_AISLES = new Set([1, 3, 5])
 const POLL_URL = {{ pollUrlJson | safe }}
 const SHOW_REFRESH_CONTROLS = {{ showRefreshControlsJson | safe }}
 const CLASS_ID = {{ classId }}
+const ARCHIVED_ROSTER = {{ archivedRosterJson | default('null') | safe }}
 
 let currentView = 'teacher'
 
@@ -500,7 +515,7 @@ function renderGrid(grid, aisles) {
       if (seat.seatNo !== null) {
         const noEl = document.createElement('div')
         noEl.className = 'seat-no'
-        noEl.textContent = `#${seat.label}`
+        noEl.innerHTML = `<svg style="width:12px;height:12px;opacity:.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke-width="2"/><line x1="12" y1="17" x2="12" y2="21" stroke-width="2"/></svg> <span>${seat.label}</span>`
         card.appendChild(noEl)
         if (seat.students.length > 0) {
           if (seat.dupIp) {
@@ -540,6 +555,7 @@ function setView(view) {
   document.getElementById('podiumTop').style.display = isTeacher ? 'none' : 'flex'
   document.getElementById('podiumBottom').style.display = isTeacher ? 'flex' : 'none'
   renderGrid(isTeacher ? TEACHER_GRID : STUDENT_GRID, isTeacher ? TEACHER_AISLES : STUDENT_AISLES)
+  setTimeout(syncRosterHeight, 50)
 }
 
 document.getElementById('btnTeacher').addEventListener('click', () => setView('teacher'))
@@ -581,14 +597,32 @@ function renderRoster(roster) {
   })
 }
 
+function syncRosterHeight() {
+  const seatArea = document.querySelector('.seat-area')
+  const rosterCard = document.querySelector('.roster-card')
+  if (!seatArea || !rosterCard) return
+  const rect = seatArea.getBoundingClientRect()
+  rosterCard.style.maxHeight = rect.height + 'px'
+}
+
 async function refreshRoster() {
-  try {
-    const res = await fetch(`/api/status?classId=${CLASS_ID}`)
-    if (res.status === 401) { window.location.href = '/student'; return }
-    if (!res.ok) return
-    const data = await res.json()
-    if (Array.isArray(data.roster)) renderRoster(data.roster)
-  } catch (e) { /* ignore */ }
+  // Live seat view: fetch from API
+  if (SHOW_REFRESH_CONTROLS) {
+    try {
+      const res = await fetch(`/api/status?classId=${CLASS_ID}`)
+      if (res.status === 401) { window.location.href = '/student'; return }
+      if (!res.ok) return
+      const data = await res.json()
+      if (Array.isArray(data.roster)) renderRoster(data.roster)
+    } catch (e) { /* ignore */ }
+    syncRosterHeight()
+    return
+  }
+  // Archived session: use pre-rendered roster from server
+  if (ARCHIVED_ROSTER && ARCHIVED_ROSTER.length) {
+    renderRoster(ARCHIVED_ROSTER)
+  }
+  syncRosterHeight()
 }
 
 refreshRoster()

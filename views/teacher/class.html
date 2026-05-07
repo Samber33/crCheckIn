@@ -794,6 +794,14 @@
               </span>
               信息收集
             </a>
+            <button id="sessionsToggle" class="sidebar-btn">
+              <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
+                <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h6"/>
+                </svg>
+              </span>
+              历史批次
+            </button>
             <button id="statsToggle" class="sidebar-btn">
               <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
                 <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -802,8 +810,9 @@
               </span>
               出勤统计
             </button>
-            <button id="resetBtn" class="sidebar-btn">
-              <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
+            <div class="sidebar-divider"></div>
+            <button id="resetBtn" class="sidebar-btn danger">
+              <span class="sidebar-link-icon" style="background: #fef2f2; color: var(--error);">
                 <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                 </svg>
@@ -912,8 +921,8 @@
           <div id="statsContent" style="text-align: center; font-size: 13px; color: var(--muted-soft); padding: 24px;">加载中...</div>
         </div>
 
-        <!-- Sessions -->
-        <div class="card">
+        <!-- Sessions Panel (hidden by default) -->
+        <div id="sessionsPanel" class="hidden card">
           <div class="card-header">
             <p class="card-title">历史批次</p>
             <span id="sessionCount" style="font-size: 11px; color: var(--muted-soft);"></span>
@@ -1074,7 +1083,10 @@ async function deleteSessionItem(sessionId, label) {
   const data = await parseResponse(res)
   if (!data) return
   showToast(data.message || '历史批次已删除', true)
-  await refreshSessions()
+  const sessionsPanel = document.getElementById('sessionsPanel')
+  if (!sessionsPanel.classList.contains('hidden')) {
+    await refreshSessions()
+  }
   const statsPanel = document.getElementById('statsPanel')
   if (!statsPanel.classList.contains('hidden')) {
     await loadStats()
@@ -1085,6 +1097,12 @@ document.getElementById('statsToggle').addEventListener('click', async () => {
   const panel = document.getElementById('statsPanel')
   panel.classList.toggle('hidden')
   if (!panel.classList.contains('hidden')) await loadStats()
+})
+
+document.getElementById('sessionsToggle').addEventListener('click', async () => {
+  const panel = document.getElementById('sessionsPanel')
+  panel.classList.toggle('hidden')
+  if (!panel.classList.contains('hidden')) await refreshSessions()
 })
 
 async function loadStats() {
@@ -1178,7 +1196,14 @@ document.getElementById('resetBtn').addEventListener('click', async () => {
   if (!data) return
   showToast(data.message, data.ok)
   refreshStatus()
-  refreshSessions()
+  const sessionsPanel = document.getElementById('sessionsPanel')
+  if (!sessionsPanel.classList.contains('hidden')) {
+    await refreshSessions()
+  }
+  const statsPanel = document.getElementById('statsPanel')
+  if (!statsPanel.classList.contains('hidden')) {
+    await loadStats()
+  }
 })
 
 document.getElementById('importBtn').addEventListener('click', () => {
@@ -1200,7 +1225,6 @@ document.getElementById('importFile').addEventListener('change', async (e) => {
 })
 
 refreshStatus()
-refreshSessions()
 setInterval(refreshStatus, 4000)
 </script>
 </body>

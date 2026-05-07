@@ -1,7 +1,7 @@
 import { getClasses } from '../services/class.js'
 import { isTeacherLoggedIn, teacherRequired, classOwnerRequired } from '../utils/auth.js'
 import { prisma } from '../plugins/db.js'
-import { getSessionDetailForTeacher } from '../services/attendance.js'
+import { getSessionDetailForTeacher, getSessionRosterForTeacher } from '../services/attendance.js'
 
 // Set cache-control headers on all teacher-rendered pages
 function noCache(reply) {
@@ -104,6 +104,10 @@ export default async function teacherRoutes(app) {
     const { studentGrid, teacherGrid } = getSeatGridsFromArchivedRecords(session.records ?? [])
     const signedCount = teacherGrid.flat().reduce((acc, cell) => acc + cell.students.length, 0)
 
+    // Get archived roster with sign-in status
+    const rosterResult = await getSessionRosterForTeacher(sessionId, teacherId, isAdmin)
+    const archivedRoster = rosterResult.ok ? rosterResult.roster : []
+
     noCache(reply)
     return reply.view('teacher/seat_view.html', {
       cls: session.class,
@@ -120,6 +124,7 @@ export default async function teacherRoutes(app) {
       exportHref: `/api/sessions/${sessionId}/export-seats`,
       showRefreshControls: false,
       showRefreshControlsJson: JSON.stringify(false),
+      archivedRosterJson: JSON.stringify(archivedRoster),
     })
   })
 
