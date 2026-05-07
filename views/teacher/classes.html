@@ -32,12 +32,33 @@
 
     /* === Header === */
     .header-bar {
-      background: #fff;
+      background: var(--canvas);
       border-bottom: 1px solid var(--hairline);
       height: 64px;
       position: sticky;
       top: 0;
       z-index: 20;
+    }
+    .header-inner {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
     }
     .nav-link {
       display: inline-flex;
@@ -410,14 +431,14 @@
 
   <!-- Header -->
   <header class="header-bar">
-    <div style="padding: 0 24px; height: 100%; display: flex; align-items: center; justify-content: space-between;">
-      <div style="display: flex; align-items: center; gap: 10px;">
+    <div class="header-inner">
+      <div class="header-left">
         <span class="page-title text-xl">机房签到</span>
         {% if teacher.isAdmin %}
         <span style="display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 500; background: #fef3ec; color: var(--primary-active); border: 1px solid #f5d0b5;">管理员</span>
         {% endif %}
       </div>
-      <div style="display: flex; align-items: center; gap: 4px;">
+      <div class="header-right">
         <button id="pwdToggle" class="nav-action">修改密码</button>
         {% if teacher.isAdmin %}
         <a href="/admin" class="nav-action">管理员面板</a>

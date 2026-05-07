@@ -32,12 +32,33 @@
 
     /* === Header === */
     .header-bar {
-      background: #fff;
+      background: var(--canvas);
       border-bottom: 1px solid var(--hairline);
       height: 64px;
       position: sticky;
       top: 0;
       z-index: 20;
+    }
+    .header-inner {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
     }
     .nav-link {
       display: inline-flex;
@@ -552,8 +573,8 @@
 
   <!-- Header -->
   <header class="header-bar">
-    <div style="padding: 0 24px; height: 100%; display: flex; align-items: center; justify-content: space-between;">
-      <div style="display: flex; align-items: center; gap: 12px;">
+    <div class="header-inner">
+      <div class="header-left">
         <a href="/teacher/classes" class="nav-link">
           <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
@@ -563,7 +584,7 @@
         <span style="color: var(--hairline);">|</span>
         <span class="page-title text-lg">{{ cls.name }}</span>
       </div>
-      <div style="display: flex; align-items: center; gap: 4px;">
+      <div class="header-right">
         <form method="post" action="/teacher/logout" style="display: inline;">
           <button class="nav-action" type="submit">退出</button>
         </form>
