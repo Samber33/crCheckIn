@@ -573,15 +573,24 @@ function renderRoster(roster) {
     return
   }
 
+  // Sort: unsigned first, then signed
+  const sorted = [...roster].sort((a, b) => {
+    const aSigned = a.status === '已签到'
+    const bSigned = b.status === '已签到'
+    if (aSigned && !bSigned) return 1
+    if (!aSigned && bSigned) return -1
+    return 0
+  })
+
   const ipCount = {}
-  roster.forEach(r => {
+  sorted.forEach(r => {
     const ip = (r.computerName || '').trim()
     if (ip && ip !== '-') ipCount[ip] = (ipCount[ip] || 0) + 1
   })
 
-  badge.textContent = `共 ${roster.length} 人`
+  badge.textContent = `共 ${sorted.length} 人`
 
-  roster.forEach(r => {
+  sorted.forEach(r => {
     const isSigned = r.status === '已签到'
     const dupIp = ipCount[(r.computerName || '').trim()] > 1
     const dotClass = dupIp ? 'dup' : isSigned ? 'signed' : 'unsigned'

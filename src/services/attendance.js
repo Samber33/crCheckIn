@@ -106,7 +106,8 @@ export async function getClassStatus(classId) {
 
   // 已签到按 signedAt 升序
   signed.sort((a, b) => (a.signedAt > b.signedAt ? 1 : -1))
-  const roster = [...signed, ...unsigned]
+  // 未签到排在前，已签到排在后
+  const roster = [...unsigned, ...signed]
 
   const signedCount = signed.length
   const totalCount = students.length
@@ -282,6 +283,13 @@ export async function getSessionRosterForTeacher(sessionId, teacherId, isAdmin =
     }))
 
   roster.push(...snapshotOnlySigned)
+
+  // Sort: unsigned first, then signed
+  roster.sort((a, b) => {
+    if (a.status === '未签到' && b.status === '已签到') return -1
+    if (a.status === '已签到' && b.status === '未签到') return 1
+    return 0
+  })
 
   return {
     ok: true,

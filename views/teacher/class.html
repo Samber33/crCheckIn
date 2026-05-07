@@ -4,6 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{{ cls.name }} - 签到管理</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <link rel="stylesheet" href="/public/tailwind.min.css">
   <style>
     :root {
@@ -589,6 +595,8 @@
       flex-direction: column;
       gap: 8px;
       margin-top: 10px;
+      max-height: 200px;
+      overflow-y: auto;
     }
     .window-field label {
       display: block;
@@ -692,6 +700,71 @@
     .toast.ok { background: #f0fdf4; color: #047857; border: 1px solid #b7e4c7; }
     .toast.err { background: #fef2f2; color: #c64545; border: 1px solid #f5c6cb; }
 
+    /* === Floating Modal === */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(20,20,19,.55);
+    }
+    .modal-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 16px 48px rgba(20,20,19,.15);
+      width: 90vw;
+      max-width: 700px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      margin: 0 16px;
+      border: 1px solid var(--hairline);
+    }
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--hairline);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .modal-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0;
+    }
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: none;
+      cursor: pointer;
+      color: var(--muted);
+      transition: all .12s;
+      flex-shrink: 0;
+      z-index: 1;
+    }
+    .modal-close:hover { background: var(--surface-card); color: var(--ink); }
+    .modal-card-overlay {
+      position: relative;
+      z-index: 2;
+    }
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      flex: 1;
+      min-height: 0;
+    }
+    .modal-body::-webkit-scrollbar { width: 6px; }
+    .modal-body::-webkit-scrollbar-thumb { background: var(--hairline); border-radius: 3px; }
+
     /* === Responsive === */
     @media (max-width: 900px) {
       .page-layout { grid-template-columns: 1fr; }
@@ -786,7 +859,7 @@
               </span>
               学生管理
             </a>
-            <a href="/teacher/info?classId={{ cls.id }}" class="sidebar-link">
+            <a href="/teacher/info?classId={{ cls.id }}" class="sidebar-link" style="display:none;">
               <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
                 <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -900,7 +973,7 @@
       <div>
 
         <!-- Roster -->
-        <div class="card" style="margin-bottom: 16px;">
+        <div class="card">
           <div class="card-header">
             <div style="display: flex; align-items: center; gap: 10px;">
               <p class="card-title">当前签到名单</p>
@@ -912,25 +985,6 @@
             <div id="rosterCompactGrid" class="roster-grid"></div>
           </div>
         </div>
-
-        <!-- Stats Panel (hidden by default) -->
-        <div id="statsPanel" class="hidden card stats-panel">
-          <div class="card-header">
-            <p class="card-title">出勤统计</p>
-          </div>
-          <div id="statsContent" style="text-align: center; font-size: 13px; color: var(--muted-soft); padding: 24px;">加载中...</div>
-        </div>
-
-        <!-- Sessions Panel (hidden by default) -->
-        <div id="sessionsPanel" class="hidden card">
-          <div class="card-header">
-            <p class="card-title">历史批次</p>
-            <span id="sessionCount" style="font-size: 11px; color: var(--muted-soft);"></span>
-          </div>
-          <div id="sessionList">
-            <div style="padding: 24px; text-align: center; font-size: 13px; color: var(--muted-soft);">暂无历史批次</div>
-          </div>
-        </div>
       </div>
 
     </div>
@@ -940,8 +994,52 @@
 
   </main>
 
+  <!-- Modal backdrop + container -->
+  <div id="modalBackdrop" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(20,20,19,.55);">
+    <div id="modalContainer" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:12px;box-shadow:0 16px 48px rgba(20,20,19,.25);border:1px solid var(--hairline);display:flex;flex-direction:column;max-height:85vh;width:min(90vw, 780px);">
+      <div style="padding:16px 20px 16px 20px;border-bottom:1px solid var(--hairline);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+        <div id="modalTitleRow" style="display:flex;align-items:center;gap:10px;">
+          <p id="modalTitleText" style="font-size:14px;font-weight:600;color:var(--ink);margin:0;"></p>
+          <span id="modalCountText" style="font-size:11px;color:var(--muted-soft);display:none;"></span>
+        </div>
+        <button id="modalCloseBtn" style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:var(--muted);">
+          <svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div id="modalBody" style="padding:20px;overflow-y:auto;flex:1;min-height:0;"></div>
+    </div>
+  </div>
+
 <script>
 const CLASS_ID = {{ cls.id }}
+
+// === Single modal system ===
+let modalCloseHandler = null
+
+function openModal(title, content, onClose) {
+  closeCurrentModal()
+  document.getElementById('modalTitleText').textContent = title
+  document.getElementById('modalCountText').textContent = ''
+  document.getElementById('modalCountText').style.display = 'none'
+  document.getElementById('modalBody').innerHTML = content
+  document.getElementById('modalBackdrop').style.display = 'flex'
+  document.body.style.overflow = 'hidden'
+  modalCloseHandler = onClose
+}
+
+function closeCurrentModal() {
+  document.getElementById('modalBackdrop').style.display = 'none'
+  document.body.style.overflow = ''
+  modalCloseHandler = null
+}
+
+document.getElementById('modalCloseBtn').addEventListener('click', closeCurrentModal)
+document.getElementById('modalBackdrop').addEventListener('click', function(e) {
+  if (e.target === this) closeCurrentModal()
+})
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeCurrentModal()
+})
 
 function showToast(text, ok = true) {
   const t = document.getElementById('toast')
@@ -1055,10 +1153,13 @@ async function refreshSessions() {
   const res = await fetch(`/api/sessions?classId=${CLASS_ID}`)
   const data = await parseResponse(res)
   if (!data) return
-  const list = document.getElementById('sessionList')
-  document.getElementById('sessionCount').textContent = data.length ? `共 ${data.length} 批次` : ''
-  if (!data.length) { list.innerHTML = '<div style="padding: 24px; text-align: center; font-size: 13px; color: var(--muted-soft);">暂无历史批次</div>'; return }
-  list.innerHTML = data.map(s => `
+  document.getElementById('modalCountText').textContent = data.length ? `共 ${data.length} 批次` : ''
+  document.getElementById('modalCountText').style.display = ''
+  if (!data.length) {
+    document.getElementById('modalBody').innerHTML = '<div style="padding:24px;text-align:center;font-size:13px;color:var(--muted-soft);">暂无历史批次</div>'
+    return
+  }
+  document.getElementById('modalBody').innerHTML = data.map(s => `
     <div class="session-item">
       <div class="session-head">
         <div>
@@ -1067,11 +1168,11 @@ async function refreshSessions() {
         </div>
         <div class="session-actions">
           <a href="/teacher/sessions/${s.id}/seats"
-            class="session-action" style="color: var(--primary);" onmouseover="this.style.background='#fef3ec'" onmouseout="this.style.background=''">座位表</a>
+            class="session-action" style="color:var(--primary);" onmouseover="this.style.background='#fef3ec'" onmouseout="this.style.background=''">座位表</a>
           <a href="/api/sessions/${s.id}/export"
-            class="session-action" style="color: var(--success);" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''">导出</a>
+            class="session-action" style="color:var(--success);" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''">导出</a>
           <button onclick="deleteSessionItem(${s.id}, this.dataset.label)" data-label="${s.label.replace(/"/g,'&quot;')}"
-            class="session-action" style="color: var(--error);" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background=''">删除</button>
+            class="session-action" style="color:var(--error);" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background=''">删除</button>
         </div>
       </div>
     </div>`).join('')
@@ -1083,36 +1184,63 @@ async function deleteSessionItem(sessionId, label) {
   const data = await parseResponse(res)
   if (!data) return
   showToast(data.message || '历史批次已删除', true)
-  const sessionsPanel = document.getElementById('sessionsPanel')
-  if (!sessionsPanel.classList.contains('hidden')) {
-    await refreshSessions()
-  }
-  const statsPanel = document.getElementById('statsPanel')
-  if (!statsPanel.classList.contains('hidden')) {
-    await loadStats()
+  // Refresh if either modal is currently open
+  const backdrop = document.getElementById('modalBackdrop')
+  if (backdrop.style.display === 'flex') {
+    const title = document.getElementById('modalTitleText').textContent
+    if (title === '历史批次') await refreshSessions()
+    else if (title === '出勤统计') await loadStats()
   }
 }
 
 document.getElementById('statsToggle').addEventListener('click', async () => {
-  const panel = document.getElementById('statsPanel')
-  panel.classList.toggle('hidden')
-  if (!panel.classList.contains('hidden')) await loadStats()
-})
-
-document.getElementById('sessionsToggle').addEventListener('click', async () => {
-  const panel = document.getElementById('sessionsPanel')
-  panel.classList.toggle('hidden')
-  if (!panel.classList.contains('hidden')) await refreshSessions()
-})
-
-async function loadStats() {
-  const content = document.getElementById('statsContent')
-  content.innerHTML = '<div style="padding: 24px; text-align: center; font-size: 13px; color: var(--muted-soft);">加载中...</div>'
+  openModal('出勤统计', '<div style="padding:24px;text-align:center;font-size:13px;color:var(--muted-soft);">加载中...</div>')
   const res = await fetch('/api/stats?classId=' + CLASS_ID)
   if (res.status === 401) { window.location.href = '/student'; return }
   const data = await res.json()
   if (!data.students || !data.students.length) {
-    content.innerHTML = '<div style="padding: 24px; text-align: center; font-size: 13px; color: var(--muted-soft);">暂无历史批次数据</div>'; return
+    document.getElementById('modalBody').innerHTML = '<div style="padding:24px;text-align:center;font-size:13px;color:var(--muted-soft);">暂无历史批次数据</div>'
+    return
+  }
+  const rateCls = (rate) => {
+    const v = parseFloat(rate)
+    return v >= 80 ? 'high' : v >= 60 ? 'mid' : 'low'
+  }
+  document.getElementById('modalBody').innerHTML = `<table class="stats-table">
+    <thead><tr>
+      <th style="width:18%">姓名</th>
+      <th style="width:20%">行政班级</th>
+      <th class="center" style="width:14%">签到</th>
+      <th class="center" style="width:14%">缺勤</th>
+      <th class="center" style="width:34%">出勤率</th>
+    </tr></thead>
+    <tbody>${data.students.map(s => {
+      return `<tr>
+        <td class="name">${s.name}</td>
+        <td class="muted">${formatHomeClass(s.homeClass)}</td>
+        <td class="center">${s.signedCount}</td>
+        <td class="center muted">${s.absentCount}</td>
+        <td class="rate ${rateCls(s.rate)}">${s.rate}%</td>
+      </tr>`
+    }).join('')}</tbody>
+  </table>
+  <div class="stats-footer">共 ${data.totalSessions} 个历史批次</div>`
+})
+
+document.getElementById('sessionsToggle').addEventListener('click', async () => {
+  openModal('历史批次', '<div style="padding:24px;text-align:center;font-size:13px;color:var(--muted-soft);">加载中...</div>')
+  await refreshSessions()
+})
+
+async function loadStats() {
+  const content = document.getElementById('modalBody')
+  content.innerHTML = '<div style="padding:24px;text-align:center;font-size:13px;color:var(--muted-soft);">加载中...</div>'
+  const res = await fetch('/api/stats?classId=' + CLASS_ID)
+  if (res.status === 401) { window.location.href = '/student'; return }
+  const data = await res.json()
+  if (!data.students || !data.students.length) {
+    content.innerHTML = '<div style="padding:24px;text-align:center;font-size:13px;color:var(--muted-soft);">暂无历史批次数据</div>'
+    return
   }
   const rateClass = (rate) => {
     const v = parseFloat(rate)
@@ -1196,13 +1324,12 @@ document.getElementById('resetBtn').addEventListener('click', async () => {
   if (!data) return
   showToast(data.message, data.ok)
   refreshStatus()
-  const sessionsPanel = document.getElementById('sessionsPanel')
-  if (!sessionsPanel.classList.contains('hidden')) {
-    await refreshSessions()
-  }
-  const statsPanel = document.getElementById('statsPanel')
-  if (!statsPanel.classList.contains('hidden')) {
-    await loadStats()
+  // Refresh if either modal is currently open
+  const backdrop = document.getElementById('modalBackdrop')
+  if (backdrop.style.display === 'flex') {
+    const title = document.getElementById('modalTitleText').textContent
+    if (title === '历史批次') await refreshSessions()
+    else if (title === '出勤统计') await loadStats()
   }
 })
 
