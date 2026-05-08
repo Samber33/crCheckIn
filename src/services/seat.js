@@ -1,4 +1,5 @@
 import { prisma } from '../plugins/db.js'
+import { getClassTags } from './tag.js'
 
 export const TEACHER_SEAT_LAYOUT = [
   [60, 59, 44, 43, 30, 29, 16, 15],
@@ -37,8 +38,10 @@ function buildSeatMapFromRecords(records) {
     if (!Number.isInteger(n) || n < 1 || n > 60) continue
     if (!seatToStudents.has(n)) seatToStudents.set(n, [])
     seatToStudents.get(n).push({
+      id: rec.studentId ?? null,
       name: rec.studentName,
       homeClass: rec.homeClass ?? '',
+      tags: rec.tags ?? [],
     })
   }
 
@@ -57,13 +60,15 @@ async function buildSeatMap(classId) {
 
   const normalizedRecords = []
   for (const rec of records) {
-    // studentId 可能为 null（旧记录），fallback 到按姓名查
+    let studentId = rec.studentId
     let homeClass = rec.student?.homeClass ?? ''
     if (!homeClass && !rec.student) {
       const stu = await prisma.student.findFirst({ where: { classId, name: rec.studentName } })
       homeClass = stu?.homeClass ?? ''
+      studentId = stu?.id ?? null
     }
     normalizedRecords.push({
+      studentId,
       studentName: rec.studentName,
       homeClass,
       computerName: rec.computerName,
@@ -92,6 +97,13 @@ function buildTeacherGridFromSeatMap(seatToStudents) {
  */
 export async function getSeatGrid(classId) {
   const seatToStudents = await buildSeatMap(classId)
+  const tagMap = await getClassTags(classId)
+  // Enrich students with tags
+  for (const students of seatToStudents.values()) {
+    for (const stu of students) {
+      if (stu.id) stu.tags = tagMap.get(stu.id) || []
+    }
+  }
   return buildStudentGridFromSeatMap(seatToStudents)
 }
 
@@ -100,6 +112,12 @@ export async function getSeatGrid(classId) {
  */
 export async function getSeatGridTeacher(classId) {
   const seatToStudents = await buildSeatMap(classId)
+  const tagMap = await getClassTags(classId)
+  for (const students of seatToStudents.values()) {
+    for (const stu of students) {
+      if (stu.id) stu.tags = tagMap.get(stu.id) || []
+    }
+  }
   return buildTeacherGridFromSeatMap(seatToStudents)
 }
 

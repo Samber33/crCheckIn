@@ -133,14 +133,21 @@ export default async function teacherRoutes(app) {
     const classId = parseInt(request.params.classId, 10)
     const teacherId = request.session.teacherId
     const isAdmin = request.session.isAdmin === true
-    const [cls, students, allClasses] = await Promise.all([
+    const { getClassTags } = await import('../services/tag.js')
+    const [cls, students, allClasses, tagMap] = await Promise.all([
       prisma.class.findUnique({ where: { id: classId } }),
       prisma.student.findMany({ where: { classId }, orderBy: [{ homeClass: 'asc' }, { name: 'asc' }] }),
       isAdmin
         ? prisma.class.findMany({ orderBy: { name: 'asc' } })
         : prisma.class.findMany({ where: { teacherId }, orderBy: { name: 'asc' } }),
+      getClassTags(classId),
     ])
+    // Attach tags to each student
+    const studentsWithTags = students.map(s => ({
+      ...s,
+      tags: tagMap.get(s.id) || [],
+    }))
     noCache(reply)
-    return reply.view('teacher/students.html', { cls, students, classes: allClasses })
+    return reply.view('teacher/students.html', { cls, students: studentsWithTags, classes: allClasses })
   })
 }

@@ -1,5 +1,6 @@
 import { prisma } from '../plugins/db.js'
 import { formatMinute, formatSecond, nowParts } from '../utils/time.js'
+import { getClassTags } from './tag.js'
 
 /**
  * 学生签到
@@ -69,10 +70,11 @@ export async function signIn(classId, studentName, computerName) {
  * @returns {Promise<object>}
  */
 export async function getClassStatus(classId) {
-  const [students, records, config] = await Promise.all([
+  const [students, records, config, tagMap] = await Promise.all([
     prisma.student.findMany({ where: { classId }, orderBy: { name: 'asc' } }),
     prisma.signInRecord.findMany({ where: { classId }, orderBy: { signedAt: 'desc' } }),
     prisma.signInConfig.findUnique({ where: { classId } }),
+    getClassTags(classId),
   ])
 
   // 建立签到记录索引
@@ -82,24 +84,29 @@ export async function getClassStatus(classId) {
   const signed = []
   const unsigned = []
   for (const s of students) {
+    const tags = tagMap.get(s.id) || []
     const rec = recordMap.get(s.name)
     if (rec) {
       signed.push({
         recordId: rec.id,
         studentName: s.name,
+        studentId: s.id,
         homeClass: s.homeClass || '',
         status: '已签到',
         computerName: rec.computerName,
         signedAt: formatSecond(new Date(rec.signedAt)),
+        tags,
       })
     } else {
       unsigned.push({
         recordId: null,
         studentName: s.name,
+        studentId: s.id,
         homeClass: s.homeClass || '',
         status: '未签到',
         computerName: '-',
         signedAt: '-',
+        tags,
       })
     }
   }
@@ -245,6 +252,7 @@ export async function getSessionRosterForTeacher(sessionId, teacherId, isAdmin =
     where: { classId: session.classId },
     orderBy: [{ homeClass: 'asc' }, { name: 'asc' }],
   })
+  const tagMap = await getClassTags(session.classId)
 
   const signedMap = new Map()
   for (const rec of (session.records ?? [])) {
@@ -253,22 +261,27 @@ export async function getSessionRosterForTeacher(sessionId, teacherId, isAdmin =
   const studentNameSet = new Set(students.map(stu => stu.name))
 
   const roster = students.map((stu) => {
+    const tags = tagMap.get(stu.id) || []
     const rec = signedMap.get(stu.name)
     if (rec) {
       return {
         studentName: stu.name,
+        studentId: stu.id,
         homeClass: stu.homeClass || '',
         status: '已签到',
         signedAt: rec.signedAt ? formatSecond(new Date(rec.signedAt)) : '-',
         computerName: rec.computerName || '-',
+        tags,
       }
     }
     return {
       studentName: stu.name,
+      studentId: stu.id,
       homeClass: stu.homeClass || '',
       status: '未签到',
       signedAt: '-',
       computerName: '-',
+      tags,
     }
   })
 
@@ -276,10 +289,12 @@ export async function getSessionRosterForTeacher(sessionId, teacherId, isAdmin =
     .filter(rec => !studentNameSet.has(rec.studentName))
     .map(rec => ({
       studentName: rec.studentName,
+      studentId: null,
       homeClass: rec.homeClass || '',
       status: '已签到',
       signedAt: rec.signedAt ? formatSecond(new Date(rec.signedAt)) : '-',
       computerName: rec.computerName || '-',
+      tags: [],
     }))
 
   roster.push(...snapshotOnlySigned)
@@ -357,12 +372,13 @@ export async function deleteSignInRecord(recordId, teacherId, isAdmin = false) {
  * @returns {Promise<{ totalSessions: number, students: Array }>}
  */
 export async function getAttendanceStats(classId) {
-  const [students, sessions] = await Promise.all([
+  const [students, sessions, tagMap] = await Promise.all([
     prisma.student.findMany({ where: { classId }, orderBy: { name: 'asc' } }),
     prisma.signInSession.findMany({
       where: { classId },
       include: { records: { select: { studentName: true } } },
     }),
+    getClassTags(classId),
   ])
 
   const totalSessions = sessions.length
@@ -379,7 +395,7 @@ export async function getAttendanceStats(classId) {
     const signedCount = countMap.get(s.name) || 0
     const absentCount = totalSessions - signedCount
     const rate = totalSessions === 0 ? '0.00' : (signedCount / totalSessions * 100).toFixed(2)
-    return { studentId: s.id, name: s.name, homeClass: s.homeClass || '', signedCount, absentCount, rate }
+    return { studentId: s.id, name: s.name, homeClass: s.homeClass || '', tags: tagMap.get(s.id) || [], signedCount, absentCount, rate }
   })
 
   result.sort((a, b) => {

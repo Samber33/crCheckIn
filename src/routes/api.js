@@ -41,6 +41,13 @@ import {
   getSubmissionsStats,
   uploadAttachment,
 } from '../services/infoCollection.js'
+import {
+  getStudentTags,
+  getClassTags,
+  addStudentTag,
+  deleteStudentTag,
+  getNextColor,
+} from '../services/tag.js'
 
 /**
  * 格式化当前时间为 YYYYMMDD_HHmmss
@@ -524,5 +531,39 @@ export default async function apiRoutes(fastify) {
       .header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
       .header('Content-Disposition', `attachment; filename="${filename}"`)
     return reply.send(buffer)
+  })
+
+  // ========== 学生标签功能 ==========
+
+  // GET /api/tags — 获取班级所有学生标签（批量）
+  fastify.get('/api/tags', { preHandler: classOwnerRequired }, async (request, reply) => {
+    const classId = parseInt(request.query.classId, 10)
+    const tagMap = await getClassTags(classId)
+    const result = {}
+    for (const [sid, tags] of tagMap) {
+      result[sid] = tags
+    }
+    return reply.send(result)
+  })
+
+  // POST /api/tags — 添加学生标签
+  fastify.post('/api/tags', { preHandler: classOwnerRequired }, async (request, reply) => {
+    const { classId: rawClassId, studentId, tag, color } = request.body
+    const classId = parseInt(rawClassId, 10)
+    const sid = parseInt(studentId, 10)
+    const tagColor = color || getNextColor(0)
+    const result = await addStudentTag(classId, sid, tag, tagColor)
+    if (!result.ok) return reply.code(400).send(result)
+    return reply.send({ ok: true, tag: result.tag })
+  })
+
+  // DELETE /api/tags/:tagId — 删除学生标签
+  fastify.delete('/api/tags/:tagId', { preHandler: teacherRequired }, async (request, reply) => {
+    const tagId = parseInt(request.params.tagId, 10)
+    const teacherId = request.session.teacherId
+    const isAdmin = request.session.isAdmin === true
+    const result = await deleteStudentTag(parseInt(request.query.classId, 10), tagId, teacherId, isAdmin)
+    if (!result.ok) return reply.code(result.status || 400).send(result)
+    return reply.send(result)
   })
 }

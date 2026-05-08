@@ -250,6 +250,22 @@
     }
     .roster-time.signed { color: #047857; }
     .roster-time.dup { color: var(--error); }
+    .roster-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2px;
+      margin-left: 4px;
+      flex-shrink: 0;
+    }
+    .roster-tag {
+      display: inline-block;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 500;
+      color: #fff;
+      line-height: 1.4;
+    }
     .roster-empty {
       padding: 24px 12px;
       text-align: center;
@@ -308,6 +324,22 @@
       text-overflow: ellipsis;
       white-space: nowrap;
       text-align: center;
+    }
+    .seat-card .seat-tags {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 2px;
+      margin-top: 2px;
+    }
+    .seat-card .seat-tag {
+      display: inline-block;
+      padding: 0px 4px;
+      border-radius: 3px;
+      font-size: 8px;
+      font-weight: 500;
+      color: #fff;
+      line-height: 1.4;
     }
     .seat-card .stu-name {
       font-size: 12px;
@@ -533,6 +565,14 @@ function renderGrid(grid, aisles) {
             hcEl.className = 'home-class'
             hcEl.textContent = fmtHomeClass(stu.homeClass)
             card.appendChild(hcEl)
+            // Tags
+            const tags = stu.tags || []
+            if (tags.length > 0) {
+              const tagsEl = document.createElement('div')
+              tagsEl.className = 'seat-tags'
+              tagsEl.innerHTML = tags.map(t => `<span class="seat-tag" style="background:${t.color}">${escHtml(t.tag)}</span>`).join('')
+              card.appendChild(tagsEl)
+            }
           }
         }
       }
@@ -590,17 +630,24 @@ function renderRoster(roster) {
 
   badge.textContent = `共 ${sorted.length} 人`
 
+  function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
   sorted.forEach(r => {
     const isSigned = r.status === '已签到'
     const dupIp = ipCount[(r.computerName || '').trim()] > 1
     const dotClass = dupIp ? 'dup' : isSigned ? 'signed' : 'unsigned'
     const timeClass = dupIp ? 'dup' : isSigned ? 'signed' : ''
 
+    const tagsHtml = (r.tags || []).map(t =>
+      `<span class="roster-tag" style="background:${t.color}">${escHtml(t.tag)}</span>`
+    ).join('')
+
     const item = document.createElement('div')
     item.className = 'roster-item'
     item.innerHTML = `
       <span class="roster-dot ${dotClass}"></span>
-      <span class="roster-name">${r.studentName}</span>
+      <span class="roster-name">${escHtml(r.studentName)}</span>
+      ${tagsHtml ? `<span class="roster-tags">${tagsHtml}</span>` : ''}
       <span class="roster-time ${timeClass}">${isSigned ? formatSignedTime(r.signedAt) : '-'}</span>`
     list.appendChild(item)
   })
@@ -618,11 +665,19 @@ async function refreshRoster() {
   // Live seat view: fetch from API
   if (SHOW_REFRESH_CONTROLS) {
     try {
-      const res = await fetch(`/api/status?classId=${CLASS_ID}`)
+      const [res, tagRes] = await Promise.all([
+        fetch(`/api/status?classId=${CLASS_ID}`),
+        fetch(`/api/tags?classId=${CLASS_ID}`),
+      ])
       if (res.status === 401) { window.location.href = '/student'; return }
       if (!res.ok) return
       const data = await res.json()
-      if (Array.isArray(data.roster)) renderRoster(data.roster)
+      const tagMap = await tagRes.json()
+      // Merge tags into roster
+      if (Array.isArray(data.roster)) {
+        data.roster.forEach(r => { r.tags = (tagMap[r.studentId] || []) })
+        renderRoster(data.roster)
+      }
     } catch (e) { /* ignore */ }
     syncRosterHeight()
     return

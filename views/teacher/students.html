@@ -206,6 +206,28 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    .student-name-wrap {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      min-width: 0;
+    }
+    .student-tags {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      flex-shrink: 0;
+    }
+    .student-tag {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 500;
+      color: #fff;
+      line-height: 1.4;
+    }
+    .tag-preset-btn:hover { opacity: .85; }
     .student-homeclass {
       display: inline-flex;
       align-items: center;
@@ -536,7 +558,16 @@
                 <div class="student-info">
                   <div class="student-avatar">{{ s.name | first }}</div>
                   <div style="min-width: 0;">
-                    <p class="student-name name-cell">{{ s.name }}</p>
+                  <div class="student-name-wrap">
+                    <p class="student-name">{{ s.name }}</p>
+                    {% if s.tags and s.tags|length > 0 %}
+                    <span class="student-tags">
+                      {% for t in s.tags %}
+                      <span class="student-tag" style="background:{{ t.color }}" data-tag-id="{{ t.id }}">{{ t.tag }}</span>
+                      {% endfor %}
+                    </span>
+                    {% endif %}
+                  </div>
                     <span class="student-homeclass hc-cell {% if not s.homeClass %}hidden{% endif %}">{{ s.homeClass }}</span>
                   </div>
                 </div>
@@ -573,6 +604,15 @@
         <label for="editStudentHomeClass">行政班级</label>
         <input id="editStudentHomeClass" type="text" class="input-field" placeholder="如：1 或 1班" />
       </div>
+      <div class="modal-field">
+        <label>标签</label>
+        <div id="editTagPresets" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+        <div id="editCustomTags" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;"></div>
+        <div style="display:flex;gap:4px;margin-top:6px;">
+          <input id="editCustomTagInput" type="text" placeholder="自定义标签" style="flex:1;padding:6px 10px;border:1px solid var(--hairline);border-radius:6px;font-size:12px;outline:none;" />
+          <button id="editCustomTagAddBtn" style="padding:6px 12px;border:none;border-radius:6px;background:var(--primary);color:#fff;font-size:12px;font-weight:600;cursor:pointer;">添加</button>
+        </div>
+      </div>
       <div class="modal-actions">
         <button onclick="closeEdit()"
           style="padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--muted); background: none; border: none; cursor: pointer; transition: background .12s;" onmouseover="this.style.background='var(--surface-card)'" onmouseout="this.style.background=''">取消</button>
@@ -603,8 +643,98 @@
   </div>
 
 <script>
+const CLASS_ID = {{ cls.id }}
 let editStudentId = null
 let transferStudentId = null
+let editTagSelection = null // current tag in edit modal
+
+const PRESET_TAGS = ['体育生', '竞赛生']
+const TAG_COLORS = ['#cc785c','#5db872','#d4a017','#7c6cf0','#4a90d9','#e67e22']
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+}
+
+async function reloadTags() {
+  try {
+    const res = await fetch('/api/tags?classId=' + CLASS_ID)
+    window._stuTags = await res.json()
+  } catch(e) {}
+}
+
+// Render tag presets + custom tags in edit modal
+function renderEditTags() {
+  const container = document.getElementById('editTagPresets')
+  const customContainer = document.getElementById('editCustomTags')
+  const currentTags = (window._stuTags || {})[editStudentId] || []
+  const currentNames = new Set(currentTags.map(t => t.tag))
+
+  // Preset buttons
+  container.innerHTML = PRESET_TAGS.map((name, i) => {
+    const active = currentNames.has(name)
+    const color = TAG_COLORS[i % TAG_COLORS.length]
+    return `<button type="button" class="tag-preset-btn" data-tag="${escHtml(name)}" data-active="${active}" style="padding:4px 12px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid ${active ? color : 'var(--hairline)'};background:${active ? color : '#fff'};color:${active ? '#fff' : 'var(--body)'};transition:opacity .12s;">${escHtml(name)}</button>`
+  }).join('')
+
+  // Custom tags (non-preset) - show as removable tags
+  const customTags = currentTags.filter(t => !PRESET_TAGS.includes(t.tag))
+  customContainer.innerHTML = customTags.map(t =>
+    `<span class="edit-custom-tag" data-tag-id="${t.id}" data-tag="${escHtml(t.tag)}" style="display:inline-flex;align-items:center;gap:3px;padding:3px 6px 3px 8px;border-radius:6px;font-size:12px;font-weight:500;background:${t.color};color:#fff;cursor:default;">${escHtml(t.tag)}<button type="button" class="edit-custom-tag-remove" data-tag-id="${t.id}" style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:14px;line-height:1;padding:0 2px;">&times;</button></span>`
+  ).join('')
+}
+
+// Tag preset click in edit modal
+document.getElementById('editTagPresets').addEventListener('click', (e) => {
+  const btn = e.target.closest('.tag-preset-btn')
+  if (!btn) return
+  // Toggle visual and data-active
+  const isActive = btn.dataset.active === 'true'
+  btn.dataset.active = String(!isActive)
+  const color = TAG_COLORS[PRESET_TAGS.indexOf(btn.dataset.tag) % TAG_COLORS.length]
+  if (isActive) {
+    btn.style.background = '#fff'
+    btn.style.color = 'var(--body)'
+    btn.style.borderColor = 'var(--hairline)'
+  } else {
+    btn.style.background = color
+    btn.style.color = '#fff'
+    btn.style.borderColor = color
+  }
+})
+
+// Remove custom tag in edit modal (click on ×)
+document.getElementById('editCustomTags').addEventListener('click', async (e) => {
+  const removeBtn = e.target.closest('.edit-custom-tag-remove')
+  if (!removeBtn) return
+  const tagId = parseInt(removeBtn.dataset.tagId)
+  await fetch(`/api/tags/${tagId}?classId=${CLASS_ID}`, { method: 'DELETE' })
+  await reloadTags()
+  renderEditTags()
+})
+
+// Add custom tag in edit modal
+document.getElementById('editCustomTagAddBtn').addEventListener('click', async () => {
+  const input = document.getElementById('editCustomTagInput')
+  const tag = input.value.trim()
+  if (!tag) return
+  const res = await fetch('/api/tags', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ classId: CLASS_ID, studentId: editStudentId, tag }),
+  })
+  const data = await res.json()
+  if (!data.ok) { showToast(data.message || '添加失败', false); return }
+  input.value = ''
+  await reloadTags()
+  renderEditTags()
+})
+
+document.getElementById('editCustomTagInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('editCustomTagAddBtn').click()
+})
+
+// Load tags on page load
+reloadTags()
 
 function formatHomeClass(homeClass) {
   const value = (homeClass || '').trim()
@@ -644,6 +774,7 @@ function openEdit(id) {
   document.getElementById('editStudentHint').textContent = `当前学生：${row.dataset.name}`
   document.getElementById('editStudentName').value = row.dataset.name || ''
   document.getElementById('editStudentHomeClass').value = row.dataset.homeclass || ''
+  renderEditTags()
   document.getElementById('editModal').classList.remove('hidden')
 }
 
@@ -665,12 +796,52 @@ async function saveEdit() {
   if (res.status === 401) { window.location.href = '/student'; return }
   const data = await res.json()
   if (!data.ok) { showToast(data.message, false); return }
+
+  // Handle tag changes
+  const currentTags = (window._stuTags || {})[id] || []
+  const presetBtns = document.querySelectorAll('#editTagPresets .tag-preset-btn')
+  const selectedTags = []
+  presetBtns.forEach(btn => {
+    if (btn.dataset.active === 'true') {
+      selectedTags.push(btn.dataset.tag)
+    }
+  })
+
+  // Single tag enforcement: max 1 tag total
+  const allTargetTags = selectedTags.slice(0, 1) // only keep first selected preset
+
+  // Delete all existing tags
+  for (const t of currentTags) {
+    await fetch(`/api/tags/${t.id}?classId=${CLASS_ID}`, { method: 'DELETE' })
+  }
+
+  // Add target tag (at most one)
+  if (allTargetTags.length > 0) {
+    await fetch('/api/tags', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ classId: CLASS_ID, studentId: id, tag: allTargetTags[0] }),
+    })
+  }
+
+  await reloadTags()
+
   const row = document.getElementById(`row-${id}`)
   row.dataset.name = data.student.name
   row.dataset.homeclass = data.student.homeClass || ''
-  row.querySelector('.name-cell').textContent = data.student.name
+  row.querySelector('.student-name').textContent = data.student.name
   row.querySelector('.student-avatar').textContent = data.student.name.charAt(0)
   syncHomeClass(row, data.student.homeClass)
+  // Update tag display in row
+  const tagsWrap = row.querySelector('.student-name-wrap')
+  tagsWrap.querySelectorAll('.student-tags').forEach(el => el.remove())
+  const newTags = (window._stuTags || {})[id] || []
+  if (newTags.length > 0) {
+    const tagsEl = document.createElement('span')
+    tagsEl.className = 'student-tags'
+    tagsEl.innerHTML = newTags.map(t => `<span class="student-tag" style="background:${t.color}">${escHtml(t.tag)}</span>`).join('')
+    tagsWrap.appendChild(tagsEl)
+  }
   closeEdit()
   showToast('已更新')
 }

@@ -58,8 +58,20 @@ model Student {
   classId       Int
   class         Class         @relation(fields: [classId], references: [id])
   signInRecords SignInRecord[]
+  tags          StudentTag[]
 
   @@unique([classId, name])
+}
+
+model StudentTag {
+  id          Int     @id @default(autoincrement())
+  studentId   Int
+  student     Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  classId     Int
+  tag         String
+  color       String  @default("#cc785c") // 标签颜色
+
+  @@unique([classId, studentId, tag])
 }
 
 model SignInRecord {
