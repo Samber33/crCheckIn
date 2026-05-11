@@ -482,12 +482,6 @@
         <span class="badge">学生管理</span>
       </div>
       <div class="header-right">
-        <button onclick="openAddModal()" class="nav-link" style="cursor:pointer;border:none;background:none;">
-          <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-          </svg>
-          添加学生
-        </button>
         <form method="post" action="/teacher/logout" style="display: inline;">
           <button class="nav-action" type="submit">退出</button>
         </form>
@@ -532,6 +526,20 @@
               <span>学生人数</span>
               <span id="sidebarCount" class="sidebar-stat-value">{{ students | length }}</span>
             </div>
+          </div>
+        </div>
+        <div class="sidebar-card">
+          <div class="sidebar-header">
+            <p class="sidebar-title" style="color: var(--primary);">添加学生</p>
+          </div>
+          <div class="sidebar-body">
+            <button onclick="openAddModal()" style="width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; background: var(--primary); color: var(--on-primary); transition: background .12s;" onmouseover="this.style.background='var(--primary-active)'" onmouseout="this.style.background=''">
+              <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              添加学生
+            </button>
+            <p style="font-size: 11px; color: var(--muted-soft); margin: 8px 0 0; line-height: 1.5;">手动录入新学生信息</p>
           </div>
         </div>
         <div class="sidebar-card">
