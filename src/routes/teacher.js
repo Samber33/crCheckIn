@@ -65,12 +65,35 @@ export default async function teacherRoutes(app) {
   app.get('/teacher/classes/:classId/seats', { preHandler: classOwnerRequired }, async (request, reply) => {
     const classId = parseInt(request.params.classId, 10)
     const cls = await prisma.class.findUnique({ where: { id: classId } })
-    const { getSeatGrid, getSeatGridTeacher } = await import('../services/seat.js')
+    const { getSeatGrid, getSeatGridTeacher, getSeatGridsFromArchivedRecords } = await import('../services/seat.js')
     const [studentGrid, teacherGrid] = await Promise.all([
       getSeatGrid(classId),
       getSeatGridTeacher(classId),
     ])
     const signedCount = teacherGrid.flat().reduce((acc, cell) => acc + cell.students.length, 0)
+
+    // 加载上一批次数据（用于对比变动 + 切换查看）
+    const lastSession = await prisma.signInSession.findFirst({
+      where: { classId },
+      orderBy: { archivedAt: 'desc' },
+      include: { records: { orderBy: { signedAt: 'asc' } } },
+    })
+
+    let prevStudentGrid = null
+    let prevTeacherGrid = null
+    let prevLabel = null
+    if (lastSession) {
+      const records = lastSession.records.map(r => ({
+        studentName: r.studentName,
+        homeClass: r.homeClass,
+        computerName: r.computerName,
+      }))
+      const { studentGrid: sg, teacherGrid: tg } = getSeatGridsFromArchivedRecords(records)
+      prevStudentGrid = sg
+      prevTeacherGrid = tg
+      prevLabel = lastSession.label
+    }
+
     noCache(reply)
     return reply.view('teacher/seat_view.html', {
       cls,
@@ -87,6 +110,10 @@ export default async function teacherRoutes(app) {
       exportHref: `/api/export-seats?classId=${classId}`,
       showRefreshControls: true,
       showRefreshControlsJson: JSON.stringify(true),
+      hasPreviousSession: !!lastSession,
+      prevTeacherGridJson: prevTeacherGrid ? JSON.stringify(prevTeacherGrid) : 'null',
+      prevStudentGridJson: prevStudentGrid ? JSON.stringify(prevStudentGrid) : 'null',
+      prevLabelJson: prevLabel ? JSON.stringify(prevLabel) : 'null',
     })
   })
 

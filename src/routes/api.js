@@ -375,6 +375,39 @@ export default async function apiRoutes(fastify) {
     return reply.send({ teacherGrid, studentGrid, signedCount })
   })
 
+  // GET /api/seat-grid/previous — 上一批次座位表数据，需要 classOwnerRequired
+  fastify.get('/api/seat-grid/previous', { preHandler: classOwnerRequired }, async (request, reply) => {
+    const classId = parseInt(request.query.classId, 10)
+    const { prisma } = await import('../plugins/db.js')
+    const { getSeatGridsFromArchivedRecords } = await import('../services/seat.js')
+
+    // 找最近一次归档的批次
+    const lastSession = await prisma.signInSession.findFirst({
+      where: { classId },
+      orderBy: { archivedAt: 'desc' },
+      include: { records: { orderBy: { signedAt: 'asc' } } },
+    })
+    if (!lastSession) {
+      return reply.send({ ok: false, message: '暂无历史批次' })
+    }
+
+    const records = lastSession.records.map(r => ({
+      studentName: r.studentName,
+      homeClass: r.homeClass,
+      computerName: r.computerName,
+    }))
+    const { studentGrid, teacherGrid } = getSeatGridsFromArchivedRecords(records)
+    const signedCount = teacherGrid.flat().reduce((acc, cell) => acc + cell.students.length, 0)
+
+    return reply.send({
+      ok: true,
+      teacherGrid,
+      studentGrid,
+      signedCount,
+      sessionLabel: lastSession.label,
+    })
+  })
+
   // PATCH /api/students/:studentId — 更新学生信息，需要 teacherRequired
   fastify.patch('/api/students/:studentId', { preHandler: teacherRequired }, async (request, reply) => {
     const studentId = parseInt(request.params.studentId, 10)

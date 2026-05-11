@@ -300,6 +300,9 @@
     .seat-card.signed { background: #f0fdf4; border-color: #86efac; }
     .seat-card.dup { background: #fef2f2; border-color: #f5c6cb; }
     .seat-card.empty-slot { background: var(--canvas); border: 1.5px dashed var(--hairline); }
+    .seat-card.changed { background: #fef9c3; border-color: #fde047; }
+    .seat-card.changed .seat-no { color: #ca8a04; }
+    .seat-card.changed .stu-name { color: #a16207; }
     .seat-card .seat-no {
       display: inline-flex;
       align-items: center;
@@ -420,6 +423,13 @@
         </span>
       </div>
       <div class="header-right">
+        <button id="prevSeatBtn" class="toolbar-btn" style="display:none;">
+          <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          上次座位
+        </button>
         <div class="view-toggle">
           <button id="btnTeacher" class="view-toggle-btn active">教师视角</button>
           <button id="btnStudent" class="view-toggle-btn">学生视角</button>
@@ -465,6 +475,7 @@
       <span class="legend-item"><span class="legend-dot empty"></span>空位</span>
       <span class="legend-item"><span class="legend-dot no-seat"></span>无座位</span>
       <span class="legend-item"><span class="legend-dot dup"></span>重复 IP</span>
+      <span class="legend-item" id="changedLegend" style="display:none;"><span class="legend-dot" style="background:#fef9c3;border:1px solid #fde047;"></span>位置变动</span>
       <span class="legend-note">根据签到 IP 最后一段匹配座位编号</span>
     </div>
 
@@ -517,18 +528,73 @@ function formatSignedTime(value) {
   return date.toLocaleTimeString('zh-CN', { hour12: false })
 }
 
-const TEACHER_GRID = {{ teacherGridJson | safe }}
-const STUDENT_GRID = {{ studentGridJson | safe }}
+let TEACHER_GRID = {{ teacherGridJson | safe }}
+let STUDENT_GRID = {{ studentGridJson | safe }}
 const TEACHER_AISLES = new Set([1, 3, 5])
 const STUDENT_AISLES = new Set([1, 3, 5])
 const POLL_URL = {{ pollUrlJson | safe }}
 const SHOW_REFRESH_CONTROLS = {{ showRefreshControlsJson | safe }}
 const CLASS_ID = {{ classId }}
 const ARCHIVED_ROSTER = {{ archivedRosterJson | default('null') | safe }}
+const HAS_PREVIOUS_SESSION = {{ hasPreviousSession | default('false') | safe }}
+const PREV_TEACHER_GRID = {{ prevTeacherGridJson | default('null') | safe }}
+const PREV_STUDENT_GRID = {{ prevStudentGridJson | default('null') | safe }}
+const PREV_LABEL = {{ prevLabelJson | default('null') | safe }}
 
 let currentView = 'teacher'
+let showingPrev = false // 是否正在查看上一批次座位
+let prevSeatMap = null // 上一批次的 studentName -> seatNo 映射
 
-function renderGrid(grid, aisles) {
+// 构建 seatNo -> studentName 映射
+function buildSeatMap(grid) {
+  const map = new Map()
+  for (const row of grid) {
+    for (const seat of row) {
+      if (seat.seatNo !== null && seat.students.length > 0) {
+        map.set(seat.students[0].name, seat.seatNo)
+      }
+    }
+  }
+  return map
+}
+
+// 计算当前签到中位置发生变动的 seatNo
+function computeChangedSeats(currentGrid, prevSeatMap) {
+  if (!prevSeatMap) return null
+  const changed = new Set()
+  for (const row of currentGrid) {
+    for (const seat of row) {
+      if (seat.seatNo === null || seat.students.length === 0) continue
+      const name = seat.students[0].name
+      if (prevSeatMap.has(name) && prevSeatMap.get(name) !== seat.seatNo) {
+        changed.add(seat.seatNo)
+      }
+    }
+  }
+  return changed.size > 0 ? changed : null
+}
+
+function renderCurrentGrid() {
+  const grid = currentView === 'teacher' ? TEACHER_GRID : STUDENT_GRID
+  const aisles = currentView === 'teacher' ? TEACHER_AISLES : STUDENT_AISLES
+
+  if (showingPrev) {
+    // 查看上一批次座位
+    const prevGrid = currentView === 'teacher' ? PREV_TEACHER_GRID : PREV_STUDENT_GRID
+    if (prevGrid) {
+      renderGrid(prevGrid, aisles)
+    }
+    return
+  }
+
+  // 默认：当前座位 + 自动黄色高亮变动
+  const changedSeats = computeChangedSeats(grid, prevSeatMap)
+  renderGrid(grid, aisles, changedSeats)
+}
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+function renderGrid(grid, aisles, changedSeats) {
   const container = document.getElementById('seatGrid')
   container.innerHTML = ''
   grid.forEach(row => {
@@ -542,7 +608,11 @@ function renderGrid(grid, aisles) {
       } else if (seat.dupIp) {
         card.classList.add('dup')
       } else if (seat.students.length > 0) {
-        card.classList.add('signed')
+        if (changedSeats && changedSeats.has(seat.seatNo)) {
+          card.classList.add('changed')
+        } else {
+          card.classList.add('signed')
+        }
       }
       if (seat.seatNo !== null) {
         const noEl = document.createElement('div')
@@ -594,13 +664,34 @@ function setView(view) {
   document.getElementById('btnStudent').className = `view-toggle-btn ${!isTeacher ? 'active' : ''}`
   document.getElementById('podiumTop').style.display = isTeacher ? 'none' : 'flex'
   document.getElementById('podiumBottom').style.display = isTeacher ? 'flex' : 'none'
-  renderGrid(isTeacher ? TEACHER_GRID : STUDENT_GRID, isTeacher ? TEACHER_AISLES : STUDENT_AISLES)
+  renderCurrentGrid()
   setTimeout(syncRosterHeight, 50)
 }
 
 document.getElementById('btnTeacher').addEventListener('click', () => setView('teacher'))
 document.getElementById('btnStudent').addEventListener('click', () => setView('student'))
+
+// 初始化上一批次座位数据（必须在 setView 之前）
+if (HAS_PREVIOUS_SESSION && PREV_TEACHER_GRID && PREV_STUDENT_GRID) {
+  prevSeatMap = buildSeatMap(PREV_TEACHER_GRID)
+  document.getElementById('prevSeatBtn').style.display = ''
+  document.getElementById('changedLegend').style.display = ''
+}
+
 setView('teacher')
+
+document.getElementById('prevSeatBtn').addEventListener('click', () => {
+  showingPrev = !showingPrev
+  const btn = document.getElementById('prevSeatBtn')
+  if (showingPrev) {
+    btn.classList.add('primary')
+    btn.innerHTML = `<svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg> 返回当前`
+  } else {
+    btn.classList.remove('primary')
+    btn.innerHTML = `<svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> 上次座位`
+  }
+  renderCurrentGrid()
+})
 
 function renderRoster(roster) {
   const list = document.getElementById('rosterList')
@@ -707,9 +798,10 @@ async function pollSeatGrid() {
     if (!res.ok) throw new Error('HTTP ' + res.status)
     const data = await res.json()
     const badge = document.querySelector('header .nav-chip')
-    if (badge) badge.textContent = '已签到 ' + data.signedCount + ' 人'
-    renderGrid(currentView === 'teacher' ? data.teacherGrid : data.studentGrid,
-               currentView === 'teacher' ? TEACHER_AISLES : STUDENT_AISLES)
+    if (badge && !showingPrev) badge.textContent = '已签到 ' + data.signedCount + ' 人'
+    TEACHER_GRID = data.teacherGrid
+    STUDENT_GRID = data.studentGrid
+    renderCurrentGrid()
     document.getElementById('refreshStatus').textContent = '上次刷新 ' + formatTime(new Date())
     refreshRoster()
   } catch (e) {
