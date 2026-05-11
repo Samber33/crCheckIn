@@ -419,3 +419,102 @@ export async function setSignInWindow(classId, startTime, endTime) {
     create: { classId, startTime, endTime },
   })
 }
+
+/**
+ * 增强出勤分析 — 包含趋势、时段分布、批次对比
+ * 注意：仅加载最近 50 批次用于图表展示，避免大数据集内存问题。
+ * @param {number} classId
+ * @returns {Promise<object>}
+ */
+export async function getAttendanceAnalytics(classId) {
+  const [students, sessionCount, currentRecordsCount, totalArchivedRecordsCount] = await Promise.all([
+    prisma.student.findMany({ where: { classId }, orderBy: { name: 'asc' } }),
+    prisma.signInSession.count({ where: { classId } }),
+    prisma.signInRecord.count({ where: { classId } }),
+    prisma.archivedRecord.count({
+      where: { session: { classId } },
+    }),
+  ])
+
+  const MAX_SESSIONS = 50
+  const sessions = await prisma.signInSession.findMany({
+    where: { classId },
+    include: { records: { select: { studentName: true, signedAt: true } } },
+    orderBy: { archivedAt: 'asc' },
+    skip: Math.max(0, sessionCount - MAX_SESSIONS),
+  })
+
+  // 当前签到记录（未归档）
+  const records = await prisma.signInRecord.findMany({
+    where: { classId },
+    orderBy: { signedAt: 'asc' },
+  })
+
+  const studentNames = new Set(students.map(s => s.name))
+
+  // === 1. 每批次签到趋势 ===
+  const sessionTrend = sessions.map(s => ({
+    label: s.label,
+    archivedAt: s.archivedAt,
+    count: s.records.length,
+    rate: studentNames.size > 0 ? ((s.records.filter(r => studentNames.has(r.studentName)).length / studentNames.size) * 100).toFixed(1) : '0',
+  }))
+
+  // === 2 & 3. 时段/星期分布（单次遍历）===
+  const hourDistribution = new Array(24).fill(0)
+  const dayDistribution = new Array(7).fill(0)
+  const allRecords = [...sessions.flatMap(s => s.records), ...records]
+  for (const rec of allRecords) {
+    const d = new Date(rec.signedAt)
+    hourDistribution[d.getHours()]++
+    dayDistribution[d.getDay()]++
+  }
+
+  // === 4. 学生个人出勤趋势（最近5个批次）===
+  const recentSessions = sessions.slice(-5)
+  // 预提取标签，避免在 inner loop 中重复 split
+  const recentLabels = recentSessions.map(s => s.label.split(' · ')[0])
+  // 建立 sessionIndex -> studentNameSet 的 Map，将 O(n*m) 降为 O(n+m)
+  const sessionSets = recentSessions.map(s => new Set(s.records.map(r => r.studentName)))
+  const personalTrend = students.map(s => ({
+    name: s.name,
+    homeClass: s.homeClass || '',
+    history: recentSessions.map((_, i) => ({
+      label: recentLabels[i],
+      signed: sessionSets[i].has(s.name),
+    })),
+  }))
+
+  // === 5. 整体统计摘要（基于全量数据库查询，不受加载上限影响）===
+  const totalSignIns = totalArchivedRecordsCount + currentRecordsCount
+  const uniqueStudents = students.length
+  const avgPerSession = sessionCount > 0 ? (totalSignIns / sessionCount).toFixed(1) : '0'
+  const overallRate = uniqueStudents > 0 && sessionCount > 0
+    ? ((totalSignIns / (uniqueStudents * sessionCount)) * 100).toFixed(1)
+    : '0'
+
+  // === 6. 签到速度（每批次前10分钟内签到的人数比例）===
+  const speedStats = sessions.map(s => {
+    if (s.records.length === 0) return 0
+    const times = s.records.map(r => new Date(r.signedAt).getTime()).sort((a, b) => a - b)
+    const firstTime = times[0]
+    const within10min = times.filter(t => t - firstTime <= 10 * 60 * 1000).length
+    return (within10min / s.records.length) * 100
+  })
+  const avgSpeed = speedStats.length > 0 ? (speedStats.reduce((a, b) => a + b, 0) / speedStats.length).toFixed(1) : '0'
+
+  return {
+    summary: {
+      totalSessions: sessionCount,
+      totalSignIns,
+      uniqueStudents,
+      avgPerSession,
+      overallRate,
+      avgSpeed,
+    },
+    sessionTrend,
+    hourDistribution,
+    dayDistribution,
+    personalTrend,
+  }
+}

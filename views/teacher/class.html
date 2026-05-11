@@ -817,6 +817,14 @@
               </span>
               出勤统计
             </button>
+            <a href="/teacher/classes/{{ cls.id }}/analytics" class="sidebar-link">
+              <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
+                <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+                </svg>
+              </span>
+              数据分析
+            </a>
             <div class="sidebar-divider"></div>
             <button id="resetBtn" class="sidebar-btn danger">
               <span class="sidebar-link-icon" style="background: #fef2f2; color: var(--error);">
@@ -1490,11 +1498,37 @@ document.getElementById('importFile').addEventListener('change', async (e) => {
 })
 
 refreshStatus()
+
+// === SSE 实时推送（替代轮询）===
+const SSE_URL = '{{ sseUrl }}'
+let eventSource = null
 let _refreshTimer = null
+
+function connectSSE() {
+  if (!SSE_URL) { startAutoRefresh(); return }
+  eventSource = new EventSource(SSE_URL)
+
+  eventSource.addEventListener('connected', () => {
+    // 连接成功，停止轮询
+    if (_refreshTimer) { clearTimeout(_refreshTimer); _refreshTimer = null }
+  })
+
+  eventSource.addEventListener('signin', () => {
+    // Don't refresh if tag popup is open
+    if (tagPopup.style.display !== 'none') return
+    refreshStatus()
+  })
+
+  eventSource.onerror = () => {
+    // SSE 断开，降级为轮询
+    eventSource = null
+    if (!_refreshTimer) startAutoRefresh()
+  }
+}
+
 function startAutoRefresh() {
   clearTimeout(_refreshTimer)
   _refreshTimer = setTimeout(() => {
-    // Don't refresh if tag popup is open
     if (tagPopup.style.display !== 'none') {
       startAutoRefresh()
       return
@@ -1503,7 +1537,8 @@ function startAutoRefresh() {
     startAutoRefresh()
   }, 4000)
 }
-startAutoRefresh()
+
+connectSSE()
 </script>
 </body>
 </html>

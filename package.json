@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "db:deploy": "node prisma/deploy.js",
+    "test": "node --test src/services/*.test.js src/utils/*.test.js",
     "start": "pm2 startOrRestart ecosystem.config.cjs --env production",
     "start:direct": "node server.js",
     "dev": "node --watch server.js",
@@ -20,6 +21,7 @@
     "@fastify/cookie": "^9.0.0",
     "@fastify/formbody": "^7.4.0",
     "@fastify/multipart": "^7.7.3",
+    "@fastify/rate-limit": "^7.6.0",
     "@fastify/session": "^10.0.0",
     "@fastify/static": "^6.12.0",
     "@fastify/view": "^9.0.0",

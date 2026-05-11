@@ -51,7 +51,7 @@ export default async function teacherRoutes(app) {
     const isAdmin = request.session.isAdmin === true
     const cls = await prisma.class.findUnique({ where: { id: classId } })
     noCache(reply)
-    return reply.view('teacher/class.html', { cls, teacherId, isAdmin })
+    return reply.view('teacher/class.html', { cls, teacherId, isAdmin, sseUrl: `/api/sse` })
   })
 
   // 信息收集管理页
@@ -149,5 +149,13 @@ export default async function teacherRoutes(app) {
     }))
     noCache(reply)
     return reply.view('teacher/students.html', { cls, students: studentsWithTags, classes: allClasses })
+  })
+
+  // 数据分析页
+  app.get('/teacher/classes/:classId/analytics', { preHandler: classOwnerRequired }, async (request, reply) => {
+    const classId = parseInt(request.params.classId, 10)
+    const cls = await prisma.class.findUnique({ where: { id: classId } })
+    noCache(reply)
+    return reply.view('teacher/analytics.html', { cls, classId })
   })
 }

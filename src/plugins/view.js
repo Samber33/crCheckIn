@@ -15,6 +15,7 @@ async function viewPlugin(app) {
     root: join(__dirname, '../../views'),
     options: {
       noCache: true,
+      autoescape: true,
       onConfigure: (env) => {
         env.addFilter('dateCN', (value) => {
           if (!value) return ''

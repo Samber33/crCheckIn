@@ -11,6 +11,7 @@ import {
   getSessionDetailForTeacher,
   deleteSession,
   getAttendanceStats,
+  getAttendanceAnalytics,
   deleteSignInRecord,
   getSessionRosterForTeacher,
 } from '../services/attendance.js'
@@ -48,6 +49,7 @@ import {
   deleteStudentTag,
   getNextColor,
 } from '../services/tag.js'
+import { registerSSE, broadcastToClass } from '../services/sse.js'
 
 /**
  * 格式化当前时间为 YYYYMMDD_HHmmss
@@ -231,7 +233,9 @@ export default async function apiRoutes(fastify) {
   })
 
   // POST /api/teacher-login — 通过口令登录教师/管理员端（供学生端入口使用）
-  fastify.post('/api/teacher-login', async (request, reply) => {
+  fastify.post('/api/teacher-login', {
+    config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
+  }, async (request, reply) => {
     const { password } = request.body ?? {}
     const result = await verifyTeacherByPassword(password)
     if (!result.ok) return reply.send({ ok: false })
@@ -270,7 +274,9 @@ export default async function apiRoutes(fastify) {
   })
 
   // POST /api/signin — 无需登录
-  fastify.post('/api/signin', async (request, reply) => {
+  fastify.post('/api/signin', {
+    config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+  }, async (request, reply) => {
     const { classId: rawClassId, student_name } = request.body
     const classId = parseInt(rawClassId, 10)
     const computerName = resolveClientName(request)
@@ -278,7 +284,44 @@ export default async function apiRoutes(fastify) {
     if (!result.ok) {
       return reply.code(400).send(result)
     }
+    // 广播 SSE 事件给该班级教师
+    broadcastToClass(classId, 'signin')
     return reply.send(result)
+  })
+
+  // GET /api/sse — SSE 实时推送通道，需要 teacherRequired
+  fastify.get('/api/sse', { preHandler: teacherRequired }, async (request, reply) => {
+    const teacherId = request.session.teacherId
+    const socket = request.raw.socket
+
+    reply
+      .header('Content-Type', 'text/event-stream')
+      .header('Cache-Control', 'no-cache')
+      .header('Connection', 'keep-alive')
+      .header('X-Accel-Buffering', 'no')
+
+    // 发送初始连接确认
+    socket.write(`event: connected\ndata: {}\n\n`)
+
+    // 注册 socket 到 SSE 管理器
+    registerSSE(teacherId, socket)
+
+    // 心跳保活
+    const heartbeat = setInterval(() => {
+      try {
+        socket.write(`: heartbeat\n\n`)
+      } catch {
+        clearInterval(heartbeat)
+      }
+    }, 30000)
+    heartbeat.unref()
+
+    socket.on('close', () => {
+      clearInterval(heartbeat)
+    })
+
+    // 告诉 Fastify 我们接管了响应
+    reply.hijack()
   })
 
   // GET /api/stats — 出勤率统计，需要 classOwnerRequired
@@ -300,6 +343,13 @@ export default async function apiRoutes(fastify) {
       .header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
       .header('Content-Disposition', `attachment; filename="${filename}"`)
     return reply.send(buffer)
+  })
+
+  // GET /api/analytics — 增强数据分析，需要 classOwnerRequired
+  fastify.get('/api/analytics', { preHandler: classOwnerRequired }, async (request, reply) => {
+    const classId = parseInt(request.query.classId, 10)
+    const data = await getAttendanceAnalytics(classId)
+    return reply.send(data)
   })
 
   // DELETE /api/signin/:recordId — 撤销签到记录，需要 teacherRequired
