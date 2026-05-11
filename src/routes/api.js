@@ -27,7 +27,7 @@ import {
 import { createClass, deleteClass } from '../services/class.js'
 import { changePassword, verifyTeacherByPassword } from '../services/auth.js'
 import { getSeatGrid, getSeatGridTeacher } from '../services/seat.js'
-import { updateStudent, deleteStudent, transferStudent } from '../services/student.js'
+import { createStudent, updateStudent, deleteStudent, transferStudent } from '../services/student.js'
 import {
   getInfoCollection,
   updateInfoCollection,
@@ -406,6 +406,18 @@ export default async function apiRoutes(fastify) {
       signedCount,
       sessionLabel: lastSession.label,
     })
+  })
+
+  // POST /api/students — 创建学生，需要 teacherRequired
+  fastify.post('/api/students', { preHandler: teacherRequired }, async (request, reply) => {
+    const { classId: rawClassId, name, homeClass, remark } = request.body
+    const classId = parseInt(rawClassId, 10)
+    if (isNaN(classId)) return reply.code(400).send({ ok: false, message: '班级ID无效' })
+    const teacherId = request.session.teacherId
+    const isAdmin = request.session.isAdmin === true
+    const result = await createStudent(classId, name, homeClass || '', remark || '', teacherId, isAdmin)
+    if (!result.ok) return reply.code(result.status || 400).send(result)
+    return reply.code(201).send(result)
   })
 
   // PATCH /api/students/:studentId — 更新学生信息，需要 teacherRequired

@@ -482,6 +482,12 @@
         <span class="badge">学生管理</span>
       </div>
       <div class="header-right">
+        <button onclick="openAddModal()" class="nav-link" style="cursor:pointer;border:none;background:none;">
+          <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          添加学生
+        </button>
         <form method="post" action="/teacher/logout" style="display: inline;">
           <button class="nav-action" type="submit">退出</button>
         </form>
@@ -642,6 +648,44 @@
     </div>
   </div>
 
+  <!-- Add Student Modal -->
+  <div id="addModal" class="hidden modal-overlay">
+    <div class="modal-card">
+      <p class="modal-title">添加学生</p>
+      <p class="modal-desc">填写学生基本信息后保存</p>
+      <div class="modal-field">
+        <label for="addStudentName">学生姓名</label>
+        <input id="addStudentName" type="text" class="input-field" placeholder="请输入姓名" />
+      </div>
+      <div class="modal-field">
+        <label for="addStudentHomeClass">行政班级</label>
+        <input id="addStudentHomeClass" type="text" class="input-field" placeholder="如：1 或 1班" />
+      </div>
+      <div class="modal-field">
+        <label for="addStudentClass">教学班</label>
+        <select id="addStudentClass" class="select-field">
+          {% for c in classes %}
+          <option value="{{ c.id }}" {% if c.id == cls.id %}selected{% endif %}>{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>标签（可选）</label>
+        <div id="addTagPresets" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+        <div id="addCustomTags" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;"></div>
+        <div style="display:flex;gap:4px;margin-top:6px;">
+          <input id="addCustomTagInput" type="text" placeholder="自定义标签" style="flex:1;padding:6px 10px;border:1px solid var(--hairline);border-radius:6px;font-size:12px;outline:none;" />
+          <button id="addCustomTagAddBtn" style="padding:6px 12px;border:none;border-radius:6px;background:var(--primary);color:#fff;font-size:12px;font-weight:600;cursor:pointer;">添加</button>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button onclick="closeAdd()"
+          style="padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--muted); background: none; border: none; cursor: pointer; transition: background .12s;" onmouseover="this.style.background='var(--surface-card)'" onmouseout="this.style.background=''">取消</button>
+        <button onclick="doAdd()" class="btn btn-primary">创建</button>
+      </div>
+    </div>
+  </div>
+
 <script>
 const CLASS_ID = {{ cls.id }}
 let editStudentId = null
@@ -650,6 +694,10 @@ let editTagSelection = null // current tag in edit modal
 
 const PRESET_TAGS = ['体育生', '竞赛生']
 const TAG_COLORS = ['#cc785c','#5db872','#d4a017','#7c6cf0','#4a90d9','#e67e22']
+
+function getNextColor(currentCount) {
+  return TAG_COLORS[currentCount % TAG_COLORS.length]
+}
 
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
@@ -717,10 +765,12 @@ document.getElementById('editCustomTagAddBtn').addEventListener('click', async (
   const input = document.getElementById('editCustomTagInput')
   const tag = input.value.trim()
   if (!tag) return
+  const currentTags = (window._stuTags || {})[editStudentId] || []
+  const color = getNextColor(currentTags.length + document.querySelectorAll('#editTagPresets .tag-preset-btn[data-active="true"]').length)
   const res = await fetch('/api/tags', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ classId: CLASS_ID, studentId: editStudentId, tag }),
+    body: JSON.stringify({ classId: CLASS_ID, studentId: editStudentId, tag, color }),
   })
   const data = await res.json()
   if (!data.ok) { showToast(data.message || '添加失败', false); return }
@@ -797,31 +847,39 @@ async function saveEdit() {
   const data = await res.json()
   if (!data.ok) { showToast(data.message, false); return }
 
-  // Handle tag changes
+  // === Tag changes ===
+  // Collect desired tags from modal
   const currentTags = (window._stuTags || {})[id] || []
-  const presetBtns = document.querySelectorAll('#editTagPresets .tag-preset-btn')
-  const selectedTags = []
-  presetBtns.forEach(btn => {
-    if (btn.dataset.active === 'true') {
-      selectedTags.push(btn.dataset.tag)
-    }
+  const currentMap = new Map()
+  currentTags.forEach(t => currentMap.set(t.tag, t))
+
+  // Active preset tags
+  const desiredNames = new Set()
+  document.querySelectorAll('#editTagPresets .tag-preset-btn').forEach(btn => {
+    if (btn.dataset.active === 'true') desiredNames.add(btn.dataset.tag)
+  })
+  // Visible custom tags
+  document.querySelectorAll('#editCustomTags .edit-custom-tag').forEach(span => {
+    desiredNames.add(span.dataset.tag)
   })
 
-  // Single tag enforcement: max 1 tag total
-  const allTargetTags = selectedTags.slice(0, 1) // only keep first selected preset
-
-  // Delete all existing tags
-  for (const t of currentTags) {
-    await fetch(`/api/tags/${t.id}?classId=${CLASS_ID}`, { method: 'DELETE' })
+  // Delete tags that were removed
+  for (const [tagName, tagInfo] of currentMap) {
+    if (!desiredNames.has(tagName)) {
+      await fetch(`/api/tags/${tagInfo.id}?classId=${CLASS_ID}`, { method: 'DELETE' })
+    }
   }
-
-  // Add target tag (at most one)
-  if (allTargetTags.length > 0) {
-    await fetch('/api/tags', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ classId: CLASS_ID, studentId: id, tag: allTargetTags[0] }),
-    })
+  // Add new tags
+  for (const tagName of desiredNames) {
+    if (!currentMap.has(tagName)) {
+      const colorIdx = PRESET_TAGS.indexOf(tagName)
+      const color = colorIdx >= 0 ? TAG_COLORS[colorIdx % TAG_COLORS.length] : getNextColor(currentTags.length)
+      await fetch('/api/tags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ classId: CLASS_ID, studentId: id, tag: tagName, color }),
+      })
+    }
   }
 
   await reloadTags()
@@ -894,6 +952,146 @@ async function doTransfer() {
 document.querySelectorAll('#stuList > li[data-id]').forEach(row => {
   syncHomeClass(row, row.dataset.homeclass)
 })
+
+let addTagTemp = [] // tags selected in add modal (names only, will apply after creation)
+
+function renderAddTags() {
+  const container = document.getElementById('addTagPresets')
+  const customContainer = document.getElementById('addCustomTags')
+
+  container.innerHTML = PRESET_TAGS.map((name, i) => {
+    const active = addTagTemp.includes(name)
+    const color = TAG_COLORS[i % TAG_COLORS.length]
+    return `<button type="button" class="tag-preset-btn" data-tag="${escHtml(name)}" data-active="${active}" style="padding:4px 12px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid ${active ? color : 'var(--hairline)'};background:${active ? color : '#fff'};color:${active ? '#fff' : 'var(--body)'};transition:opacity .12s;">${escHtml(name)}</button>`
+  }).join('')
+
+  // Show custom tags added so far
+  const customNames = addTagTemp.filter(t => !PRESET_TAGS.includes(t))
+  customContainer.innerHTML = customNames.map(t =>
+    `<span class="edit-custom-tag" data-tag="${escHtml(t)}" style="display:inline-flex;align-items:center;gap:3px;padding:3px 6px 3px 8px;border-radius:6px;font-size:12px;font-weight:500;background:var(--primary);color:#fff;cursor:default;">${escHtml(t)}<button type="button" class="add-custom-tag-remove" data-tag="${escHtml(t)}" style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:14px;line-height:1;padding:0 2px;">&times;</button></span>`
+  ).join('')
+}
+
+document.getElementById('addTagPresets').addEventListener('click', (e) => {
+  const btn = e.target.closest('.tag-preset-btn')
+  if (!btn) return
+  const name = btn.dataset.tag
+  const idx = addTagTemp.indexOf(name)
+  if (idx >= 0) addTagTemp.splice(idx, 1)
+  else addTagTemp.push(name)
+  renderAddTags()
+})
+
+document.getElementById('addCustomTags').addEventListener('click', (e) => {
+  const removeBtn = e.target.closest('.add-custom-tag-remove')
+  if (!removeBtn) return
+  const name = removeBtn.dataset.tag
+  const idx = addTagTemp.indexOf(name)
+  if (idx >= 0) addTagTemp.splice(idx, 1)
+  renderAddTags()
+})
+
+document.getElementById('addCustomTagAddBtn').addEventListener('click', () => {
+  const input = document.getElementById('addCustomTagInput')
+  const tag = input.value.trim()
+  if (!tag || addTagTemp.includes(tag)) { input.value = ''; return }
+  addTagTemp.push(tag)
+  input.value = ''
+  renderAddTags()
+})
+
+document.getElementById('addCustomTagInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('addCustomTagAddBtn').click()
+})
+
+function openAddModal() {
+  addTagTemp = []
+  document.getElementById('addStudentName').value = ''
+  document.getElementById('addStudentHomeClass').value = ''
+  document.getElementById('addStudentClass').value = String(CLASS_ID)
+  renderAddTags()
+  document.getElementById('addModal').classList.remove('hidden')
+}
+
+function closeAdd() {
+  addTagTemp = []
+  document.getElementById('addModal').classList.add('hidden')
+}
+
+async function doAdd() {
+  const name = document.getElementById('addStudentName').value.trim()
+  const homeClass = document.getElementById('addStudentHomeClass').value.trim()
+  const classId = parseInt(document.getElementById('addStudentClass').value)
+  if (!name) { showToast('姓名不能为空', false); return }
+
+  const res = await fetch('/api/students', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ classId, name, homeClass }),
+  })
+  if (res.status === 401) { window.location.href = '/student'; return }
+  const data = await res.json()
+  if (!data.ok) { showToast(data.message, false); return }
+
+  const student = data.student
+
+  // Apply tags
+  for (const tagName of addTagTemp) {
+    const colorIdx = PRESET_TAGS.indexOf(tagName)
+    const color = colorIdx >= 0 ? TAG_COLORS[colorIdx % TAG_COLORS.length] : getNextColor(0)
+    await fetch('/api/tags', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ classId: CLASS_ID, studentId: student.id, tag: tagName, color }),
+    })
+  }
+
+  await reloadTags()
+
+  // Append row to grid
+  const list = document.getElementById('stuList')
+  // Remove empty state if present
+  const empty = list.querySelector('[style*="dashed"]')
+  if (empty) empty.remove()
+
+  const li = document.createElement('li')
+  li.id = `row-${student.id}`
+  li.className = 'student-item'
+  li.dataset.id = student.id
+  li.dataset.name = student.name
+  li.dataset.homeclass = student.homeClass || ''
+
+  const tags = (window._stuTags || {})[student.id] || []
+  const tagsHtml = tags.length > 0
+    ? `<span class="student-tags">${tags.map(t => `<span class="student-tag" style="background:${t.color}">${escHtml(t.tag)}</span>`).join('')}</span>`
+    : ''
+  const hcVal = student.homeClass || ''
+  const hcDisplay = hcVal ? (hcVal.endsWith('班') ? hcVal : `${hcVal}班`) : ''
+
+  li.innerHTML = `
+    <div class="student-head">
+      <div class="student-info">
+        <div class="student-avatar">${escHtml(student.name.charAt(0))}</div>
+        <div style="min-width: 0;">
+          <div class="student-name-wrap">
+            <p class="student-name">${escHtml(student.name)}</p>
+            ${tagsHtml}
+          </div>
+          <span class="student-homeclass hc-cell ${!hcDisplay ? 'hidden' : ''}">${escHtml(hcDisplay)}</span>
+        </div>
+      </div>
+      <div class="student-actions">
+        <button onclick="openEdit(${student.id})" class="student-action" style="color: var(--muted);" onmouseover="this.style.background='var(--surface-card)'" onmouseout="this.style.background=''">编辑</button>
+        <button onclick="startTransfer(${student.id}, '${escHtml(student.name)}')" class="student-action" style="color: var(--primary);" onmouseover="this.style.background='#fef3ec'" onmouseout="this.style.background=''">转移</button>
+        <button onclick="confirmDelete(${student.id}, '${escHtml(student.name)}')" class="student-action" style="color: var(--error);" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background=''">删除</button>
+      </div>
+    </div>
+  `
+  list.appendChild(li)
+  updateCountDisplay()
+  closeAdd()
+  showToast('已添加')
+}
 
 document.getElementById('clearStudentsBtn').addEventListener('click', async () => {
   if (!confirm('确认清空全部学生及签到记录？此操作不可恢复。')) return

@@ -25,6 +25,52 @@ async function assertStudentOwner(studentId, teacherId, isAdmin = false) {
 }
 
 /**
+ * 校验 classId 是否属于 teacherId 管辖
+ */
+async function assertClassOwner(classId, teacherId, isAdmin = false) {
+  const cls = await prisma.class.findUnique({ where: { id: classId } })
+  if (!cls) return { ok: false, message: '班级不存在', status: 404 }
+  if (!isAdmin && cls.teacherId !== teacherId) {
+    return { ok: false, message: '无权限', status: 403 }
+  }
+  return { ok: true, class: cls }
+}
+
+/**
+ * 创建学生
+ * @param {number} classId
+ * @param {string} name
+ * @param {string} homeClass
+ * @param {string} remark
+ * @param {number} teacherId
+ * @param {boolean} isAdmin
+ */
+export async function createStudent(classId, name, homeClass = '', remark = '', teacherId, isAdmin = false) {
+  const check = await assertClassOwner(classId, teacherId, isAdmin)
+  if (!check.ok) return check
+
+  const trimmedName = name?.trim()
+  if (!trimmedName) return { ok: false, message: '学生姓名不能为空', status: 400 }
+
+  // 同班姓名唯一性校验
+  const dup = await prisma.student.findFirst({
+    where: { classId, name: trimmedName },
+  })
+  if (dup) return { ok: false, message: '该姓名在本班已存在', status: 409 }
+
+  const student = await prisma.student.create({
+    data: {
+      classId,
+      name: trimmedName,
+      homeClass: homeClass?.trim() || '',
+      remark: remark?.trim() || '',
+    },
+  })
+
+  return { ok: true, student }
+}
+
+/**
  * 更新学生信息（姓名 / 行政班级 / 备注）
  * @param {number} studentId
  * @param {{ name?: string, homeClass?: string, remark?: string }} data
