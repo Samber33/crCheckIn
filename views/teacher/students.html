@@ -1044,9 +1044,10 @@ async function doAdd() {
   const student = data.student
 
   // Apply tags
-  for (const tagName of addTagTemp) {
+  for (let i = 0; i < addTagTemp.length; i++) {
+    const tagName = addTagTemp[i]
     const colorIdx = PRESET_TAGS.indexOf(tagName)
-    const color = colorIdx >= 0 ? TAG_COLORS[colorIdx % TAG_COLORS.length] : getNextColor(0)
+    const color = colorIdx >= 0 ? TAG_COLORS[colorIdx % TAG_COLORS.length] : getNextColor(i)
     await fetch('/api/tags', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

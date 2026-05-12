@@ -43,7 +43,7 @@ export async function signIn(classId, studentName, computerName) {
     return { ok: false, message: '你已签到，无需重复提交。' }
   }
 
-  // 6. 创建签到记录，捕获唯一约束冲突
+  // 6. 创建签到记录
   try {
     await prisma.signInRecord.create({
       data: {
@@ -60,7 +60,12 @@ export async function signIn(classId, studentName, computerName) {
     throw err
   }
 
-  // 7. 成功
+  // 7. 签到成功后清除该生标签
+  await prisma.studentTag.deleteMany({
+    where: { classId, studentId: student.id },
+  })
+
+  // 8. 成功
   return { ok: true, message: `${student.name} 签到成功！` }
 }
 
