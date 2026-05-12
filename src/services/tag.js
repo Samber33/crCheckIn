@@ -46,8 +46,13 @@ export async function updatePresetTag(tagId, data) {
   const existing = await prisma.presetTag.findUnique({ where: { id: tagId } })
   if (!existing) return { ok: false, message: '预设标签不存在', status: 404 }
   const updateData = {}
-  if (data.tag !== undefined) updateData.tag = data.tag
+  if (data.tag !== undefined) {
+    const dup = await prisma.presetTag.findFirst({ where: { tag: data.tag, id: { not: tagId } } })
+    if (dup) return { ok: false, message: '标签名已存在' }
+    updateData.tag = data.tag
+  }
   if (data.color !== undefined) updateData.color = data.color
+  if (Object.keys(updateData).length === 0) return { ok: false, message: '无有效字段' }
   await prisma.presetTag.update({ where: { id: tagId }, data: updateData })
   return { ok: true }
 }
