@@ -426,6 +426,44 @@
 
     /* Force hidden class */
     .hidden { display: none !important; }
+
+    /* === Preset Tag Management === */
+    .preset-list { display: flex; flex-direction: column; gap: 8px; }
+    .preset-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+      border-radius: 8px; border: 1px solid var(--hairline);
+      transition: background .12s;
+    }
+    .preset-item:hover { background: var(--canvas); }
+    .preset-color-dot {
+      width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+    }
+    .preset-name { flex: 1; font-size: 14px; font-weight: 500; color: var(--ink); }
+    .preset-input {
+      padding: 5px 8px; border: 1px solid var(--hairline); border-radius: 6px;
+      font-size: 13px; outline: none; width: 80px;
+    }
+    .preset-input:focus { border-color: var(--primary); }
+    .preset-save-btn {
+      padding: 5px 12px; border: none; border-radius: 6px;
+      background: var(--primary); color: #fff; font-size: 12px;
+      font-weight: 500; cursor: pointer;
+    }
+    .preset-save-btn:hover { background: var(--primary-active); }
+    .preset-del-btn {
+      padding: 5px 12px; border: 1px solid #f5c6cb; border-radius: 6px;
+      background: #fff; color: var(--error); font-size: 12px;
+      font-weight: 500; cursor: pointer;
+    }
+    .preset-del-btn:hover { background: #fef2f2; }
+    .preset-color-option {
+      width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
+      border: 2px solid transparent; transition: border-color .12s; flex-shrink: 0;
+    }
+    .preset-color-option.selected { border-color: var(--ink); }
+    .preset-empty {
+      padding: 24px; text-align: center; color: var(--muted-soft); font-size: 13px;
+    }
   </style>
 </head>
 <body>
@@ -444,6 +482,7 @@
         <span class="page-title text-lg">管理员面板</span>
       </div>
       <div class="header-right">
+        <button id="presetTagBtn" class="nav-link" style="border: none; background: none; cursor: pointer; font-size: 14px;">预设标签</button>
         <a href="/admin/dashboard" class="nav-link">全局看板</a>
         <a href="/admin/analytics" class="nav-link">数据分析</a>
         <a href="/admin/audit" class="nav-link">审计日志</a>
@@ -585,6 +624,22 @@
 
   </main>
 
+  <!-- Preset Tag Management Modal -->
+  <div id="presetTagModal" class="hidden modal-overlay">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-title">预设标签管理</div>
+      <div id="presetTagList" class="preset-list" style="margin-bottom: 16px;"></div>
+      <div class="preset-add-row" style="display: flex; gap: 8px; align-items: center;">
+        <input id="presetTagAddInput" class="input-field" type="text" placeholder="新标签名..." />
+        <div id="presetColorPicker" class="preset-color-picker" style="display: flex; gap: 6px; flex-shrink: 0;"></div>
+        <button id="presetTagAddBtn" class="btn btn-primary" style="width: auto; flex-shrink: 0;">添加</button>
+      </div>
+      <div style="text-align: right; margin-top: 16px;">
+        <button id="presetTagCloseBtn" class="btn" style="color: var(--body); background: none; border: 1px solid var(--hairline);">关闭</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Delete Teacher Modal -->
   <div id="deleteModal" class="hidden modal-overlay">
     <div class="modal-card">
@@ -596,9 +651,9 @@
       <p class="modal-title">删除教师账号</p>
       <p id="deleteModalDesc" class="modal-desc"></p>
       <div class="modal-actions">
-        <button onclick="closeDeleteModal()"
-          style="padding: 9px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; color: var(--body); background: none; border: 1px solid var(--hairline); cursor: pointer; height: 40px; transition: all .15s;" onmouseover="this.style.background='var(--surface-card)'" onmouseout="this.style.background=''">取消</button>
-        <button id="confirmDeleteBtn" class="btn btn-primary" style="height: 40px; background: var(--error);">确认删除</button>
+        <button id="cancelDeleteBtn"
+          class="btn" style="color: var(--body); background: none; border: 1px solid var(--hairline);">取消</button>
+        <button id="confirmDeleteBtn" class="btn btn-primary" style="background: var(--error);">确认删除</button>
       </div>
     </div>
   </div>
@@ -663,6 +718,8 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async () =
     showToast(data.message || '删除失败', false)
   }
 })
+
+document.getElementById('cancelDeleteBtn').addEventListener('click', closeDeleteModal)
 
 async function resetTeacherPassword(id, username) {
   const password = prompt(`请输入教师账号「${username}」的新密码`)
@@ -813,6 +870,128 @@ function formatUptime(seconds) {
 }
 
 loadHealth()
+
+// === Preset Tag Management ===
+const TAG_COLORS = ['#cc785c','#5db872','#d4a017','#7c6cf0','#4a90d9','#e67e22']
+let presetTags = []
+let selectedAddColor = TAG_COLORS[0]
+
+document.getElementById('presetTagBtn').addEventListener('click', () => {
+  document.getElementById('presetTagModal').classList.remove('hidden')
+  loadPresetTags()
+})
+
+document.getElementById('presetTagCloseBtn').addEventListener('click', () => {
+  document.getElementById('presetTagModal').classList.add('hidden')
+})
+
+document.getElementById('presetTagModal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) document.getElementById('presetTagModal').classList.add('hidden')
+})
+
+function renderColorPicker() {
+  document.getElementById('presetColorPicker').innerHTML = TAG_COLORS.map(c =>
+    `<div class="preset-color-option ${c === selectedAddColor ? 'selected' : ''}" data-color="${c}" style="background:${c};"></div>`
+  ).join('')
+}
+renderColorPicker()
+
+document.getElementById('presetColorPicker').addEventListener('click', (e) => {
+  const opt = e.target.closest('.preset-color-option')
+  if (!opt) return
+  selectedAddColor = opt.dataset.color
+  document.querySelectorAll('#presetColorPicker .preset-color-option').forEach(o => o.classList.remove('selected'))
+  opt.classList.add('selected')
+})
+
+async function loadPresetTags() {
+  try {
+    const res = await fetch('/admin/api/preset-tags')
+    if (res.status === 401 || res.status === 403) { window.location.href = '/student'; return }
+    const data = await res.json()
+    presetTags = data.tags || []
+    renderPresetTags()
+  } catch (e) {}
+}
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+function renderPresetTags() {
+  const container = document.getElementById('presetTagList')
+  if (!presetTags.length) {
+    container.innerHTML = '<div class="preset-empty">暂无预设标签</div>'
+    return
+  }
+  container.innerHTML = presetTags.map(t => `
+    <div class="preset-item" data-id="${t.id}">
+      <span class="preset-color-dot" style="background:${t.color}"></span>
+      <span class="preset-name">${escHtml(t.tag)}</span>
+      <input class="preset-input name-input" value="${escHtml(t.tag)}" data-id="${t.id}" />
+      <input class="preset-input color-input" value="${t.color}" data-id="${t.id}" style="width:60px;" />
+      <button class="preset-save-btn" data-id="${t.id}">保存</button>
+      <button class="preset-del-btn" data-id="${t.id}">删除</button>
+    </div>
+  `).join('')
+}
+
+document.getElementById('presetTagList').addEventListener('click', async (e) => {
+  const saveBtn = e.target.closest('.preset-save-btn')
+  const delBtn = e.target.closest('.preset-del-btn')
+  if (saveBtn) {
+    const id = parseInt(saveBtn.dataset.id)
+    const nameInput = document.querySelector(`.name-input[data-id="${id}"]`)
+    const colorInput = document.querySelector(`.color-input[data-id="${id}"]`)
+    const tag = nameInput.value.trim()
+    const color = colorInput.value.trim()
+    if (!tag) { showToast('标签名不能为空', false); return }
+    if (!/^#[0-9a-fA-F]{6}$/.test(color)) { showToast('颜色格式无效', false); return }
+    try {
+      const res = await fetch(`/admin/api/preset-tags/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tag, color }),
+      })
+      const data = await res.json()
+      if (data.ok) { showToast('已保存', true); await loadPresetTags() }
+      else showToast(data.message || '保存失败', false)
+    } catch (e) { showToast('保存失败', false) }
+  }
+  if (delBtn) {
+    const id = parseInt(delBtn.dataset.id)
+    if (!confirm('确认删除此预设标签？')) return
+    try {
+      const res = await fetch(`/admin/api/preset-tags/${id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (data.ok) { showToast('已删除', true); await loadPresetTags() }
+      else showToast(data.message || '删除失败', false)
+    } catch (e) { showToast('删除失败', false) }
+  }
+})
+
+document.getElementById('presetTagAddBtn').addEventListener('click', async () => {
+  const input = document.getElementById('presetTagAddInput')
+  const tag = input.value.trim()
+  if (!tag) { showToast('标签名不能为空', false); return }
+  try {
+    const res = await fetch('/admin/api/preset-tags', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tag, color: selectedAddColor }),
+    })
+    const data = await res.json()
+    if (data.ok) {
+      input.value = ''
+      showToast('已添加', true)
+      await loadPresetTags()
+    } else {
+      showToast(data.message || '添加失败', false)
+    }
+  } catch (e) { showToast('添加失败', false) }
+})
+
+document.getElementById('presetTagAddInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('presetTagAddBtn').click()
+})
 </script>
 </body>
 </html>
