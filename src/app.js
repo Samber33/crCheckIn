@@ -13,7 +13,12 @@ export async function buildApp(opts = {}) {
   await registerRoutes(app)
 
   app.setErrorHandler((error, request, reply) => {
-    reply.code(500).send({ ok: false, message: error.message })
+    app.log.error(error)
+    const isDev = process.env.NODE_ENV !== 'production'
+    reply.code(error.statusCode || 500).send({
+      ok: false,
+      message: isDev ? error.message : (error.statusCode && error.statusCode < 500 ? error.message : '服务器内部错误'),
+    })
   })
 
   return app

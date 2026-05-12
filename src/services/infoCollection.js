@@ -47,6 +47,10 @@ export async function updateInfoCollection(classId, enabled) {
  * @param {{ name: string, type: 'text'|'attachment', required: boolean }} data
  */
 export async function createInfoField(collectionId, data) {
+  const allowedTypes = ['text', 'attachment']
+  if (!allowedTypes.includes(data.type)) {
+    throw new Error('无效的字段类型')
+  }
   const maxOrder = await prisma.infoField.aggregate({
     where: { collectionId },
     _max: { sortOrder: true },
@@ -116,11 +120,23 @@ export async function submitInfo(classId, studentName, studentId, responses) {
     throw new Error('信息收集未启用')
   }
 
+  if (!Array.isArray(responses) || responses.length === 0) {
+    throw new Error('提交数据无效')
+  }
+  // 不能超过配置的字段数量
+  if (responses.length > collection.fields.length) {
+    throw new Error('提交数据异常（字段数量过多）')
+  }
+
   // Validate all fieldIds belong to this class's collection
   const validFieldIds = new Set(collection.fields.map(f => f.id))
   for (const resp of responses) {
     if (!validFieldIds.has(resp.fieldId)) {
       throw new Error('包含无效的字段ID')
+    }
+    // 限制文本字段长度
+    if (resp.textValue && resp.textValue.length > 5000) {
+      throw new Error('文本内容过长（最大 5000 字符）')
     }
   }
 

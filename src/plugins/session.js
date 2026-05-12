@@ -7,7 +7,7 @@ async function sessionPlugin(app) {
   await app.register(cookie)
   await app.register(session, {
     secret: SECRET_KEY,
-    cookie: { secure: false },
+    cookie: { secure: false, sameSite: 'lax', httpOnly: true },
   })
 }
 

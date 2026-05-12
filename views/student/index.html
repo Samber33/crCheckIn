@@ -385,6 +385,14 @@
 const CLASS_ID = {% if cls %}{{ cls.id }}{% else %}null{% endif %}
 const STORAGE_KEY = 'signin_record' + (CLASS_ID ? '_' + CLASS_ID : '')
 
+/**
+ * HTML 转义，防止 XSS
+ */
+function esc(str) {
+  if (str == null) return ''
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
+}
+
 const input = document.getElementById('nameInput')
 const suggestions = document.getElementById('suggestions')
 const msg = document.getElementById('msg')
@@ -447,8 +455,8 @@ function selectStudent(studentName, classId, className, homeClass, studentId, re
   selectedStudentId = studentId
   input.value = studentName
   const homeLabel = homeClass ? `${homeClass} · ` : ''
-  const remarkBadge = remark ? `<span class="ml-2 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-amber-100 text-amber-700 border border-amber-200">${remark}</span>` : ''
-  selectedText.innerHTML = `已选择：<strong>${studentName}</strong>（${homeLabel}${className}）${remarkBadge}`
+  const remarkBadge = remark ? `<span class="ml-2 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-amber-100 text-amber-700 border border-amber-200">${esc(remark)}</span>` : ''
+  selectedText.innerHTML = `已选择：<strong>${esc(studentName)}</strong>（${esc(homeLabel)}${esc(className)}）${remarkBadge}`
   selectedInfo.classList.remove('hidden')
   suggestions.style.display = 'none'
   suggestions.innerHTML = ''
@@ -484,8 +492,8 @@ async function fetchSuggestions() {
       btn.style.cssText = 'display: block; width: 100%; text-align: left; padding: 10px 14px; font-size: 14px; border: none; background: none; cursor: pointer; border-bottom: 1px solid var(--hairline); color: var(--body); transition: background .1s;'
       btn.onmouseover = () => { btn.style.background = 'var(--canvas)' }
       btn.onmouseout = () => { btn.style.background = '' }
-      const remarkBadge = item.remark ? `<span class="ml-2 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-amber-100 text-amber-700 border border-amber-200">${item.remark}</span>` : ''
-      btn.innerHTML = `<span style="font-weight:500; color: var(--ink);">${item.studentName} ${remarkBadge}</span><span style="color: var(--muted-soft); margin-left: 4px; font-size: 13px;">${item.homeClass ? item.homeClass + ' · ' : ''}${item.className}</span>`
+      const remarkBadge = item.remark ? `<span class="ml-2 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-amber-100 text-amber-700 border border-amber-200">${esc(item.remark)}</span>` : ''
+      btn.innerHTML = `<span style="font-weight:500; color: var(--ink);">${esc(item.studentName)} ${remarkBadge}</span><span style="color: var(--muted-soft); margin-left: 4px; font-size: 13px;">${esc(item.homeClass ? item.homeClass + ' · ' : '')}${esc(item.className)}</span>`
       btn.addEventListener('click', () => selectStudent(item.studentName, item.classId, item.className, item.homeClass, item.studentId, item.remark))
       suggestions.appendChild(btn)
     })

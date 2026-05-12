@@ -36,6 +36,9 @@ export async function teacherRequired(request, reply) {
  * @param {import('fastify').FastifyReply} reply
  */
 export async function adminRequired(request, reply) {
+  if (!request.session?.teacherId) {
+    return reply.code(401).send({ ok: false, message: '未登录。' })
+  }
   if (request.session?.isAdmin === true) {
     return
   }

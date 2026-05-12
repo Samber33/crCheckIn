@@ -100,6 +100,11 @@ const msg = document.getElementById('msg')
 
 let fields = []
 
+function esc(str) {
+  if (str == null) return ''
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
+}
+
 function setMessage(text, ok = false) {
   msg.className = `toast ${ok ? 'toast-success' : 'toast-error'} fade`
   msg.textContent = text
@@ -134,10 +139,11 @@ function renderFields() {
   }
   fieldsContainer.innerHTML = fields.map(f => {
     const requiredMark = f.required ? '<span class="text-red-500 ml-1">*</span>' : ''
+    const safeName = esc(f.name)
     if (f.type === 'attachment') {
       return `
         <div>
-          <label class="field-label">${f.name}${requiredMark}</label>
+          <label class="field-label">${safeName}${requiredMark}</label>
           <div class="file-upload" onclick="this.querySelector('input').click()">
             <svg class="w-8 h-8 mx-auto text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
@@ -152,11 +158,11 @@ function renderFields() {
     }
     return `
       <div>
-        <label class="field-label">${f.name}${requiredMark}</label>
-        <input type="${f.name.includes('成绩') || f.name.includes('分数') ? 'number' : 'text'}"
+        <label class="field-label">${safeName}${requiredMark}</label>
+        <input type="${safeName.includes('成绩') || safeName.includes('分数') ? 'number' : 'text'}"
                class="field-input"
                data-field-id="${f.id}"
-               placeholder="请输入${f.name}"
+               placeholder="请输入${safeName}"
                ${f.required ? 'required' : ''} />
       </div>
     `

@@ -13,6 +13,7 @@ import {
 } from '../services/admin.js'
 import { adminRequired } from '../utils/auth.js'
 import { prisma } from '../plugins/db.js'
+import { randomBytes } from 'node:crypto'
 import fs from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -154,7 +155,7 @@ export default async function adminRoutes(app) {
     // Generate unique passwords and update in a transaction
     const hashMap = []
     for (const t of teachers) {
-      const uniquePassword = `${basePassword}_${t.username}_${Date.now()}`
+      const uniquePassword = `${basePassword}_${t.username}_${randomBytes(4).toString('hex')}`
       const hash = await bcrypt.hash(uniquePassword, 10)
       hashMap.push({ id: t.id, username: t.username, hash, password: uniquePassword })
     }
@@ -224,25 +225,55 @@ export default async function adminRoutes(app) {
     }
 
     const buffer = await data.toBuffer()
+    const MAX_DB_SIZE = 100 * 1024 * 1024 // 100 MB
     if (buffer.length < 100) {
       return reply.send({ ok: false, message: '备份文件无效（文件太小）' })
     }
+    if (buffer.length > MAX_DB_SIZE) {
+      return reply.send({ ok: false, message: '备份文件过大（最大 100MB）' })
+    }
 
-    // Validate SQLite header: first 16 bytes should be "SQLite format 3\000"
+    // Validate SQLite header
     const header = buffer.slice(0, 16).toString()
     if (!header.startsWith('SQLite format 3')) {
       return reply.send({ ok: false, message: '不是有效的 SQLite 数据库文件' })
     }
 
-    // Create backup of current DB before restore
+    // Write to temp file first, validate, then swap
+    const tempPath = DB_PATH + `.restore_${Date.now()}`
+    await fs.writeFile(tempPath, buffer)
+
+    // Validate integrity before replacing
+    await prisma.$disconnect()
+
+    // Temporarily replace file for integrity check
     const backupPath = DB_PATH + `.backup_${Date.now()}`
     await fs.copyFile(DB_PATH, backupPath)
+    await fs.rename(tempPath, DB_PATH)
 
-    await fs.writeFile(DB_PATH, buffer)
-
-    // Reset Prisma client connection
-    await prisma.$disconnect()
     await prisma.$connect()
+    try {
+      const integrity = await prisma.$queryRaw`PRAGMA integrity_check`
+      if (integrity[0]['integrity_check'] !== 'ok') {
+        // Rollback to backup
+        await fs.copyFile(backupPath, DB_PATH)
+        return reply.send({ ok: false, message: '数据库完整性校验失败，已回滚到恢复前的状态' })
+      }
+    } catch (err) {
+      // Rollback to backup
+      await fs.copyFile(backupPath, DB_PATH)
+      return reply.send({ ok: false, message: '数据库无法加载，已回滚到恢复前的状态：' + err.message })
+    }
+
+    // Clean up old backups (keep last 5)
+    const dbDir = path.dirname(DB_PATH)
+    const dbBase = path.basename(DB_PATH)
+    const files = (await fs.readdir(dbDir))
+      .filter(f => f.startsWith(dbBase + '.backup_'))
+      .sort()
+    for (let i = 0; i < files.length - 5; i++) {
+      await fs.unlink(path.join(dbDir, files[i]))
+    }
 
     await createAuditLog({
       adminId: request.session.teacherId,
@@ -252,7 +283,7 @@ export default async function adminRoutes(app) {
       ip: getClientIp(request),
     })
 
-    return reply.send({ ok: true, message: '数据库已恢复' })
+    return reply.send({ ok: true, message: '数据库已恢复，完整性校验通过' })
   })
 
   // === API: System Health ===
@@ -334,6 +365,9 @@ export default async function adminRoutes(app) {
       if (err.code === 'USERNAME_TAKEN') {
         return reply.send({ ok: false, message: '用户名已存在' })
       }
+      if (err.code === 'PASSWORD_TOO_WEAK') {
+        return reply.send({ ok: false, message: err.message })
+      }
       throw err
     }
   })
@@ -342,17 +376,24 @@ export default async function adminRoutes(app) {
     const id = parseInt(request.params.id, 10)
     const { password } = request.body ?? {}
     const teacher = await prisma.teacher.findUnique({ where: { id } })
-    const result = await resetTeacherPasswordByAdmin(id, password)
-    if (!result.ok) {
-      return reply.code(400).send(result)
+    try {
+      const result = await resetTeacherPasswordByAdmin(id, password)
+      if (!result.ok) {
+        return reply.code(400).send(result)
+      }
+      await createAuditLog({
+        adminId: request.session.teacherId,
+        action: 'RESET_PASSWORD',
+        target: `教师「${teacher?.username}」(${id})`,
+        ip: getClientIp(request),
+      })
+      return reply.send(result)
+    } catch (err) {
+      if (err.code === 'PASSWORD_TOO_WEAK') {
+        return reply.send({ ok: false, message: err.message })
+      }
+      throw err
     }
-    await createAuditLog({
-      adminId: request.session.teacherId,
-      action: 'RESET_PASSWORD',
-      target: `教师「${teacher?.username}」(${id})`,
-      ip: getClientIp(request),
-    })
-    return reply.send(result)
   })
 
   app.delete('/admin/teachers/:id', { preHandler: adminRequired }, async (request, reply) => {
