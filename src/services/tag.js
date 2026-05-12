@@ -11,6 +11,70 @@ const TAG_COLORS = [
 ]
 
 /**
+ * 获取所有预设标签
+ */
+export async function getPresetTags() {
+  return prisma.presetTag.findMany({ orderBy: { sortOrder: 'asc' } })
+}
+
+/**
+ * 获取预设标签名称列表
+ */
+export async function getPresetTagNames() {
+  const tags = await getPresetTags()
+  return tags.map(t => t.tag)
+}
+
+/**
+ * 添加预设标签
+ */
+export async function addPresetTag(tag, color) {
+  const existing = await prisma.presetTag.findUnique({ where: { tag } })
+  if (existing) return { ok: false, message: '预设标签已存在' }
+  const maxSort = await prisma.presetTag.aggregate({ _max: { sortOrder: true } })
+  const newOrder = (maxSort._max.sortOrder || 0) + 1
+  await prisma.presetTag.create({
+    data: { tag, color: color || TAG_COLORS[0], sortOrder: newOrder },
+  })
+  return { ok: true }
+}
+
+/**
+ * 更新预设标签
+ */
+export async function updatePresetTag(tagId, data) {
+  const existing = await prisma.presetTag.findUnique({ where: { id: tagId } })
+  if (!existing) return { ok: false, message: '预设标签不存在', status: 404 }
+  const updateData = {}
+  if (data.tag !== undefined) updateData.tag = data.tag
+  if (data.color !== undefined) updateData.color = data.color
+  await prisma.presetTag.update({ where: { id: tagId }, data: updateData })
+  return { ok: true }
+}
+
+/**
+ * 删除预设标签
+ */
+export async function deletePresetTag(tagId) {
+  const existing = await prisma.presetTag.findUnique({ where: { id: tagId } })
+  if (!existing) return { ok: false, message: '预设标签不存在', status: 404 }
+  await prisma.presetTag.delete({ where: { id: tagId } })
+  return { ok: true }
+}
+
+/**
+ * 更新预设标签排序
+ */
+export async function reorderPresetTags(orderedIds) {
+  await prisma.$transaction(
+    orderedIds.map((id, i) =>
+      prisma.presetTag.update({ where: { id }, data: { sortOrder: i } })
+    )
+  )
+  return { ok: true }
+}
+
+/**
  * 获取某个学生的标签
  */
 export async function getStudentTags(classId, studentId) {

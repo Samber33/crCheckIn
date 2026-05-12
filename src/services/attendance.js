@@ -1,6 +1,6 @@
 import { prisma } from '../plugins/db.js'
 import { formatMinute, formatSecond, nowParts } from '../utils/time.js'
-import { getClassTags } from './tag.js'
+import { getClassTags, getPresetTagNames } from './tag.js'
 
 /**
  * 学生签到
@@ -44,7 +44,7 @@ export async function signIn(classId, studentName, computerName) {
   }
 
   // 6. 创建签到记录 + 清除自定义标签（保留预设标签）
-  const PRESET_TAGS = ['体育生', '竞赛生']
+  const PRESET_TAGS = await getPresetTagNames()
   try {
     const existingTags = await prisma.studentTag.findMany({
       where: { classId, studentId: student.id },

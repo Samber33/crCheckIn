@@ -680,8 +680,24 @@ let showingPrev = false // 是否正在查看上一批次座位
 let prevSeatMap = null // 上一批次的 studentName -> seatNo 映射
 let tagModalStudentId = null
 
-const PRESET_TAGS = ['体育生', '竞赛生']
 const TAG_COLORS = ['#cc785c','#5db872','#d4a017','#7c6cf0','#4a90d9','#e67e22']
+let PRESET_TAGS = [] // loaded from API
+
+async function loadPresetTags() {
+  try {
+    const res = await fetch('/api/preset-tags')
+    const data = await res.json()
+    PRESET_TAGS = (data.tags || []).map(t => ({ id: t.id, tag: t.tag, color: t.color }))
+  } catch(e) {
+    PRESET_TAGS = []
+  }
+}
+
+function presetTagNames() { return PRESET_TAGS.map(t => t.tag) }
+
+function getPresetTagInfo(tagName) {
+  return PRESET_TAGS.find(t => t.tag === tagName)
+}
 
 function getNextColor(currentCount) {
   return TAG_COLORS[currentCount % TAG_COLORS.length]
@@ -701,20 +717,16 @@ function renderTagModal() {
   const currentTags = (window._stuTags || {})[tagModalStudentId] || []
   const currentNames = new Set(currentTags.map(t => t.tag))
 
-  // Find student name for title
   const rosterItem = document.querySelector(`[data-student-id="${tagModalStudentId}"] .roster-name`)
   const studentName = rosterItem ? rosterItem.textContent : '学生'
   title.textContent = `${studentName} - 设置标签`
 
-  // Preset buttons
-  container.innerHTML = PRESET_TAGS.map((name, i) => {
-    const active = currentNames.has(name)
-    const color = TAG_COLORS[i % TAG_COLORS.length]
-    return `<button type="button" class="tag-preset-btn" data-tag="${escHtml(name)}" data-active="${active}" style="padding:4px 12px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid ${active ? color : 'var(--hairline)'};background:${active ? color : '#fff'};color:${active ? '#fff' : 'var(--body)'};transition:opacity .12s;">${escHtml(name)}</button>`
+  container.innerHTML = PRESET_TAGS.map(pt => {
+    const active = currentNames.has(pt.tag)
+    return `<button type="button" class="tag-preset-btn" data-tag="${escHtml(pt.tag)}" data-active="${active}" style="padding:4px 12px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid ${active ? pt.color : 'var(--hairline)'};background:${active ? pt.color : '#fff'};color:${active ? '#fff' : 'var(--body)'};transition:opacity .12s;">${escHtml(pt.tag)}</button>`
   }).join('')
 
-  // Custom tags (non-preset)
-  const customTags = currentTags.filter(t => !PRESET_TAGS.includes(t.tag))
+  const customTags = currentTags.filter(t => !presetTagNames().includes(t.tag))
   customContainer.innerHTML = customTags.map(t =>
     `<span class="tag-custom-item" data-tag-id="${t.id}" style="display:inline-flex;align-items:center;gap:3px;padding:3px 6px 3px 8px;border-radius:6px;font-size:12px;font-weight:500;background:${t.color};color:#fff;cursor:default;">${escHtml(t.tag)}<button type="button" class="tag-custom-remove-btn" data-tag-id="${t.id}" style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:14px;line-height:1;padding:0 2px;">&times;</button></span>`
   ).join('')
@@ -744,20 +756,17 @@ document.getElementById('tagModalPresets').addEventListener('click', async (e) =
   const isActive = btn.dataset.active === 'true'
   const tagName = btn.dataset.tag
   if (isActive) {
-    // Delete: find tag id and remove
     const currentTags = (window._stuTags || {})[tagModalStudentId] || []
     const tagObj = currentTags.find(t => t.tag === tagName)
     if (tagObj) {
       await fetch(`/api/tags/${tagObj.id}?classId=${CLASS_ID}`, { method: 'DELETE' })
     }
   } else {
-    // Add new
-    const currentTags = (window._stuTags || {})[tagModalStudentId] || []
-    const color = TAG_COLORS[PRESET_TAGS.indexOf(tagName) % TAG_COLORS.length]
+    const pt = getPresetTagInfo(tagName)
     await fetch('/api/tags', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ classId: CLASS_ID, studentId: tagModalStudentId, tag: tagName, color }),
+      body: JSON.stringify({ classId: CLASS_ID, studentId: tagModalStudentId, tag: tagName, color: pt ? pt.color : TAG_COLORS[0] }),
     })
   }
   await reloadTags()
@@ -800,7 +809,8 @@ document.getElementById('tagModalCustomInput').addEventListener('keydown', (e) =
   if (e.key === 'Enter') document.getElementById('tagModalCustomAddBtn').click()
 })
 
-// Load tags on page load
+// Load preset tags and student tags on page load
+loadPresetTags()
 reloadTags()
 
 // 构建 seatNo -> studentName 映射

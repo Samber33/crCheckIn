@@ -140,6 +140,14 @@ model InfoResponse {
   createdAt    DateTime       @default(now())
 }
 
+// 预设标签模板（管理员可增删改）
+model PresetTag {
+  id        Int      @id @default(autoincrement())
+  tag       String   @unique
+  color     String   @default("#cc785c")
+  sortOrder Int      @default(0)
+}
+
 // 管理员操作审计日志
 model AuditLog {
   id        Int      @id @default(autoincrement())

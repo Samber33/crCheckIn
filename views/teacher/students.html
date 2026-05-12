@@ -700,8 +700,21 @@ let editStudentId = null
 let transferStudentId = null
 let editTagSelection = null // current tag in edit modal
 
-const PRESET_TAGS = ['体育生', '竞赛生']
 const TAG_COLORS = ['#cc785c','#5db872','#d4a017','#7c6cf0','#4a90d9','#e67e22']
+let PRESET_TAGS = [] // loaded from API
+
+async function loadPresetTags() {
+  try {
+    const res = await fetch('/api/preset-tags')
+    const data = await res.json()
+    PRESET_TAGS = (data.tags || []).map(t => ({ id: t.id, tag: t.tag, color: t.color }))
+  } catch(e) {
+    PRESET_TAGS = []
+  }
+}
+
+function presetTagNames() { return PRESET_TAGS.map(t => t.tag) }
+function getPresetTagInfo(tagName) { return PRESET_TAGS.find(t => t.tag === tagName) }
 
 function getNextColor(currentCount) {
   return TAG_COLORS[currentCount % TAG_COLORS.length]
@@ -726,14 +739,13 @@ function renderEditTags() {
   const currentNames = new Set(currentTags.map(t => t.tag))
 
   // Preset buttons
-  container.innerHTML = PRESET_TAGS.map((name, i) => {
-    const active = currentNames.has(name)
-    const color = TAG_COLORS[i % TAG_COLORS.length]
-    return `<button type="button" class="tag-preset-btn" data-tag="${escHtml(name)}" data-active="${active}" style="padding:4px 12px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid ${active ? color : 'var(--hairline)'};background:${active ? color : '#fff'};color:${active ? '#fff' : 'var(--body)'};transition:opacity .12s;">${escHtml(name)}</button>`
+  container.innerHTML = PRESET_TAGS.map(pt => {
+    const active = currentNames.has(pt.tag)
+    return `<button type="button" class="tag-preset-btn" data-tag="${escHtml(pt.tag)}" data-active="${active}" style="padding:4px 12px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid ${active ? pt.color : 'var(--hairline)'};background:${active ? pt.color : '#fff'};color:${active ? '#fff' : 'var(--body)'};transition:opacity .12s;">${escHtml(pt.tag)}</button>`
   }).join('')
 
   // Custom tags (non-preset) - show as removable tags
-  const customTags = currentTags.filter(t => !PRESET_TAGS.includes(t.tag))
+  const customTags = currentTags.filter(t => !presetTagNames().includes(t.tag))
   customContainer.innerHTML = customTags.map(t =>
     `<span class="edit-custom-tag" data-tag-id="${t.id}" data-tag="${escHtml(t.tag)}" style="display:inline-flex;align-items:center;gap:3px;padding:3px 6px 3px 8px;border-radius:6px;font-size:12px;font-weight:500;background:${t.color};color:#fff;cursor:default;">${escHtml(t.tag)}<button type="button" class="edit-custom-tag-remove" data-tag-id="${t.id}" style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:14px;line-height:1;padding:0 2px;">&times;</button></span>`
   ).join('')
@@ -746,7 +758,8 @@ document.getElementById('editTagPresets').addEventListener('click', (e) => {
   // Toggle visual and data-active
   const isActive = btn.dataset.active === 'true'
   btn.dataset.active = String(!isActive)
-  const color = TAG_COLORS[PRESET_TAGS.indexOf(btn.dataset.tag) % TAG_COLORS.length]
+  const pt = getPresetTagInfo(btn.dataset.tag)
+  const color = pt ? pt.color : TAG_COLORS[0]
   if (isActive) {
     btn.style.background = '#fff'
     btn.style.color = 'var(--body)'
@@ -792,6 +805,7 @@ document.getElementById('editCustomTagInput').addEventListener('keydown', (e) =>
 })
 
 // Load tags on page load
+loadPresetTags()
 reloadTags()
 
 function formatHomeClass(homeClass) {
@@ -880,8 +894,8 @@ async function saveEdit() {
   // Add new tags
   for (const tagName of desiredNames) {
     if (!currentMap.has(tagName)) {
-      const colorIdx = PRESET_TAGS.indexOf(tagName)
-      const color = colorIdx >= 0 ? TAG_COLORS[colorIdx % TAG_COLORS.length] : getNextColor(currentTags.length)
+      const pt = getPresetTagInfo(tagName)
+      const color = pt ? pt.color : getNextColor(currentTags.length)
       await fetch('/api/tags', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -967,14 +981,13 @@ function renderAddTags() {
   const container = document.getElementById('addTagPresets')
   const customContainer = document.getElementById('addCustomTags')
 
-  container.innerHTML = PRESET_TAGS.map((name, i) => {
-    const active = addTagTemp.includes(name)
-    const color = TAG_COLORS[i % TAG_COLORS.length]
-    return `<button type="button" class="tag-preset-btn" data-tag="${escHtml(name)}" data-active="${active}" style="padding:4px 12px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid ${active ? color : 'var(--hairline)'};background:${active ? color : '#fff'};color:${active ? '#fff' : 'var(--body)'};transition:opacity .12s;">${escHtml(name)}</button>`
+  container.innerHTML = PRESET_TAGS.map(pt => {
+    const active = addTagTemp.includes(pt.tag)
+    return `<button type="button" class="tag-preset-btn" data-tag="${escHtml(pt.tag)}" data-active="${active}" style="padding:4px 12px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid ${active ? pt.color : 'var(--hairline)'};background:${active ? pt.color : '#fff'};color:${active ? '#fff' : 'var(--body)'};transition:opacity .12s;">${escHtml(pt.tag)}</button>`
   }).join('')
 
   // Show custom tags added so far
-  const customNames = addTagTemp.filter(t => !PRESET_TAGS.includes(t))
+  const customNames = addTagTemp.filter(t => !presetTagNames().includes(t))
   customContainer.innerHTML = customNames.map(t =>
     `<span class="edit-custom-tag" data-tag="${escHtml(t)}" style="display:inline-flex;align-items:center;gap:3px;padding:3px 6px 3px 8px;border-radius:6px;font-size:12px;font-weight:500;background:var(--primary);color:#fff;cursor:default;">${escHtml(t)}<button type="button" class="add-custom-tag-remove" data-tag="${escHtml(t)}" style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:14px;line-height:1;padding:0 2px;">&times;</button></span>`
   ).join('')

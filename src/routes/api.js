@@ -48,6 +48,7 @@ import {
   addStudentTag,
   deleteStudentTag,
   getNextColor,
+  getPresetTags,
 } from '../services/tag.js'
 import { registerSSE, broadcastToClass } from '../services/sse.js'
 
@@ -634,6 +635,12 @@ export default async function apiRoutes(fastify) {
   })
 
   // ========== 学生标签功能 ==========
+
+  // GET /api/preset-tags — 获取所有预设标签（公开）
+  fastify.get('/api/preset-tags', async (request, reply) => {
+    const tags = await getPresetTags()
+    return reply.send({ tags: tags.map(t => ({ id: t.id, tag: t.tag, color: t.color })) })
+  })
 
   // GET /api/tags — 获取班级所有学生标签（批量）
   fastify.get('/api/tags', { preHandler: classOwnerRequired }, async (request, reply) => {
