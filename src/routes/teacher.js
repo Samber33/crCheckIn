@@ -23,8 +23,7 @@ export default async function teacherRoutes(app) {
   })
 
   app.post('/teacher/logout', async (request, reply) => {
-    request.session.teacherId = null
-    request.session.isAdmin = null
+    request.session = null
     return reply.redirect('/student')
   })
 

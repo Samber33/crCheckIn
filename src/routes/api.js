@@ -276,8 +276,10 @@ export default async function apiRoutes(fastify) {
     return reply.send(result)
   })
 
-  // GET /api/students/match — 无需登录
-  fastify.get('/api/students/match', async (request, reply) => {
+  // GET /api/students/match — 无需登录，限速防枚举
+  fastify.get('/api/students/match', {
+    config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+  }, async (request, reply) => {
     const q = request.query.q || ''
     const classId = request.query.classId ? parseInt(request.query.classId, 10) : null
     const students = await matchStudents(q, 15, classId)
@@ -547,8 +549,10 @@ export default async function apiRoutes(fastify) {
     return reply.send({ ok: true })
   })
 
-  // POST /api/info-submit — 学生提交信息（无需登录）
-  fastify.post('/api/info-submit', async (request, reply) => {
+  // POST /api/info-submit — 学生提交信息（无需登录），限速防刷
+  fastify.post('/api/info-submit', {
+    config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+  }, async (request, reply) => {
     const { classId, studentName, studentId, responses } = request.body
     try {
       const submission = await submitInfo(
