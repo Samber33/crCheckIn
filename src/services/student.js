@@ -169,6 +169,7 @@ export async function transferStudent(studentId, targetClassId, teacherId, isAdm
 
   await prisma.$transaction([
     prisma.signInRecord.deleteMany({ where: currentSignInRecordWhere(student) }),
+    prisma.studentTag.deleteMany({ where: { classId: student.classId, studentId } }),
     prisma.student.update({ where: { id: studentId }, data: { classId: targetClassId } }),
   ])
   return { ok: true }

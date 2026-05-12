@@ -1048,11 +1048,13 @@ async function doAdd() {
     const tagName = addTagTemp[i]
     const colorIdx = PRESET_TAGS.indexOf(tagName)
     const color = colorIdx >= 0 ? TAG_COLORS[colorIdx % TAG_COLORS.length] : getNextColor(i)
-    await fetch('/api/tags', {
+    const tagRes = await fetch('/api/tags', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ classId: CLASS_ID, studentId: student.id, tag: tagName, color }),
     })
+    const tagData = await tagRes.json()
+    if (!tagData.ok) { showToast(`标签「${tagName}」添加失败: ${tagData.message}`, false) }
   }
 
   await reloadTags()

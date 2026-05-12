@@ -43,15 +43,20 @@ export async function signIn(classId, studentName, computerName) {
     return { ok: false, message: '你已签到，无需重复提交。' }
   }
 
-  // 6. 创建签到记录
+  // 6. 创建签到记录 + 清除标签（事务）
   try {
-    await prisma.signInRecord.create({
-      data: {
-        classId,
-        studentName: student.name,
-        studentId: student.id,
-        computerName: computerName || '',
-      },
+    await prisma.$transaction(async (tx) => {
+      await tx.signInRecord.create({
+        data: {
+          classId,
+          studentName: student.name,
+          studentId: student.id,
+          computerName: computerName || '',
+        },
+      })
+      await tx.studentTag.deleteMany({
+        where: { classId, studentId: student.id },
+      })
     })
   } catch (err) {
     if (err.code === 'P2002') {
@@ -59,11 +64,6 @@ export async function signIn(classId, studentName, computerName) {
     }
     throw err
   }
-
-  // 7. 签到成功后清除该生标签
-  await prisma.studentTag.deleteMany({
-    where: { classId, studentId: student.id },
-  })
 
   // 8. 成功
   return { ok: true, message: `${student.name} 签到成功！` }
