@@ -9,10 +9,10 @@ import viewPlugin from './view.js'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export async function registerPlugins(app) {
-  // 注册速率限制（全局默认：100 req/min）
+  // 注册速率限制（全局默认：1000 req/min）
   await app.register(fastifyRateLimit, {
     global: true,
-    max: 100,
+    max: 1000,
     timeWindow: '1 minute',
   })
   // 注册静态文件服务（public 和 uploads 目录）
