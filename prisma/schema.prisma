@@ -28,8 +28,6 @@ model Class {
   signInRecords SignInRecord[]
   sessions      SignInSession[]
   infoCollection InfoCollection?
-
-  @@unique([teacherId, name])
 }
 
 model SignInSession {

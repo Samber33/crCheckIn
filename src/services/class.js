@@ -58,15 +58,6 @@ async function findNextAvailableId(teacherId) {
  * @returns {Promise<object>} 创建的 Class 记录
  */
 export async function createClass(teacherId, name) {
-  const existing = await prisma.class.findUnique({
-    where: { teacherId_name: { teacherId, name } },
-  })
-  if (existing) {
-    const err = new Error('该班级名称已存在')
-    err.statusCode = 409
-    throw err
-  }
-
   const nextId = await findNextAvailableId(teacherId)
 
   return prisma.class.create({

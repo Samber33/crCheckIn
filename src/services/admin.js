@@ -181,14 +181,6 @@ export async function transferClass(classId, newTeacherId, adminId, ip = '') {
     return { ok: false, message: '目标教师不存在', status: 404 }
   }
 
-  // 检查目标教师下是否已有同名班级
-  const existing = await prisma.class.findUnique({
-    where: { teacherId_name: { teacherId: newTeacherId, name: cls.name } },
-  })
-  if (existing) {
-    return { ok: false, message: `目标教师下已有同名班级「${cls.name}」`, status: 409 }
-  }
-
   const oldTeacherId = cls.teacherId
   const oldTeacherName = cls.teacher.username
 
@@ -379,14 +371,6 @@ export async function editClass(classId, teacherId, newName, adminId, ip = '') {
   const cls = await prisma.class.findUnique({ where: { id: classId } })
   if (!cls) {
     return { ok: false, message: '班级不存在', status: 404 }
-  }
-
-  // 检查新名称是否冲突
-  const existing = await prisma.class.findUnique({
-    where: { teacherId_name: { teacherId, name: newName } },
-  })
-  if (existing && existing.id !== classId) {
-    return { ok: false, message: '该教师下已有同名班级', status: 409 }
   }
 
   const oldName = cls.name
