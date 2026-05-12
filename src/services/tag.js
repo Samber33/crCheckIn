@@ -49,6 +49,11 @@ export async function updatePresetTag(tagId, data) {
   if (data.tag !== undefined) {
     const dup = await prisma.presetTag.findFirst({ where: { tag: data.tag, id: { not: tagId } } })
     if (dup) return { ok: false, message: '标签名已存在' }
+    // 同步更新所有学生的该标签名
+    await prisma.studentTag.updateMany({
+      where: { tag: existing.tag },
+      data: { tag: data.tag },
+    })
     updateData.tag = data.tag
   }
   if (data.color !== undefined) updateData.color = data.color
@@ -63,6 +68,10 @@ export async function updatePresetTag(tagId, data) {
 export async function deletePresetTag(tagId) {
   const existing = await prisma.presetTag.findUnique({ where: { id: tagId } })
   if (!existing) return { ok: false, message: '预设标签不存在', status: 404 }
+  // 清除所有学生的该标签
+  await prisma.studentTag.deleteMany({
+    where: { tag: existing.tag },
+  })
   await prisma.presetTag.delete({ where: { id: tagId } })
   return { ok: true }
 }

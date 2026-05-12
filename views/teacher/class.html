@@ -987,8 +987,19 @@ function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
 }
 
-const PRESET_TAGS = ['体育生', '竞赛生']
 const TAG_COLORS = ['#cc785c','#5db872','#d4a017','#7c6cf0','#4a90d9','#e67e22']
+let PRESET_TAGS = [] // loaded from API
+
+async function loadPresetTags() {
+  try {
+    const res = await fetch('/api/preset-tags')
+    const data = await res.json()
+    PRESET_TAGS = (data.tags || []).map(t => ({ id: t.id, tag: t.tag, color: t.color }))
+  } catch(e) {}
+}
+
+function presetTagNames() { return PRESET_TAGS.map(t => t.tag) }
+function getPresetTagInfo(tagName) { return PRESET_TAGS.find(t => t.tag === tagName) }
 
 let tagPopupTarget = { studentId: null, studentName: '' }
 
@@ -1039,10 +1050,9 @@ function openTagPopup(studentId, studentName, btnEl) {
 
   // Preset buttons
   const presets = document.getElementById('tagPopupPresets')
-  presets.innerHTML = PRESET_TAGS.map(name => {
-    const active = currentNames.has(name)
-    const color = TAG_COLORS[PRESET_TAGS.indexOf(name) % TAG_COLORS.length]
-    return `<button class="tag-preset-btn" data-tag="${escHtml(name)}" data-active="${active}" style="padding:3px 10px;border-radius:4px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid ${active ? color : 'var(--hairline)'};background:${active ? color : '#fff'};color:${active ? '#fff' : 'var(--body)'};">${escHtml(name)}</button>`
+  presets.innerHTML = PRESET_TAGS.map(pt => {
+    const active = currentNames.has(pt.tag)
+    return `<button class="tag-preset-btn" data-tag="${escHtml(pt.tag)}" data-active="${active}" style="padding:3px 10px;border-radius:4px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid ${active ? pt.color : 'var(--hairline)'};background:${active ? pt.color : '#fff'};color:${active ? '#fff' : 'var(--body)'};">${escHtml(pt.tag)}</button>`
   }).join('')
 
   tagPopup.style.display = 'flex'
@@ -1498,6 +1508,7 @@ document.getElementById('importFile').addEventListener('change', async (e) => {
 })
 
 refreshStatus()
+loadPresetTags()
 
 // === SSE 实时推送（替代轮询）===
 const SSE_URL = '{{ sseUrl }}'

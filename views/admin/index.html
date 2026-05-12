@@ -608,7 +608,7 @@
             </div>
           </div>
           <div class="teacher-actions">
-            <button onclick="resetTeacherPassword({{ t.id }}, '{{ t.username }}')"
+            <button onclick="openResetPassword({{ t.id }}, '{{ t.username }}')"
               class="teacher-action" style="color: var(--primary);" onmouseover="this.style.background='#fef3ec'" onmouseout="this.style.background=''">改密</button>
             {% if not t.isAdmin %}
             <button onclick="deleteTeacher({{ t.id }}, '{{ t.username }}')"
@@ -623,6 +623,23 @@
     </div>
 
   </main>
+
+  <!-- Password Reset Modal -->
+  <div id="resetModal" class="hidden modal-overlay">
+    <div class="modal-card" style="max-width: 400px;">
+      <div class="modal-title">重置密码</div>
+      <p id="resetModalTarget" style="font-size: 14px; color: var(--muted); margin: 0 0 16px;"></p>
+      <div class="form-field">
+        <label for="resetPasswordInput">新密码</label>
+        <input type="password" id="resetPasswordInput" class="input-field" placeholder="输入新密码（至少 6 位）" />
+      </div>
+      <div id="resetError" style="font-size: 12px; color: var(--error); margin-top: 6px;"></div>
+      <div class="modal-actions" style="margin-top: 20px;">
+        <button id="cancelResetBtn" class="btn" style="color: var(--body); background: none; border: 1px solid var(--hairline);">取消</button>
+        <button id="confirmResetBtn" class="btn btn-primary">确认重置</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Preset Tag Management Modal -->
   <div id="presetTagModal" class="hidden modal-overlay">
@@ -721,27 +738,48 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async () =
 
 document.getElementById('cancelDeleteBtn').addEventListener('click', closeDeleteModal)
 
-async function resetTeacherPassword(id, username) {
-  const password = prompt(`请输入教师账号「${username}」的新密码`)
-  if (password == null) return
-  const val = password.trim()
-  if (!val) {
-    showToast('新密码不能为空', false)
-    return
-  }
-  const res = await fetch(`/admin/teachers/${id}/password`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password: val }),
-  })
-  if (res.status === 401) { window.location.href = '/student'; return }
-  const data = await res.json()
-  if (data.ok) {
-    showToast(`已重置 ${username} 的密码`)
-  } else {
-    showToast(data.message || '重置密码失败', false)
-  }
+let resetTeacherId = null
+
+function openResetPassword(id, username) {
+  resetTeacherId = id
+  document.getElementById('resetModalTarget').textContent = `教师「${username}」`
+  document.getElementById('resetPasswordInput').value = ''
+  document.getElementById('resetError').textContent = ''
+  document.getElementById('resetModal').classList.remove('hidden')
+  document.getElementById('resetPasswordInput').focus()
 }
+
+function closeResetPassword() {
+  resetTeacherId = null
+  document.getElementById('resetModal').classList.add('hidden')
+}
+
+document.getElementById('cancelResetBtn').addEventListener('click', closeResetPassword)
+document.getElementById('resetModal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeResetPassword()
+})
+document.getElementById('resetPasswordInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('confirmResetBtn').click()
+})
+
+document.getElementById('confirmResetBtn').addEventListener('click', async () => {
+  if (!resetTeacherId) return
+  const val = document.getElementById('resetPasswordInput').value.trim()
+  if (!val) { document.getElementById('resetError').textContent = '新密码不能为空'; return }
+  if (val.length < 6) { document.getElementById('resetError').textContent = '密码长度不能少于 6 位'; return }
+  try {
+    const res = await fetch(`/admin/teachers/${resetTeacherId}/password`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: val }),
+    })
+    if (res.status === 401) { window.location.href = '/student'; return }
+    const data = await res.json()
+    closeResetPassword()
+    if (data.ok) { showToast('密码已重置') }
+    else showToast(data.message || '重置失败', false)
+  } catch (e) { showToast('重置失败', false) }
+})
 
 // === Batch Password Reset ===
 document.getElementById('batchResetBtn').addEventListener('click', async () => {
