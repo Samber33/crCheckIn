@@ -78,6 +78,7 @@ export async function classOwnerRequired(request, reply) {
   } catch (err) {
     if (err.statusCode === 403) {
       reply.code(403).send({ ok: false, message: err.message || '无权访问该班级。' })
+      return
     } else {
       throw err
     }

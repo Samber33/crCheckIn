@@ -32,7 +32,7 @@ export async function addPresetTag(tag, color) {
   const existing = await prisma.presetTag.findUnique({ where: { tag } })
   if (existing) return { ok: false, message: '预设标签已存在' }
   const maxSort = await prisma.presetTag.aggregate({ _max: { sortOrder: true } })
-  const newOrder = (maxSort._max.sortOrder || 0) + 1
+  const newOrder = (maxSort._max?.sortOrder || 0) + 1
   await prisma.presetTag.create({
     data: { tag, color: color || TAG_COLORS[0], sortOrder: newOrder },
   })
