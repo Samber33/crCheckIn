@@ -1,5 +1,6 @@
 import { createTeacher, resetTeacherPasswordByAdmin } from '../services/auth.js'
 import { deleteClassesCascadeWithTx } from '../services/class.js'
+import { broadcastToAllTeachers } from '../services/sse.js'
 import {
   getAllClassesDetail,
   transferClass,
@@ -72,6 +73,7 @@ export default async function adminRoutes(app) {
     const { addPresetTag } = await import('../services/tag.js')
     const result = await addPresetTag(tag.trim(), color)
     if (!result.ok) return reply.code(400).send(result)
+    broadcastToAllTeachers('preset-tags-changed')
     return reply.send(result)
   })
 
@@ -87,6 +89,7 @@ export default async function adminRoutes(app) {
     }
     const result = await updatePresetTag(id, updateData)
     if (!result.ok) return reply.code(result.status || 400).send(result)
+    broadcastToAllTeachers('preset-tags-changed')
     return reply.send(result)
   })
 
@@ -95,6 +98,7 @@ export default async function adminRoutes(app) {
     const { deletePresetTag } = await import('../services/tag.js')
     const result = await deletePresetTag(id)
     if (!result.ok) return reply.code(result.status || 400).send(result)
+    broadcastToAllTeachers('preset-tags-changed')
     return reply.send(result)
   })
 

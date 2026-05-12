@@ -47,7 +47,6 @@ import {
   getClassTags,
   addStudentTag,
   deleteStudentTag,
-  getNextColor,
   getPresetTags,
 } from '../services/tag.js'
 import { registerSSE, broadcastToClass } from '../services/sse.js'
@@ -658,8 +657,7 @@ export default async function apiRoutes(fastify) {
     const { classId: rawClassId, studentId, tag, color } = request.body
     const classId = parseInt(rawClassId, 10)
     const sid = parseInt(studentId, 10)
-    const tagColor = color || getNextColor(0)
-    const result = await addStudentTag(classId, sid, tag, tagColor)
+    const result = await addStudentTag(classId, sid, tag, color)
     if (!result.ok) return reply.code(400).send(result)
     return reply.send({ ok: true, tag: result.tag })
   })

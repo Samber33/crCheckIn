@@ -1128,7 +1128,7 @@ document.getElementById('tagPopupAddBtn').addEventListener('click', async () => 
   const res = await fetch('/api/tags', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ classId: CLASS_ID, studentId, tag }),
+    body: JSON.stringify({ classId: CLASS_ID, studentId, tag, color: TAG_COLORS[0] }),
   })
   const data = await res.json()
   if (!data.ok) { showToast(data.message || '添加失败', false); return }
@@ -1528,6 +1528,10 @@ function connectSSE() {
     // Don't refresh if tag popup is open
     if (tagPopup.style.display !== 'none') return
     refreshStatus()
+  })
+
+  eventSource.addEventListener('preset-tags-changed', () => {
+    loadPresetTags().then(refreshStatus)
   })
 
   eventSource.onerror = () => {

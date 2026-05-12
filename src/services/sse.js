@@ -56,3 +56,20 @@ export async function broadcastToClass(classId, event) {
     broadcastToTeacher(cls.teacherId, event)
   }
 }
+
+/**
+ * 向所有教师广播（用于全局变更如预设标签）。
+ * @param {string} event
+ */
+export function broadcastToAllTeachers(event) {
+  const payload = `event: ${event}\n\n`
+  for (const sockets of teacherSockets.values()) {
+    for (const socket of [...sockets]) {
+      try {
+        socket.write(payload)
+      } catch {
+        sockets.delete(socket)
+      }
+    }
+  }
+}

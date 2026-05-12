@@ -251,6 +251,14 @@
     }
     .roster-time.signed { color: #047857; }
     .roster-time.dup { color: var(--error); }
+    .roster-edit-icon {
+      opacity: 0;
+      transition: opacity .12s;
+      color: var(--muted-soft);
+      flex-shrink: 0;
+      font-size: 11px;
+    }
+    .roster-item:hover .roster-edit-icon { opacity: 1; }
     .roster-tags {
       display: flex;
       flex-wrap: wrap;
@@ -1009,10 +1017,12 @@ function renderRoster(roster) {
     const item = document.createElement('div')
     item.className = 'roster-item'
     item.dataset.studentId = r.studentId
+    item.title = '点击编辑标签'
     item.innerHTML = `
       <span class="roster-dot ${dotClass}"></span>
       <span class="roster-name">${escHtml(r.studentName)}</span>
       ${tagsHtml ? `<span class="roster-tags">${tagsHtml}</span>` : ''}
+      <svg class="roster-edit-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
       <span class="roster-time ${timeClass}">${isSigned ? formatSignedTime(r.signedAt) : '-'}</span>`
     item.addEventListener('click', () => {
       if (r.studentId) openTagModal(r.studentId)
@@ -1078,6 +1088,7 @@ async function pollSeatGrid() {
     if (badge && !showingPrev) badge.textContent = '已签到 ' + data.signedCount + ' 人'
     TEACHER_GRID = data.teacherGrid
     STUDENT_GRID = data.studentGrid
+    await Promise.all([loadPresetTags(), reloadTags()])
     renderCurrentGrid()
     document.getElementById('refreshStatus').textContent = '上次刷新 ' + formatTime(new Date())
     refreshRoster()
