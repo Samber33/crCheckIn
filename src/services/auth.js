@@ -2,28 +2,21 @@ import bcrypt from 'bcrypt'
 import { prisma } from '../plugins/db.js'
 
 /**
- * 通过口令验证教师/管理员登录凭据。
+ * 通过用户名和口令验证教师/管理员登录。
+ * @param {string} username
  * @param {string} password
- * @returns {Promise<{ok: boolean, teacher?: object}>}
+ * @returns {Promise<{ok: boolean, teacher?: object, message?: string}>}
  */
-export async function verifyTeacherByPassword(password) {
-  if (!password) return { ok: false }
+export async function verifyTeacherByPassword(username, password) {
+  if (!username || !password) return { ok: false }
 
-  const teachers = await prisma.teacher.findMany({
-    orderBy: [
-      { isAdmin: 'desc' },
-      { id: 'asc' },
-    ],
-  })
+  const teacher = await prisma.teacher.findUnique({ where: { username } })
+  if (!teacher) return { ok: false, message: '用户名不存在' }
 
-  for (const teacher of teachers) {
-    const match = await bcrypt.compare(password, teacher.passwordHash)
-    if (match) {
-      return { ok: true, teacher }
-    }
-  }
+  const match = await bcrypt.compare(password, teacher.passwordHash)
+  if (!match) return { ok: false, message: '密码不正确' }
 
-  return { ok: false }
+  return { ok: true, teacher }
 }
 
 /**

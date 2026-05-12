@@ -88,9 +88,15 @@ export async function createClass(teacherId, name) {
 export async function assertClassOwner(classId, teacherId, isAdmin = false) {
   const cls = await prisma.class.findUnique({ where: { id: classId } })
 
+  if (!cls) {
+    const err = new Error('班级不存在')
+    err.statusCode = 404
+    throw err
+  }
+
   if (isAdmin) return cls
 
-  if (!cls || cls.teacherId !== teacherId) {
+  if (cls.teacherId !== teacherId) {
     const err = new Error('无权访问该班级')
     err.statusCode = 403
     throw err
@@ -102,6 +108,7 @@ export async function assertClassOwner(classId, teacherId, isAdmin = false) {
 export async function deleteClassesCascadeWithTx(tx, classIds) {
   if (classIds.length === 0) return
 
+  // 1. 归档记录（依赖 SignInSession）
   const sessions = await tx.signInSession.findMany({
     where: { classId: { in: classIds } },
     select: { id: true },
@@ -112,10 +119,30 @@ export async function deleteClassesCascadeWithTx(tx, classIds) {
     await tx.archivedRecord.deleteMany({ where: { sessionId: { in: sessionIds } } })
   }
 
+  // 2. 信息收集（依赖 Class，无级联约束需手动清理）
+  const collections = await tx.infoCollection.findMany({
+    where: { classId: { in: classIds } },
+    select: { id: true },
+  })
+  const collectionIds = collections.map(c => c.id)
+  if (collectionIds.length > 0) {
+    await tx.infoResponse.deleteMany({ where: { field: { collectionId: { in: collectionIds } } } })
+    await tx.infoField.deleteMany({ where: { collectionId: { in: collectionIds } } })
+    await tx.infoCollection.deleteMany({ where: { classId: { in: classIds } } })
+  }
+
+  // 3. 会话/配置/签到记录（依赖 Class）
   await tx.signInSession.deleteMany({ where: { classId: { in: classIds } } })
   await tx.signInConfig.deleteMany({ where: { classId: { in: classIds } } })
   await tx.signInRecord.deleteMany({ where: { classId: { in: classIds } } })
+
+  // 4. 学生标签（依赖 Student）
+  await tx.studentTag.deleteMany({ where: { classId: { in: classIds } } })
+
+  // 5. 学生（依赖 Class）
   await tx.student.deleteMany({ where: { classId: { in: classIds } } })
+
+  // 6. 班级
   await tx.class.deleteMany({ where: { id: { in: classIds } } })
 }
 

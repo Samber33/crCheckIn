@@ -232,13 +232,13 @@ export default async function apiRoutes(fastify) {
     return reply.send(result)
   })
 
-  // POST /api/teacher-login — 通过口令登录教师/管理员端（供学生端入口使用）
+  // POST /api/teacher-login — 通过用户名+口令登录教师/管理员端（供学生端入口使用）
   fastify.post('/api/teacher-login', {
     config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
   }, async (request, reply) => {
-    const { password } = request.body ?? {}
-    const result = await verifyTeacherByPassword(password)
-    if (!result.ok) return reply.send({ ok: false })
+    const { username, password } = request.body ?? {}
+    const result = await verifyTeacherByPassword(username, password)
+    if (!result.ok) return reply.send({ ok: false, message: result.message })
 
     request.session.teacherId = result.teacher.id
     request.session.isAdmin = result.teacher.isAdmin

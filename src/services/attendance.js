@@ -341,12 +341,15 @@ export async function deleteSession(sessionId, teacherId, isAdmin = false) {
 }
 
 /**
- * 删除该班级的所有签到记录和所有学生
+ * 删除该班级的所有签到记录、学生及其标签
  * @param {number} classId
  */
 export async function clearRoster(classId) {
-  await prisma.signInRecord.deleteMany({ where: { classId } })
-  await prisma.student.deleteMany({ where: { classId } })
+  await prisma.$transaction(async (tx) => {
+    await tx.signInRecord.deleteMany({ where: { classId } })
+    await tx.studentTag.deleteMany({ where: { classId } })
+    await tx.student.deleteMany({ where: { classId } })
+  })
 }
 
 /**

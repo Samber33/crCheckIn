@@ -356,7 +356,25 @@
         </div>
 
         <div class="signin-footer">
-          教师请输入密码登录管理端
+          <a href="#" id="teacherLoginToggle" style="color: var(--muted-soft); text-decoration: none; border-bottom: 1px dashed var(--muted-soft);">教师登录 →</a>
+        </div>
+
+        <!-- Teacher Login Form (hidden by default) -->
+        <div id="teacherLoginForm" class="hidden" style="margin-top: 24px; padding: 20px; border: 1px solid var(--hairline); border-radius: 12px; background: var(--surface-card);">
+          <p style="font-size: 13px; font-weight: 600; color: var(--ink); margin: 0 0 12px;">教师/管理员登录</p>
+          <div style="margin-bottom: 10px;">
+            <label style="display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px;">用户名</label>
+            <input id="teacherUsername" type="text" placeholder="输入用户名" style="width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--hairline); font-size: 14px; color: var(--ink); background: #fff; box-sizing: border-box;" />
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px;">密码</label>
+            <input id="teacherPassword" type="password" placeholder="输入密码" style="width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--hairline); font-size: 14px; color: var(--ink); background: #fff; box-sizing: border-box;" />
+          </div>
+          <button id="teacherLoginBtn" class="submit-btn" style="height: 40px; font-size: 14px;">登录</button>
+          <div id="teacherMsg" class="msg-box hidden" style="margin-top: 10px;"></div>
+          <p style="margin-top: 10px;">
+            <a href="#" id="teacherLoginCancel" style="font-size: 12px; color: var(--muted-soft);">← 返回学生签到</a>
+          </p>
         </div>
 
       </div>
@@ -497,17 +515,6 @@ signinBtn.addEventListener('click', async () => {
   signinBtn.innerHTML = '<svg class="w-4 h-4" style="animation: spin 1s linear infinite;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> 提交中...'
 
   try {
-    const loginRes = await fetch('/api/teacher-login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: val })
-    })
-    const loginData = await loginRes.json()
-    if (loginData.ok) {
-      window.location.href = loginData.redirect
-      return
-    }
-
     if (!selectedClassId) { setMessage('请从列表中选择学生', false); return }
     const res = await fetch('/api/signin', {
       method: 'POST',
@@ -534,6 +541,58 @@ signinBtn.addEventListener('click', async () => {
   } finally {
     signinBtn.disabled = false
     signinBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> 提交签到'
+  }
+})
+
+// === Teacher Login Form Toggle ===
+document.getElementById('teacherLoginToggle').addEventListener('click', (e) => {
+  e.preventDefault()
+  document.getElementById('teacherLoginForm').classList.toggle('hidden')
+  document.getElementById('signInForm').classList.toggle('hidden')
+})
+
+document.getElementById('teacherLoginCancel').addEventListener('click', (e) => {
+  e.preventDefault()
+  document.getElementById('teacherLoginForm').classList.add('hidden')
+  document.getElementById('signInForm').classList.remove('hidden')
+})
+
+document.getElementById('teacherLoginBtn').addEventListener('click', async () => {
+  const username = document.getElementById('teacherUsername').value.trim()
+  const password = document.getElementById('teacherPassword').value
+  const btn = document.getElementById('teacherLoginBtn')
+  const msgEl = document.getElementById('teacherMsg')
+  if (!username || !password) {
+    msgEl.className = 'msg-box'
+    msgEl.style.background = '#fef2f2'
+    msgEl.style.color = '#c64545'
+    msgEl.style.border = '1px solid #f5c6cb'
+    msgEl.textContent = '请输入用户名和密码'
+    msgEl.classList.remove('hidden')
+    return
+  }
+  btn.disabled = true
+  btn.textContent = '登录中...'
+  try {
+    const res = await fetch('/api/teacher-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    })
+    const data = await res.json()
+    if (data.ok) {
+      window.location.href = data.redirect
+    } else {
+      msgEl.className = 'msg-box'
+      msgEl.style.background = '#fef2f2'
+      msgEl.style.color = '#c64545'
+      msgEl.style.border = '1px solid #f5c6cb'
+      msgEl.textContent = data.message || '登录失败'
+      msgEl.classList.remove('hidden')
+    }
+  } finally {
+    btn.disabled = false
+    btn.textContent = '登录'
   }
 })
 

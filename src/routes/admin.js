@@ -124,8 +124,8 @@ export default async function adminRoutes(app) {
   // === API: Batch Password Reset ===
 
   app.post('/admin/api/batch-reset-password', { preHandler: adminRequired }, async (request, reply) => {
-    const { password } = request.body ?? {}
-    if (!password || !password.trim()) {
+    const { password: basePassword } = request.body ?? {}
+    if (!basePassword || !basePassword.trim()) {
       return reply.send({ ok: false, message: '密码不能为空' })
     }
 
@@ -135,41 +135,50 @@ export default async function adminRoutes(app) {
     }
 
     const bcrypt = await import('bcrypt')
-    const newPasswordHash = await bcrypt.hash(password, 10)
 
     // Check password doesn't match any existing
     for (const t of teachers) {
-      if (await bcrypt.compare(password, t.passwordHash)) {
+      if (await bcrypt.compare(basePassword, t.passwordHash)) {
         return reply.send({ ok: false, message: `新密码与教师「${t.username}」的当前密码相同` })
       }
     }
 
-    // Check no two teachers would have same password (already guaranteed since we're setting all to same value)
-    // But check the new password doesn't conflict with any admin password
+    // Check no conflict with admin passwords
     const adminTeachers = await prisma.teacher.findMany({ where: { isAdmin: true }, select: { passwordHash: true, username: true } })
     for (const t of adminTeachers) {
-      if (await bcrypt.compare(password, t.passwordHash)) {
+      if (await bcrypt.compare(basePassword, t.passwordHash)) {
         return reply.send({ ok: false, message: `该密码与管理员「${t.username}」的密码相同` })
       }
     }
 
-    let count = 0
+    // Generate unique passwords and update in a transaction
+    const hashMap = []
     for (const t of teachers) {
-      await prisma.teacher.update({
-        where: { id: t.id },
-        data: { passwordHash: newPasswordHash },
-      })
-      count++
+      const uniquePassword = `${basePassword}_${t.username}_${Date.now()}`
+      const hash = await bcrypt.hash(uniquePassword, 10)
+      hashMap.push({ id: t.id, username: t.username, hash, password: uniquePassword })
     }
+
+    await prisma.$transaction(
+      hashMap.map(item =>
+        prisma.teacher.update({ where: { id: item.id }, data: { passwordHash: item.hash } })
+      )
+    )
 
     await createAuditLog({
       adminId: request.session.teacherId,
       action: 'BATCH_RESET_PASSWORD',
-      target: `批量重置 ${count} 个教师密码`,
+      target: `批量重置 ${hashMap.length} 个教师密码（唯一密码）`,
+      detail: JSON.stringify({ teachers: hashMap.map(h => h.username) }),
       ip: getClientIp(request),
     })
 
-    return reply.send({ ok: true, count, message: `已重置 ${count} 个教师的密码` })
+    return reply.send({
+      ok: true,
+      count: hashMap.length,
+      message: `已重置 ${hashMap.length} 个教师的密码（每个唯一）`,
+      passwords: hashMap.map(h => ({ username: h.username, password: h.password })),
+    })
   })
 
   // === API: Audit Logs ===

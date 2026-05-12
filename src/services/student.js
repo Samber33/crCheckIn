@@ -136,10 +136,10 @@ export async function deleteStudent(studentId, teacherId, isAdmin = false) {
   if (!check.ok) return check
 
   const { student } = check
-  await prisma.$transaction([
-    prisma.signInRecord.deleteMany({ where: currentSignInRecordWhere(student) }),
-    prisma.student.delete({ where: { id: studentId } }),
-  ])
+  await prisma.$transaction(async (tx) => {
+    await tx.signInRecord.deleteMany({ where: currentSignInRecordWhere(student) })
+    await tx.student.delete({ where: { id: studentId } })
+  })
   return { ok: true }
 }
 

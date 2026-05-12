@@ -690,7 +690,7 @@ async function resetTeacherPassword(id, username) {
 document.getElementById('batchResetBtn').addEventListener('click', async () => {
   const password = document.getElementById('batchPassword').value
   if (!password) { showToast('请输入新密码', false); return }
-  if (!confirm('确定要重置所有非管理员教师的密码吗？')) return
+  if (!confirm('确定要重置所有非管理员教师的密码吗？每位教师将获得唯一密码。')) return
   const res = await fetch('/admin/api/batch-reset-password', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -700,11 +700,36 @@ document.getElementById('batchResetBtn').addEventListener('click', async () => {
   if (data.ok) {
     showToast(data.message)
     document.getElementById('batchPassword').value = ''
-    window.location.reload()
+    // Show unique passwords
+    if (data.passwords && data.passwords.length > 0) {
+      showPasswordList(data.passwords)
+    }
   } else {
     showToast(data.message || '重置失败', false)
   }
 })
+
+function showPasswordList(passwords) {
+  // Remove old list if exists
+  const old = document.getElementById('passwordListContainer')
+  if (old) old.remove()
+
+  const container = document.createElement('div')
+  container.id = 'passwordListContainer'
+  container.style.cssText = 'margin-top: 12px; padding: 12px; background: #fff; border: 1px solid var(--hairline); border-radius: 8px; max-height: 300px; overflow-y: auto;'
+  container.innerHTML = `
+    <p style="font-size: 12px; font-weight: 600; color: var(--ink); margin: 0 0 8px;">每位教师的唯一密码（请妥善分发）</p>
+    ${passwords.map(p => `
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--hairline); font-size: 12px;">
+        <span style="font-weight: 600; color: var(--ink); min-width: 80px;">${p.username}</span>
+        <code style="flex: 1; margin: 0 12px; padding: 4px 8px; background: var(--canvas); border-radius: 4px; font-size: 11px; word-break: break-all; user-select: all;">${p.password}</code>
+        <button onclick="navigator.clipboard.writeText('${p.password}'); this.textContent='已复制'; setTimeout(() => this.textContent='复制', 1500)" style="padding: 2px 8px; font-size: 11px; border: 1px solid var(--hairline); border-radius: 4px; background: #fff; cursor: pointer; white-space: nowrap;">复制</button>
+      </div>
+    `).join('')}
+    <button onclick="this.parentElement.remove()" style="margin-top: 8px; padding: 4px 12px; font-size: 11px; border: none; background: none; color: var(--muted-soft); cursor: pointer; border-radius: 4px;">关闭</button>
+  `
+  document.getElementById('batchResetBtn').parentElement.appendChild(container)
+}
 
 // === Database Backup ===
 document.getElementById('backupBtn').addEventListener('click', () => {
