@@ -6,7 +6,7 @@ import {
   getClassStatus,
   archiveAndReset,
   clearRoster,
-  setSignInWindow,
+  startSignIn,
   getSessions,
   getSessionDetailForTeacher,
   deleteSession,
@@ -77,10 +77,20 @@ export default async function apiRoutes(fastify) {
   // POST /api/reset — 归档当前记录并重置，需要 classOwnerRequired
   fastify.post('/api/reset', { preHandler: classOwnerRequired }, async (request, reply) => {
     const result = await archiveAndReset(request.classId)
+    broadcastToClass(request.classId, 'countdown-stopped')
     const msg = result.label
       ? `已归档批次「${result.label}」，签到已重置。`
       : '签到记录已重置。'
     return reply.send({ ok: true, message: msg })
+  })
+
+  // POST /api/signin/start — 开始签到倒计时，需要 classOwnerRequired
+  fastify.post('/api/signin/start', { preHandler: classOwnerRequired }, async (request, reply) => {
+    const durationMin = parseInt(request.body?.durationMin, 10) || 40
+    const result = await startSignIn(request.classId, durationMin)
+    if (!result.ok) return reply.code(result.status).send(result)
+    broadcastToClass(request.classId, 'countdown-started')
+    return reply.send({ ok: true, message: '签到已开始', countdownEnd: result.countdownEnd.toISOString() })
   })
 
   // GET /api/sessions — 获取历史批次列表，需要 classOwnerRequired
@@ -160,13 +170,6 @@ export default async function apiRoutes(fastify) {
   fastify.post('/api/clear-roster', { preHandler: classOwnerRequired }, async (request, reply) => {
     await clearRoster(request.classId)
     return reply.send({ ok: true, message: '当前名单与签到记录已清空。' })
-  })
-
-  // POST /api/window — 需要 classOwnerRequired
-  fastify.post('/api/window', { preHandler: classOwnerRequired }, async (request, reply) => {
-    const { start_time, end_time } = request.body
-    await setSignInWindow(request.classId, parseDt(start_time), parseDt(end_time))
-    return reply.send({ ok: true, message: '签到时间段已更新。' })
   })
 
   // GET /api/export — 需要 classOwnerRequired

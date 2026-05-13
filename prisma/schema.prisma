@@ -89,11 +89,13 @@ model SignInRecord {
 }
 
 model SignInConfig {
-  id        Int       @id @default(autoincrement())
-  classId   Int       @unique
-  class     Class     @relation(fields: [classId], references: [id])
-  startTime DateTime?
-  endTime   DateTime?
+  id                  Int       @id @default(autoincrement())
+  classId             Int       @unique
+  class               Class     @relation(fields: [classId], references: [id])
+  startTime           DateTime?
+  endTime             DateTime?
+  activeStartedAt     DateTime?
+  countdownDurationMin Int      @default(40)
 }
 
 // 信息收集配置

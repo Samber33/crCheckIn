@@ -8,6 +8,11 @@ try {
   await deployDatabase()
   const app = await buildApp()
   await seed(prisma)
+
+  // 恢复已过期的签到倒计时
+  const { recoverExpiredCountdowns } = await import('./src/services/attendance.js')
+  await recoverExpiredCountdowns()
+
   await app.listen({ port: PORT, host: HOST })
 } catch (err) {
   console.error(err)

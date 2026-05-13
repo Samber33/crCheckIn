@@ -25,16 +25,15 @@ export async function signIn(classId, studentName, computerName, studentIp) {
     return { ok: false, message: '该姓名不在名单中，请联系老师。' }
   }
 
-  // 3 & 4. 检查签到时间窗口
+  // 3 & 4. 检查签到是否处于活跃状态
   const config = await prisma.signInConfig.findUnique({ where: { classId } })
+  if (!config || !config.activeStartedAt) {
+    return { ok: false, message: '签到未开始，请等待老师开启签到。' }
+  }
   const now = new Date()
-  if (config) {
-    if (config.startTime && now < config.startTime) {
-      return { ok: false, message: '签到未开始，请在规定时间内签到。' }
-    }
-    if (config.endTime && now > config.endTime) {
-      return { ok: false, message: '签到时间已结束。' }
-    }
+  const endTime = new Date(config.activeStartedAt.getTime() + config.countdownDurationMin * 60 * 1000)
+  if (now > endTime) {
+    return { ok: false, message: '签到时间已结束，请等待下一轮签到。' }
   }
 
   // 5. 已签到（按姓名）
@@ -152,10 +151,11 @@ export async function getClassStatus(classId) {
     signedCount,
     totalCount,
     absentCount,
-    window: {
-      start: config ? formatMinute(config.startTime ? new Date(config.startTime) : null) : null,
-      end: config ? formatMinute(config.endTime ? new Date(config.endTime) : null) : null,
-    },
+    countdown: config && config.activeStartedAt ? {
+      startedAt: config.activeStartedAt,
+      durationMin: config.countdownDurationMin,
+      endsAt: new Date(config.activeStartedAt.getTime() + config.countdownDurationMin * 60 * 1000).toISOString(),
+    } : null,
   }
 }
 
@@ -192,10 +192,10 @@ export async function archiveAndReset(classId) {
   }
 
   if (records.length === 0) {
-    // 没有记录，直接重置（清空时间窗口）
+    // 没有记录，直接重置（清空时间窗口和倒计时）
     await prisma.signInConfig.updateMany({
       where: { classId },
-      data: { startTime: null, endTime: null },
+      data: { startTime: null, endTime: null, activeStartedAt: null },
     })
     return { ok: true, label: null }
   }
@@ -221,7 +221,7 @@ export async function archiveAndReset(classId) {
     await tx.signInRecord.deleteMany({ where: { classId } })
     await tx.signInConfig.updateMany({
       where: { classId },
-      data: { startTime: null, endTime: null },
+      data: { startTime: null, endTime: null, activeStartedAt: null },
     })
     return session
   })
@@ -447,12 +447,46 @@ export async function getAttendanceStats(classId) {
  * @param {Date|null} startTime
  * @param {Date|null} endTime
  */
-export async function setSignInWindow(classId, startTime, endTime) {
+/**
+ * 开始签到，设置 activeStartedAt 为当前时间
+ * @param {number} classId
+ * @param {number} durationMin - 倒计时分钟数，默认 40
+ * @returns {Promise<{ ok: boolean, message: string, countdownEnd: Date }>}
+ */
+export async function startSignIn(classId, durationMin = 40) {
+  const cls = await prisma.class.findUnique({ where: { id: classId } })
+  if (!cls) {
+    return { ok: false, message: '班级不存在', status: 404 }
+  }
+
+  const now = new Date()
   await prisma.signInConfig.upsert({
     where: { classId },
-    update: { startTime, endTime },
-    create: { classId, startTime, endTime },
+    update: { activeStartedAt: now, countdownDurationMin: durationMin, startTime: null, endTime: null },
+    create: { classId, activeStartedAt: now, countdownDurationMin: durationMin },
   })
+
+  const countdownEnd = new Date(now.getTime() + durationMin * 60 * 1000)
+  return { ok: true, message: '签到已开始', countdownEnd }
+}
+
+/**
+ * 检查并自动归档已过期的倒计时（服务器启动时调用）
+ */
+export async function recoverExpiredCountdowns() {
+  const { broadcastToClass } = await import('./sse.js')
+  const configs = await prisma.signInConfig.findMany({
+    where: { activeStartedAt: { not: null } },
+    include: { class: true },
+  })
+  const now = new Date()
+  for (const cfg of configs) {
+    const endTime = new Date(cfg.activeStartedAt.getTime() + cfg.countdownDurationMin * 60 * 1000)
+    if (now >= endTime) {
+      await archiveAndReset(cfg.classId)
+      broadcastToClass(cfg.classId, 'countdown-expired')
+    }
+  }
 }
 
 /**

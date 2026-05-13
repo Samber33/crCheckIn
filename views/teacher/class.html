@@ -35,6 +35,7 @@
       color: var(--body);
       margin: 0;
     }
+    .hidden { display: none !important; }
 
     /* === Header === */
     .header-bar {
@@ -539,6 +540,58 @@
       margin-bottom: 4px;
     }
 
+    /* === Countdown === */
+    .start-signin-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 12px 20px;
+      border-radius: 10px;
+      background: var(--success);
+      color: #fff;
+      border: none;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .15s;
+      flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(93,184,114,.35);
+    }
+    .start-signin-btn:hover { background: #4a9e5e; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(93,184,114,.45); }
+    .start-signin-btn:disabled { opacity: .5; cursor: default; transform: none; background: var(--success); box-shadow: none; }
+
+    .countdown-timer {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--primary);
+      transition: color .3s;
+    }
+    .countdown-timer.urgent { color: var(--error); }
+
+    .countdown-progress-bar {
+      height: 4px;
+      background: var(--canvas);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .countdown-progress-fill {
+      height: 100%;
+      background: var(--primary);
+      transition: width 1s linear;
+    }
+    .countdown-progress-fill.urgent { background: var(--error); }
+
+    .signin-status-text {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .signin-status-text.active {
+      color: var(--success);
+      font-weight: 600;
+    }
+
     /* === Sessions === */
     .session-item {
       padding: 12px 16px;
@@ -759,6 +812,13 @@
           <p id="absentCount" class="banner-stat-value muted">0</p>
         </div>
       </div>
+      <button id="startSigninBtn" class="start-signin-btn">
+        <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        开始签到
+      </button>
       <a href="/student?classId={{ cls.id }}" class="signin-badge">
         学生签到
         <span class="signin-url">ID: <span class="classid">{{ cls.id }}</span></span>
@@ -870,41 +930,21 @@
           </div>
         </div>
 
-        <!-- Time Window -->
+        <!-- Sign-in Countdown Status -->
         <div class="sidebar-card">
-          <div class="sidebar-card-header" style="display: flex; align-items: center; justify-content: space-between;">
-            <p class="sidebar-card-title">签到时间段</p>
-            <button id="windowToggle" class="window-toggle" style="padding: 2px 6px; border: none; font-size: 11px;">
-              <svg id="windowChevron" style="width:12px;height:12px;transition: transform .15s; transform: rotate(180deg);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-              </svg>
-            </button>
+          <div class="sidebar-card-header">
+            <p class="sidebar-card-title">签到状态</p>
           </div>
-          <div id="windowBody" class="sidebar-card-body" style="display: flex; flex-direction: column; gap: 2px;">
-            <div class="window-status">
-              <span class="window-status-label">当前设置</span>
-              <strong id="windowText" class="window-status-value">不限</strong>
+          <div class="sidebar-card-body" style="display: flex; flex-direction: column; gap: 6px;">
+            <div id="countdownDisplay" class="hidden">
+              <div id="countdownTimer" class="countdown-timer">40:00</div>
+              <div class="countdown-progress-bar">
+                <div id="countdownProgress" class="countdown-progress-fill" style="width: 100%"></div>
+              </div>
+              <p class="sidebar-help" style="margin-top: 6px; margin-bottom: 0;">签到进行中，倒计时结束自动归档</p>
             </div>
-            <button id="windowFieldsToggle" class="window-toggle" style="width: 100%; justify-content: center;">
-              <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-              设置时间
-            </button>
-            <div id="windowPanel" class="hidden window-fields">
-              <div class="window-field">
-                <label>开始时间</label>
-                <input id="startTime" type="datetime-local" class="input-field" />
-              </div>
-              <div class="window-field">
-                <label>结束时间</label>
-                <input id="endTime" type="datetime-local" class="input-field" />
-              </div>
-              <div style="display: flex; gap: 6px;">
-                <button id="saveWindow" class="btn btn-primary" style="flex:1;">保存</button>
-                <button id="clearWindow" class="btn btn-secondary" style="flex:1;">清除</button>
-              </div>
-              <p class="sidebar-help">留空表示不限制，设置后立即生效。</p>
+            <div id="countdownIdle" class="hidden">
+              <p class="signin-status-text">点击下方「开始签到」按钮开启签到</p>
             </div>
           </div>
         </div>
@@ -1286,10 +1326,20 @@ async function refreshStatus() {
   const firstSignedAt = data.roster.find(r => r.signedAt)?.signedAt
   document.getElementById('rosterDate').textContent = formatRosterDate(firstSignedAt)
 
-  const wt = document.getElementById('windowText')
-  wt.textContent = (data.window.start || data.window.end)
-    ? `${data.window.start || '不限'} 至 ${data.window.end || '不限'}`
-    : '不限'
+  const cdDisplay = document.getElementById('countdownDisplay')
+  const cdIdle = document.getElementById('countdownIdle')
+  const startBtn = document.getElementById('startSigninBtn')
+  if (data.countdown) {
+    cdDisplay.classList.remove('hidden')
+    cdIdle.classList.add('hidden')
+    startBtn.disabled = true
+    startCountdownTimer(data.countdown.startedAt, data.countdown.durationMin)
+  } else {
+    cdDisplay.classList.add('hidden')
+    cdIdle.classList.remove('hidden')
+    startBtn.disabled = false
+    stopCountdownTimer()
+  }
 
   const ipCount = {}
   data.roster.forEach(r => { const ip = (r.computerName||'').trim(); if (ip && ip!=='-') ipCount[ip]=(ipCount[ip]||0)+1 })
@@ -1436,43 +1486,6 @@ async function revokeRecord(recordId) {
   refreshStatus()
 }
 
-document.getElementById('windowToggle').addEventListener('click', () => {
-  const body = document.getElementById('windowBody')
-  const chevron = document.getElementById('windowChevron')
-  const isHidden = body.style.display === 'none'
-  body.style.display = isHidden ? '' : 'none'
-  chevron.style.transform = isHidden ? 'rotate(180deg)' : ''
-})
-
-document.getElementById('windowFieldsToggle').addEventListener('click', () => {
-  const panel = document.getElementById('windowPanel')
-  panel.classList.toggle('hidden')
-})
-
-document.getElementById('saveWindow').addEventListener('click', async () => {
-  const res = await fetch('/api/window', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ classId: CLASS_ID, start_time: document.getElementById('startTime').value||null, end_time: document.getElementById('endTime').value||null })
-  })
-  const data = await parseResponse(res)
-  if (!data) return
-  showToast(data.message, data.ok)
-  refreshStatus()
-})
-
-document.getElementById('clearWindow').addEventListener('click', async () => {
-  document.getElementById('startTime').value = ''
-  document.getElementById('endTime').value = ''
-  const res = await fetch('/api/window', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ classId: CLASS_ID, start_time: null, end_time: null })
-  })
-  const data = await parseResponse(res)
-  if (!data) return
-  showToast('已清除时间限制', data.ok)
-  refreshStatus()
-})
-
 document.getElementById('resetBtn').addEventListener('click', async () => {
   if (!confirm('确认归档当前签到记录并重置？')) return
   const res = await fetch('/api/reset', {
@@ -1513,6 +1526,63 @@ document.getElementById('importFile').addEventListener('change', async (e) => {
 refreshStatus()
 loadPresetTags()
 
+// === Countdown Timer ===
+let _countdownInterval = null
+
+function startCountdownTimer(startedAtISO, durationMin) {
+  stopCountdownTimer()
+  const startedAt = new Date(startedAtISO).getTime()
+  const endTime = startedAt + durationMin * 60 * 1000
+
+  function tick() {
+    const now = Date.now()
+    const remaining = Math.max(0, endTime - now)
+    const total = endTime - startedAt
+    const pct = (remaining / total) * 100
+
+    const mins = Math.floor(remaining / 60000)
+    const secs = Math.floor((remaining % 60000) / 1000)
+    const timer = document.getElementById('countdownTimer')
+    timer.textContent = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`
+
+    const prog = document.getElementById('countdownProgress')
+    prog.style.width = pct + '%'
+
+    const urgent = remaining <= 5 * 60 * 1000
+    timer.classList.toggle('urgent', urgent)
+    prog.classList.toggle('urgent', urgent)
+
+    if (remaining <= 0) {
+      stopCountdownTimer()
+      refreshStatus()
+    }
+  }
+
+  tick()
+  _countdownInterval = setInterval(tick, 1000)
+}
+
+function stopCountdownTimer() {
+  if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null }
+  const timer = document.getElementById('countdownTimer')
+  const prog = document.getElementById('countdownProgress')
+  if (timer) { timer.textContent = '00:00'; timer.classList.remove('urgent') }
+  if (prog) { prog.style.width = '0%'; prog.classList.remove('urgent') }
+}
+
+document.getElementById('startSigninBtn').addEventListener('click', async () => {
+  const res = await fetch('/api/signin/start', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ classId: CLASS_ID })
+  })
+  const data = await parseResponse(res)
+  if (!data) return
+  if (!data.ok) { showToast(data.message, false); return }
+  showToast('签到已开始，倒计时40分钟')
+  refreshStatus()
+})
+
 // === SSE 实时推送（替代轮询）===
 const SSE_URL = '{{ sseUrl }}'
 let eventSource = null
@@ -1530,6 +1600,18 @@ function connectSSE() {
   eventSource.addEventListener('signin', () => {
     // Don't refresh if tag popup is open
     if (tagPopup.style.display !== 'none') return
+    refreshStatus()
+  })
+
+  eventSource.addEventListener('countdown-started', () => {
+    refreshStatus()
+  })
+
+  eventSource.addEventListener('countdown-expired', () => {
+    refreshStatus()
+  })
+
+  eventSource.addEventListener('countdown-stopped', () => {
     refreshStatus()
   })
 
