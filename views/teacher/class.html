@@ -1011,8 +1011,8 @@ let tagPopupTarget = { studentId: null, studentName: '' }
 // Tag popup — unified design
 const tagPopup = document.createElement('div')
 tagPopup.id = 'tagPopup'
-tagPopup.style.cssText = 'display:none;position:fixed;inset:0;z-index:10001;background:rgba(20,20,19,.35);align-items:flex-start;justify-content:flex-start;'
-tagPopup.innerHTML = `<div id="tagPopupBox" style="position:absolute;background:#fff;border-radius:12px;box-shadow:0 12px 32px rgba(20,20,19,.15);border:1px solid var(--hairline);width:280px;overflow:hidden;">
+tagPopup.style.cssText = 'display:none;position:fixed;inset:0;z-index:10001;background:rgba(20,20,19,.35);align-items:center;justify-content:center;'
+tagPopup.innerHTML = `<div id="tagPopupBox" style="position:relative;background:#fff;border-radius:12px;box-shadow:0 12px 32px rgba(20,20,19,.15);border:1px solid var(--hairline);width:280px;overflow:hidden;">
   <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px 10px;border-bottom:1px solid var(--hairline);">
     <span id="tagPopupTitle" style="font-size:13px;font-weight:600;color:var(--ink);"></span>
     <button id="tagPopupClose" style="background:none;border:none;font-size:16px;color:var(--muted);cursor:pointer;padding:2px 6px;border-radius:4px;" onmouseover="this.style.background='var(--canvas)'" onmouseout="this.style.background=''">&times;</button>
@@ -1044,11 +1044,6 @@ document.getElementById('tagPopupClose').addEventListener('click', closeTagPopup
 function openTagPopup(studentId, studentName, btnEl) {
   if (!btnEl) return
   tagPopupTarget = { studentId, studentName }
-  const rect = btnEl.getBoundingClientRect()
-  const box = document.getElementById('tagPopupBox')
-  box.style.top = Math.max(10, rect.bottom + 6) + 'px'
-  box.style.left = Math.min(rect.right - 200, window.innerWidth - 300) + 'px'
-  box.style.left = Math.max(10, parseInt(box.style.left)) + 'px'
 
   const currentTags = (window._studentTags || {})[studentId] || []
   const currentNames = new Set(currentTags.map(t => t.tag))
