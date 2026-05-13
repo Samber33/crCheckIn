@@ -544,13 +544,13 @@
     .start-signin-btn {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 12px 20px;
+      gap: 14px;
+      padding: 14px 32px;
       border-radius: 10px;
       background: var(--success);
       color: #fff;
       border: none;
-      font-size: 14px;
+      font-size: 16px;
       font-weight: 700;
       cursor: pointer;
       transition: all .15s;
@@ -558,7 +558,11 @@
       box-shadow: 0 4px 14px rgba(93,184,114,.35);
     }
     .start-signin-btn:hover { background: #4a9e5e; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(93,184,114,.45); }
-    .start-signin-btn:disabled { opacity: .5; cursor: default; transform: none; background: var(--success); box-shadow: none; }
+    .start-signin-btn:disabled { opacity: .8; cursor: default; transform: none; background: var(--success); box-shadow: 0 4px 14px rgba(93,184,114,.2); }
+
+    .countdown-btn-text { white-space: nowrap; }
+    .countdown-btn-label { margin-right: 6px; }
+    .start-signin-btn .urgent { color: #ffcdd2; }
 
     .countdown-timer {
       font-family: 'JetBrains Mono', monospace;
@@ -813,11 +817,11 @@
         </div>
       </div>
       <button id="startSigninBtn" class="start-signin-btn">
-        <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg id="startSigninIcon" style="width:20px;height:20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
-        开始签到
+        <span id="startSigninText">开始签到</span>
       </button>
       <a href="/student?classId={{ cls.id }}" class="signin-badge">
         学生签到
@@ -1328,16 +1332,13 @@ async function refreshStatus() {
 
   const cdDisplay = document.getElementById('countdownDisplay')
   const cdIdle = document.getElementById('countdownIdle')
-  const startBtn = document.getElementById('startSigninBtn')
   if (data.countdown) {
     cdDisplay.classList.remove('hidden')
     cdIdle.classList.add('hidden')
-    startBtn.disabled = true
     startCountdownTimer(data.countdown.startedAt, data.countdown.durationMin)
   } else {
     cdDisplay.classList.add('hidden')
     cdIdle.classList.remove('hidden')
-    startBtn.disabled = false
     stopCountdownTimer()
   }
 
@@ -1533,6 +1534,9 @@ function startCountdownTimer(startedAtISO, durationMin) {
   stopCountdownTimer()
   const startedAt = new Date(startedAtISO).getTime()
   const endTime = startedAt + durationMin * 60 * 1000
+  const text = document.getElementById('startSigninText')
+  const icon = document.getElementById('startSigninIcon')
+  const btn = document.getElementById('startSigninBtn')
 
   function tick() {
     const now = Date.now()
@@ -1542,14 +1546,13 @@ function startCountdownTimer(startedAtISO, durationMin) {
 
     const mins = Math.floor(remaining / 60000)
     const secs = Math.floor((remaining % 60000) / 1000)
-    const timer = document.getElementById('countdownTimer')
-    timer.textContent = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`
+    text.textContent = `倒计时 ${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`
 
     const prog = document.getElementById('countdownProgress')
     prog.style.width = pct + '%'
 
     const urgent = remaining <= 5 * 60 * 1000
-    timer.classList.toggle('urgent', urgent)
+    text.classList.toggle('urgent', urgent)
     prog.classList.toggle('urgent', urgent)
 
     if (remaining <= 0) {
@@ -1564,12 +1567,9 @@ function startCountdownTimer(startedAtISO, durationMin) {
 
 function stopCountdownTimer() {
   if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null }
-  const timer = document.getElementById('countdownTimer')
+  const text = document.getElementById('startSigninText')
   const prog = document.getElementById('countdownProgress')
-  if (timer && !timer.closest('.hidden')) {
-    timer.textContent = '00:00'
-    timer.classList.remove('urgent')
-  }
+  if (text) { text.textContent = '开始签到'; text.classList.remove('urgent') }
   if (prog && !prog.closest('.hidden')) {
     prog.style.width = '0%'
     prog.classList.remove('urgent')
@@ -1577,6 +1577,7 @@ function stopCountdownTimer() {
 }
 
 document.getElementById('startSigninBtn').addEventListener('click', async () => {
+  if (_countdownInterval) return
   const res = await fetch('/api/signin/start', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
