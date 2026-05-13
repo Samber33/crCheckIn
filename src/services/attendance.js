@@ -53,16 +53,28 @@ export async function signIn(classId, studentName, computerName, studentIp) {
   }
 
   // 6. 创建签到记录 + 清除自定义标签（保留预设标签）
+  // 整个流程放在事务中，防止并发归档导致签到窗口被绕过
   const PRESET_TAGS = await getPresetTagNames()
-  try {
-    const existingTags = await prisma.studentTag.findMany({
-      where: { classId, studentId: student.id },
-    })
-    const customTagIds = existingTags
-      .filter(t => !PRESET_TAGS.includes(t.tag))
-      .map(t => t.id)
+  const existingTags = await prisma.studentTag.findMany({
+    where: { classId, studentId: student.id },
+  })
+  const customTagIds = existingTags
+    .filter(t => !PRESET_TAGS.includes(t.tag))
+    .map(t => t.id)
 
+  try {
     await prisma.$transaction(async (tx) => {
+      // 事务内二次检查 — 防止在外部检查与写入之间倒计时被归档
+      const configInTx = await tx.signInConfig.findUnique({ where: { classId } })
+      if (!configInTx || !configInTx.activeStartedAt) {
+        throw new Error('SIGNIN_NOT_ACTIVE')
+      }
+      const nowInTx = new Date()
+      const endInTx = new Date(configInTx.activeStartedAt.getTime() + configInTx.countdownDurationMin * 60 * 1000)
+      if (nowInTx > endInTx) {
+        throw new Error('SIGNIN_EXPIRED')
+      }
+
       await tx.signInRecord.create({
         data: {
           classId,
@@ -81,6 +93,12 @@ export async function signIn(classId, studentName, computerName, studentIp) {
   } catch (err) {
     if (err.code === 'P2002') {
       return { ok: false, message: '你已签到，无需重复提交。' }
+    }
+    if (err.message === 'SIGNIN_NOT_ACTIVE') {
+      return { ok: false, message: '签到未开始，请等待老师开启签到。' }
+    }
+    if (err.message === 'SIGNIN_EXPIRED') {
+      return { ok: false, message: '签到时间已结束，请等待下一轮签到。' }
     }
     throw err
   }
@@ -472,19 +490,17 @@ export async function startSignIn(classId, durationMin = 40) {
 
 /**
  * 检查并自动归档已过期的倒计时（服务器启动时调用）
+ * 注意：此时 SSE 连接尚未建立，不需要广播事件。
  */
 export async function recoverExpiredCountdowns() {
-  const { broadcastToClass } = await import('./sse.js')
   const configs = await prisma.signInConfig.findMany({
     where: { activeStartedAt: { not: null } },
-    include: { class: true },
   })
   const now = new Date()
   for (const cfg of configs) {
     const endTime = new Date(cfg.activeStartedAt.getTime() + cfg.countdownDurationMin * 60 * 1000)
     if (now >= endTime) {
       await archiveAndReset(cfg.classId)
-      broadcastToClass(cfg.classId, 'countdown-expired')
     }
   }
 }

@@ -1566,8 +1566,14 @@ function stopCountdownTimer() {
   if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null }
   const timer = document.getElementById('countdownTimer')
   const prog = document.getElementById('countdownProgress')
-  if (timer) { timer.textContent = '00:00'; timer.classList.remove('urgent') }
-  if (prog) { prog.style.width = '0%'; prog.classList.remove('urgent') }
+  if (timer && !timer.closest('.hidden')) {
+    timer.textContent = '00:00'
+    timer.classList.remove('urgent')
+  }
+  if (prog && !prog.closest('.hidden')) {
+    prog.style.width = '0%'
+    prog.classList.remove('urgent')
+  }
 }
 
 document.getElementById('startSigninBtn').addEventListener('click', async () => {
