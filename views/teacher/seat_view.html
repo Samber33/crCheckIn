@@ -236,12 +236,10 @@
     .roster-dot.unsigned { background: var(--muted-soft); }
     .roster-dot.dup { background: var(--error); }
     .roster-name {
-      min-width: 0;
+      flex: 0 0 auto;
       font-weight: 500;
       color: var(--ink);
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
     .roster-home-class {
       flex-shrink: 0;
@@ -251,15 +249,22 @@
     .roster-time {
       font-size: 11px;
       color: var(--muted-soft);
-      flex-shrink: 0;
+      padding-right: 16px;
     }
     .roster-time.signed { color: #047857; }
     .roster-time.dup { color: var(--error); }
+    .roster-time-wrapper {
+      position: relative;
+      flex-shrink: 0;
+    }
     .roster-edit-icon {
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
       opacity: 0;
       transition: opacity .12s;
       color: var(--muted-soft);
-      flex-shrink: 0;
       font-size: 11px;
     }
     .roster-item:hover .roster-edit-icon { opacity: 1; }
@@ -1049,8 +1054,10 @@ function renderRoster(roster) {
       <span class="roster-name">${escHtml(r.studentName)}</span>
       ${r.homeClass ? `<span class="roster-home-class">${escHtml(fmtHomeClass(r.homeClass))}</span>` : ''}
       ${tagsHtml ? `<span class="roster-tags">${tagsHtml}</span>` : ''}
-      <svg class="roster-edit-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-      <span class="roster-time ${timeClass}">${isSigned ? formatSignedTime(r.signedAt) : '-'}</span>`
+      <span class="roster-time-wrapper">
+        <span class="roster-time ${timeClass}">${isSigned ? formatSignedTime(r.signedAt) : '-'}</span>
+        <svg class="roster-edit-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+      </span>`
     item.addEventListener('click', () => {
       if (r.studentId) openTagModal(r.studentId)
     })
