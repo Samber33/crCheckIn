@@ -293,7 +293,8 @@ export default async function apiRoutes(fastify) {
     const { classId: rawClassId, student_name } = request.body
     const classId = parseInt(rawClassId, 10)
     const computerName = resolveClientName(request)
-    const result = await signIn(classId, student_name, computerName)
+    const studentIp = resolveClientName(request)
+    const result = await signIn(classId, student_name, computerName, studentIp)
     if (!result.ok) {
       return reply.code(400).send(result)
     }

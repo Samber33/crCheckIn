@@ -46,6 +46,7 @@ model ArchivedRecord {
   studentName  String
   homeClass    String        @default("")
   computerName String
+  studentIp    String        @default("")
   signedAt     DateTime
 }
 
@@ -76,6 +77,7 @@ model StudentTag {
 model SignInRecord {
   id           Int      @id @default(autoincrement())
   studentName  String
+  studentIp    String?
   computerName String
   signedAt     DateTime @default(now())
   classId      Int

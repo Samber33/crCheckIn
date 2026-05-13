@@ -7,9 +7,10 @@ import { getClassTags, getPresetTagNames } from './tag.js'
  * @param {number} classId
  * @param {string} studentName
  * @param {string} computerName
+ * @param {string} studentIp
  * @returns {Promise<{ ok: boolean, message: string }>}
  */
-export async function signIn(classId, studentName, computerName) {
+export async function signIn(classId, studentName, computerName, studentIp) {
   // 1. 姓名为空
   const name = studentName.trim()
   if (!name) {
@@ -36,12 +37,20 @@ export async function signIn(classId, studentName, computerName) {
     }
   }
 
-  // 5. 已签到
+  // 5. 已签到（按姓名）
   const existing = await prisma.signInRecord.findUnique({
     where: { classId_studentName: { classId, studentName: student.name } },
   })
   if (existing) {
     return { ok: false, message: '你已签到，无需重复提交。' }
+  }
+
+  // 5b. 该 IP 已签到（防代签/无痕模式绕过）
+  const ipExists = await prisma.signInRecord.findFirst({
+    where: { classId, studentIp },
+  })
+  if (ipExists) {
+    return { ok: false, message: '该设备已签到，每人只能签到一次。' }
   }
 
   // 6. 创建签到记录 + 清除自定义标签（保留预设标签）
@@ -61,6 +70,7 @@ export async function signIn(classId, studentName, computerName) {
           studentName: student.name,
           studentId: student.id,
           computerName: computerName || '',
+          studentIp: studentIp || '',
         },
       })
       if (customTagIds.length > 0) {
@@ -110,6 +120,7 @@ export async function getClassStatus(classId) {
         homeClass: s.homeClass || '',
         status: '已签到',
         computerName: rec.computerName,
+        studentIp: rec.studentIp || '',
         signedAt: formatSecond(new Date(rec.signedAt)),
         tags,
       })
@@ -201,6 +212,7 @@ export async function archiveAndReset(classId) {
             studentName: r.studentName,
             homeClass: r.student?.homeClass ?? '',
             computerName: r.computerName,
+            studentIp: r.studentIp ?? '',
             signedAt: r.signedAt,
           })),
         },
