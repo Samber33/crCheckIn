@@ -161,8 +161,9 @@
       font-size: 16px;
       font-weight: 700;
       transition: all .15s;
-      flex-shrink: 0;
-      margin-left: auto;
+      flex: 1 1 0;
+      justify-content: center;
+      min-width: 0;
       box-shadow: 0 4px 14px rgba(204,120,92,.35);
     }
     .signin-badge:hover { background: var(--primary-active); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(204,120,92,.45); }
@@ -544,8 +545,9 @@
     .start-signin-btn {
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 14px;
-      padding: 14px 32px;
+      padding: 14px 24px;
       border-radius: 10px;
       background: var(--success);
       color: #fff;
@@ -554,7 +556,8 @@
       font-weight: 700;
       cursor: pointer;
       transition: all .15s;
-      flex-shrink: 0;
+      flex: 1 1 0;
+      min-width: 0;
       box-shadow: 0 4px 14px rgba(93,184,114,.35);
     }
     .start-signin-btn:hover { background: #4a9e5e; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(93,184,114,.45); }
@@ -563,38 +566,6 @@
     .countdown-btn-text { white-space: nowrap; }
     .countdown-btn-label { margin-right: 6px; }
     .start-signin-btn .urgent { color: #ffcdd2; }
-
-    .countdown-timer {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--primary);
-      transition: color .3s;
-    }
-    .countdown-timer.urgent { color: var(--error); }
-
-    .countdown-progress-bar {
-      height: 4px;
-      background: var(--canvas);
-      border-radius: 2px;
-      overflow: hidden;
-      margin-top: 8px;
-    }
-    .countdown-progress-fill {
-      height: 100%;
-      background: var(--primary);
-      transition: width 1s linear;
-    }
-    .countdown-progress-fill.urgent { background: var(--error); }
-
-    .signin-status-text {
-      font-size: 13px;
-      color: var(--muted);
-    }
-    .signin-status-text.active {
-      color: var(--success);
-      font-weight: 600;
-    }
 
     /* === Sessions === */
     .session-item {
@@ -759,9 +730,10 @@
     /* === Responsive === */
     @media (max-width: 900px) {
       .page-layout { grid-template-columns: 1fr; }
-      .compact-banner { flex-direction: column; gap: 12px; align-items: flex-start; }
+      .compact-banner { flex-direction: column; gap: 12px; align-items: stretch; }
       .banner-stats { margin-left: 0; }
-      .signin-badge { width: 100%; justify-content: center; }
+      .signin-badge { flex: auto; }
+      .start-signin-btn { flex: auto; }
       .signin-url { display: none; }
     }
     @media (max-width: 640px) {
@@ -931,25 +903,6 @@
               </span>
               导出出勤统计
             </a>
-          </div>
-        </div>
-
-        <!-- Sign-in Countdown Status -->
-        <div class="sidebar-card">
-          <div class="sidebar-card-header">
-            <p class="sidebar-card-title">签到状态</p>
-          </div>
-          <div class="sidebar-card-body" style="display: flex; flex-direction: column; gap: 6px;">
-            <div id="countdownDisplay" class="hidden">
-              <div id="countdownTimer" class="countdown-timer">40:00</div>
-              <div class="countdown-progress-bar">
-                <div id="countdownProgress" class="countdown-progress-fill" style="width: 100%"></div>
-              </div>
-              <p class="sidebar-help" style="margin-top: 6px; margin-bottom: 0;">签到进行中，倒计时结束自动归档</p>
-            </div>
-            <div id="countdownIdle" class="hidden">
-              <p class="signin-status-text">点击下方「开始签到」按钮开启签到</p>
-            </div>
           </div>
         </div>
       </div>
@@ -1330,15 +1283,9 @@ async function refreshStatus() {
   const firstSignedAt = data.roster.find(r => r.signedAt)?.signedAt
   document.getElementById('rosterDate').textContent = formatRosterDate(firstSignedAt)
 
-  const cdDisplay = document.getElementById('countdownDisplay')
-  const cdIdle = document.getElementById('countdownIdle')
   if (data.countdown) {
-    cdDisplay.classList.remove('hidden')
-    cdIdle.classList.add('hidden')
     startCountdownTimer(data.countdown.startedAt, data.countdown.durationMin)
   } else {
-    cdDisplay.classList.add('hidden')
-    cdIdle.classList.remove('hidden')
     stopCountdownTimer()
   }
 
@@ -1535,25 +1482,17 @@ function startCountdownTimer(startedAtISO, durationMin) {
   const startedAt = new Date(startedAtISO).getTime()
   const endTime = startedAt + durationMin * 60 * 1000
   const text = document.getElementById('startSigninText')
-  const icon = document.getElementById('startSigninIcon')
-  const btn = document.getElementById('startSigninBtn')
 
   function tick() {
     const now = Date.now()
     const remaining = Math.max(0, endTime - now)
-    const total = endTime - startedAt
-    const pct = (remaining / total) * 100
 
     const mins = Math.floor(remaining / 60000)
     const secs = Math.floor((remaining % 60000) / 1000)
     text.textContent = `倒计时 ${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`
 
-    const prog = document.getElementById('countdownProgress')
-    prog.style.width = pct + '%'
-
     const urgent = remaining <= 5 * 60 * 1000
     text.classList.toggle('urgent', urgent)
-    prog.classList.toggle('urgent', urgent)
 
     if (remaining <= 0) {
       stopCountdownTimer()
@@ -1568,12 +1507,7 @@ function startCountdownTimer(startedAtISO, durationMin) {
 function stopCountdownTimer() {
   if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null }
   const text = document.getElementById('startSigninText')
-  const prog = document.getElementById('countdownProgress')
   if (text) { text.textContent = '开始签到'; text.classList.remove('urgent') }
-  if (prog && !prog.closest('.hidden')) {
-    prog.style.width = '0%'
-    prog.classList.remove('urgent')
-  }
 }
 
 document.getElementById('startSigninBtn').addEventListener('click', async () => {
