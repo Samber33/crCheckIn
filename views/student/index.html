@@ -652,7 +652,8 @@ document.addEventListener('click', e => {
 })
 
 const signinBtn = document.getElementById('signinBtn')
-signinBtn.addEventListener('click', async () => {
+
+async function doSignin() {
   const val = input.value.trim()
   if (!val) { setMessage('请先输入姓名或密码。', false); return }
   if (signinBtn.disabled) return
@@ -699,6 +700,29 @@ signinBtn.addEventListener('click', async () => {
   } finally {
     signinBtn.disabled = false
     signinBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> 提交签到'
+  }
+}
+
+signinBtn.addEventListener('click', doSignin)
+
+// Enter key: 已选学生直接签到；有建议列表自动选中第一条（仅一条时自动签到）；无匹配时尝试教师登录
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault()
+    if (selectedClassId !== null) {
+      doSignin()
+    } else {
+      const btns = suggestions.querySelectorAll('button')
+      if (btns.length > 0) {
+        const autoSubmit = btns.length === 1
+        btns[0].click()
+        if (autoSubmit) {
+          setTimeout(() => { if (selectedClassId !== null) doSignin() }, 100)
+        }
+      } else {
+        doSignin()
+      }
+    }
   }
 })
 
