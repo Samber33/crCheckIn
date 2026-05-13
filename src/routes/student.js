@@ -16,7 +16,6 @@ export default async function studentRoutes(app) {
     }
     return reply.view('student/index.html', {
       computer_name: resolveClientName(request),
-      client_ip: resolveClientName(request),
       cls,
       studentCount,
     })
