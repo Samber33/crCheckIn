@@ -14,18 +14,34 @@
       --canvas: #faf9f5;
       --surface-card: #efe9de;
       --surface-dark: #181715;
+      --surface-dark-elevated: #252320;
       --primary: #cc785c;
       --primary-active: #a9583e;
+      --primary-disabled: #e6dfd8;
       --ink: #141413;
       --body: #3d3d3a;
+      --body-strong: #252523;
       --muted: #6c6a64;
       --muted-soft: #8e8b82;
       --hairline: #e6dfd8;
       --on-primary: #ffffff;
       --on-dark: #faf9f5;
+      --on-dark-soft: #a09d96;
       --success: #5db872;
-      --error: #c64545;
       --warning: #d4a017;
+      --error: #c64545;
+      --radius-xs: 4px;
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --radius-pill: 9999px;
+      --spacing-xs: 8px;
+      --spacing-sm: 12px;
+      --spacing-md: 16px;
+      --spacing-lg: 24px;
+      --spacing-xl: 32px;
+      --spacing-xxl: 48px;
     }
 
     * {
@@ -34,7 +50,7 @@
     }
 
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
       background: var(--canvas);
       color: var(--body);
       margin: 0;
@@ -43,177 +59,182 @@
       min-height: 100vh;
     }
 
-    /* === Top Banner === */
+    /* === Dark Banner === */
     .signin-banner {
-      background: linear-gradient(135deg, var(--surface-dark) 0%, #2a2825 100%);
-      padding: 32px 24px 24px;
+      background: var(--surface-dark);
+      padding: var(--spacing-xxl) var(--spacing-lg) var(--spacing-xl);
       position: relative;
       overflow: hidden;
     }
     .signin-banner::before {
       content: '';
       position: absolute;
-      top: -40%;
-      right: -10%;
-      width: 500px;
-      height: 500px;
+      top: -60%;
+      right: -15%;
+      width: 600px;
+      height: 600px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(204,120,92,.12), transparent 70%);
+      background: radial-gradient(circle, rgba(204,120,92,.10), transparent 70%);
       pointer-events: none;
     }
-    .signin-banner::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent);
-    }
     .signin-banner-inner {
-      max-width: 720px;
+      max-width: 1200px;
       margin: 0 auto;
       position: relative;
     }
-    .banner-class-name {
+    .banner-title {
       font-family: Georgia, 'Times New Roman', serif;
-      font-size: 36px;
+      font-size: 48px;
       font-weight: 400;
       letter-spacing: -1px;
+      line-height: 1.1;
       color: var(--on-dark);
-      margin: 0 0 8px 0;
-      line-height: 1.15;
+      margin: 0 0 var(--spacing-md) 0;
     }
     .banner-meta {
       display: flex;
-      gap: 16px;
+      gap: var(--spacing-sm);
       flex-wrap: wrap;
       align-items: center;
     }
     .banner-meta-item {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: 6px;
+      gap: var(--spacing-xs);
+      padding: var(--spacing-xs) var(--spacing-sm);
+      border-radius: var(--radius-md);
       background: rgba(255,255,255,.06);
       border: 1px solid rgba(255,255,255,.1);
-      color: #a09d96;
+      color: var(--on-dark-soft);
       font-size: 13px;
       font-weight: 500;
     }
     .banner-meta-item .dot {
       width: 8px;
       height: 8px;
-      border-radius: 50%;
+      border-radius: var(--radius-pill);
       background: var(--success);
     }
 
     /* === Form Area === */
-    .signin-form-area {
+    .signin-body {
       flex: 1;
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 32px 24px 48px;
-      background: linear-gradient(180deg, var(--canvas) 0%, #f4f1eb 100%);
+      padding: var(--spacing-xxl) var(--spacing-lg) var(--spacing-xxl);
+      background: var(--canvas);
     }
-    .signin-form-card {
+    .signin-card {
       width: 100%;
-      max-width: 540px;
+      max-width: 480px;
       background: #fff;
-      border-radius: 16px;
-      box-shadow: 0 4px 24px rgba(20,20,19,.06), 0 1px 3px rgba(20,20,19,.04);
+      border-radius: var(--radius-lg);
       border: 1px solid var(--hairline);
-      padding: 40px 36px 36px;
-      position: relative;
+      padding: var(--spacing-xl);
     }
-    .signin-form-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 60%;
-      height: 3px;
-      border-radius: 0 0 3px 3px;
-      background: linear-gradient(90deg, transparent, var(--primary), transparent);
+    .signin-card-title {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 28px;
+      font-weight: 400;
+      letter-spacing: -0.3px;
+      color: var(--ink);
+      margin: 0 0 var(--spacing-sm) 0;
+      line-height: 1.2;
+    }
+    .signin-card-sub {
+      font-size: 14px;
+      color: var(--muted);
+      margin: 0 0 var(--spacing-lg) 0;
+      line-height: 1.55;
     }
 
-    #suggestions {
-      max-height: 220px;
-      overflow-y: auto;
-      position: relative;
-      z-index: 10;
-      width: 100%;
-      margin-top: 4px;
-      background: #fff;
-      border: 1px solid var(--hairline);
-      border-radius: 8px;
-      box-shadow: 0 8px 24px rgba(20,20,19,.1);
-      overflow: hidden;
-      display: none;
-    }
+    /* Input — design system text-input */
     .field-group {
-      margin-bottom: 20px;
+      margin-bottom: var(--spacing-md);
       position: relative;
     }
     .field-label {
       display: block;
-      margin-bottom: 6px;
+      margin-bottom: var(--spacing-xs);
       font-size: 13px;
       font-weight: 500;
       color: var(--ink);
     }
     .field-input {
       width: 100%;
-      padding: 14px 16px;
-      border-radius: 10px;
-      border: 2px solid var(--hairline);
-      font-size: 18px;
-      line-height: 1.5;
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--hairline);
+      font-size: 16px;
+      line-height: 1.55;
       color: var(--ink);
-      background: #fff;
-      transition: border-color .2s, box-shadow .2s;
+      background: var(--canvas);
+      height: 40px;
       box-sizing: border-box;
+      transition: border-color .15s, box-shadow .15s;
     }
     .field-input::placeholder { color: var(--muted-soft); }
     .field-input:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 4px rgba(204,120,92,.12);
+      box-shadow: 0 0 0 3px rgba(204,120,92,.15);
     }
+
+    /* Button — design system button-primary */
     .submit-btn {
       width: 100%;
-      padding: 14px 20px;
+      padding: 12px 20px;
       border: none;
-      border-radius: 10px;
+      border-radius: var(--radius-md);
       background: var(--primary);
       color: var(--on-primary);
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 500;
-      height: 52px;
+      height: 40px;
       cursor: pointer;
       transition: background .15s;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: var(--spacing-xs);
+      font-family: inherit;
     }
     .submit-btn:hover { background: var(--primary-active); }
-    .submit-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .submit-btn:disabled {
+      opacity: 1;
+      background: var(--primary-disabled);
+      color: var(--muted);
+      cursor: not-allowed;
+    }
 
+    /* Suggestions */
+    #suggestions {
+      position: relative;
+      z-index: 10;
+      margin-top: 4px;
+      background: #fff;
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-md);
+      box-shadow: 0 1px 3px rgba(20,20,19,.08);
+      overflow: hidden;
+      display: none;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    /* Selected chip */
     .selected-chip {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 16px;
-      border-radius: 8px;
-      background: #fef3ec;
-      border: 1px solid #f5d0b5;
-      margin-bottom: 20px;
-      font-size: 14px;
-      color: var(--primary-active);
+      padding: var(--spacing-sm) var(--spacing-md);
+      border-radius: var(--radius-pill);
+      background: var(--surface-card);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink);
+      margin-bottom: var(--spacing-md);
     }
     .selected-chip button {
       background: none;
@@ -221,57 +242,59 @@
       color: var(--primary);
       cursor: pointer;
       font-size: 12px;
-      padding: 4px 8px;
-      border-radius: 4px;
+      font-weight: 500;
+      padding: 2px 6px;
+      border-radius: var(--radius-xs);
       transition: background .15s;
     }
     .selected-chip button:hover { background: rgba(204,120,92,.1); }
 
-    /* Status Panels */
+    /* Status */
     .status-panel {
       text-align: center;
-      padding: 40px 24px;
-      border-radius: 12px;
+      padding: var(--spacing-xl);
+      border-radius: var(--radius-lg);
       border: 1px solid #b7e4c7;
       background: #f0fdf4;
     }
     .msg-box {
-      margin-top: 16px;
-      padding: 12px 14px;
-      border-radius: 8px;
+      margin-top: var(--spacing-md);
+      padding: var(--spacing-sm) var(--spacing-md);
+      border-radius: var(--radius-md);
       font-size: 14px;
       font-weight: 500;
     }
     .signin-footer {
-      margin-top: 32px;
+      margin-top: var(--spacing-xl);
       font-size: 12px;
       color: var(--muted-soft);
       text-align: center;
     }
 
-    /* Info collection panel */
+    /* Info panel */
     .info-panel {
-      padding: 14px;
+      margin-top: var(--spacing-md);
+      padding: var(--spacing-sm) var(--spacing-md);
       background: #fef3ec;
       border: 1px solid #f5d0b5;
-      border-radius: 8px;
+      border-radius: var(--radius-md);
     }
 
     /* Responsive */
-    @media (max-width: 640px) {
-      .signin-banner { padding: 24px 16px 20px; }
-      .banner-class-name { font-size: 26px; }
-      .signin-form-area { padding: 24px 12px 36px; }
-      .signin-form-card { padding: 28px 20px 24px; border-radius: 12px; }
+    @media (max-width: 768px) {
+      .signin-banner { padding: var(--spacing-xxl) var(--spacing-md) var(--spacing-lg); }
+      .banner-title { font-size: 32px; }
+      .signin-body { padding: var(--spacing-xl) var(--spacing-md) var(--spacing-xxl); }
+      .signin-card { padding: var(--spacing-lg); }
     }
   </style>
 </head>
 <body>
 
-  <!-- Top Banner -->
+  <!-- Dark Banner -->
   <div class="signin-banner">
     <div class="signin-banner-inner">
-      <h1 class="banner-class-name">
+      <h1 class="banner-title">
         {% if cls %}{{ cls.name }}{% else %}机房签到{% endif %}
       </h1>
       <div class="banner-meta">
@@ -295,9 +318,12 @@
     </div>
   </div>
 
-  <!-- Form Area -->
-  <div class="signin-form-area">
-    <div class="signin-form-card">
+  <!-- Canvas Body -->
+  <div class="signin-body">
+    <div class="signin-card">
+
+      <h2 class="signin-card-title">提交签到</h2>
+      <p class="signin-card-sub">输入姓名搜索，选择后点击提交</p>
 
       <!-- 已签到状态 -->
       <div id="alreadySignedPanel" class="status-panel hidden">
@@ -311,7 +337,7 @@
       </div>
 
       <!-- 信息收集提示 -->
-      <div id="infoCollectionPanel" class="hidden" style="margin-top: 16px;">
+      <div id="infoCollectionPanel" class="hidden">
         <div class="info-panel">
           <div style="display: flex; align-items: flex-start; gap: 10px;">
             <svg style="width: 18px; height: 18px; color: var(--primary); flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -320,7 +346,7 @@
             <div style="flex: 1;">
               <p style="font-size: 12px; font-weight: 600; color: var(--ink); margin: 0 0 3px;">需要提交信息</p>
               <p style="font-size: 11px; color: var(--muted); margin: 0 0 10px;">老师要求提交相关信息，请点击下方按钮完成提交</p>
-              <a id="infoSubmitLink" href="#" style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: var(--primary); text-decoration: none; padding: 6px 10px; border-radius: 6px; background: rgba(204,120,92,.1); transition: background .12s;" onmouseover="this.style.background='rgba(204,120,92,.2)'" onmouseout="this.style.background='rgba(204,120,92,.1)'">
+              <a id="infoSubmitLink" href="#" style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: var(--primary); text-decoration: none; padding: 6px 10px; border-radius: var(--radius-sm); background: rgba(204,120,92,.1); transition: background .12s;" onmouseover="this.style.background='rgba(204,120,92,.2)'" onmouseout="this.style.background='rgba(204,120,92,.1)'">
                 去提交
                 <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -334,7 +360,7 @@
       <!-- 签到表单 -->
       <div id="signInForm">
         <div class="field-group">
-          <label class="field-label">姓名</label>
+          <label class="field-label" for="nameInput">姓名</label>
           <input id="nameInput" type="text" autocomplete="off" placeholder="输入姓名片段搜索..." class="field-input" />
           <div id="suggestions"></div>
         </div>
