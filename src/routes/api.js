@@ -95,13 +95,21 @@ export default async function apiRoutes(fastify) {
 
   // GET /api/sessions — 获取历史批次列表，需要 classOwnerRequired
   fastify.get('/api/sessions', { preHandler: classOwnerRequired }, async (request, reply) => {
-    const sessions = await getSessions(request.classId)
-    return reply.send(sessions.map(s => ({
-      id: s.id,
-      label: s.label,
-      archivedAt: s.archivedAt,
-      count: s._count.records,
-    })))
+    const page = parseInt(request.query.page || 1, 10)
+    const pageSize = parseInt(request.query.pageSize || 10, 10)
+    const result = await getSessions(request.classId, { page, pageSize })
+    return reply.send({
+      sessions: result.sessions.map(s => ({
+        id: s.id,
+        label: s.label,
+        archivedAt: s.archivedAt,
+        count: s._count.records,
+      })),
+      total: result.total,
+      page: result.page,
+      pageSize: result.pageSize,
+      totalPages: result.totalPages,
+    })
   })
 
   // GET /api/sessions/:sessionId — 获取批次详情，需要 teacherRequired

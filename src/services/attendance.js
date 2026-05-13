@@ -248,15 +248,32 @@ export async function archiveAndReset(classId) {
 }
 
 /**
- * 获取班级所有历史批次（不含当前）
+ * 获取班级所有历史批次（不含当前），支持分页
  * @param {number} classId
+ * @param {object} options
+ * @param {number} [options.page] — 页码（从 1 开始）
+ * @param {number} [options.pageSize] — 每页条数
  */
-export async function getSessions(classId) {
-  return prisma.signInSession.findMany({
+export async function getSessions(classId, { page = 1, pageSize } = {}) {
+  const total = await prisma.signInSession.count({ where: { classId } })
+
+  if (pageSize) {
+    const sessions = await prisma.signInSession.findMany({
+      where: { classId },
+      orderBy: { archivedAt: 'desc' },
+      include: { _count: { select: { records: true } } },
+      take: pageSize,
+      skip: (page - 1) * pageSize,
+    })
+    return { sessions, total, page, pageSize, totalPages: Math.ceil(total / pageSize) }
+  }
+
+  const sessions = await prisma.signInSession.findMany({
     where: { classId },
     orderBy: { archivedAt: 'desc' },
     include: { _count: { select: { records: true } } },
   })
+  return { sessions, total }
 }
 
 /**

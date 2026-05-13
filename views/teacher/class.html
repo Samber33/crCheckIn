@@ -588,6 +588,19 @@
       display: inline-flex;
       align-items: center;
     }
+    .session-pager-btn {
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid var(--hairline);
+      background: #fff;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .12s;
+    }
+    .session-pager-btn:hover:not(:disabled) { background: var(--surface-card); color: var(--ink); }
+    .session-pager-btn:disabled { opacity: .4; cursor: default; }
 
     /* === Input === */
     .input-field {
@@ -994,6 +1007,7 @@ function openModal(title, content, onClose) {
 function closeCurrentModal() {
   document.getElementById('modalBackdrop').style.display = 'none'
   document.body.style.overflow = ''
+  sessionsPage = 1
   modalCloseHandler = null
 }
 
@@ -1321,17 +1335,22 @@ async function refreshStatus() {
   } catch(e) {}
 }
 
-async function refreshSessions() {
-  const res = await fetch(`/api/sessions?classId=${CLASS_ID}`)
+let sessionsPage = 1
+const SESSIONS_PAGE_SIZE = 10
+
+async function refreshSessions(page = 1) {
+  sessionsPage = page
+  const res = await fetch(`/api/sessions?classId=${CLASS_ID}&page=${page}&pageSize=${SESSIONS_PAGE_SIZE}`)
   const data = await parseResponse(res)
   if (!data) return
-  document.getElementById('modalCountText').textContent = data.length ? `共 ${data.length} 批次` : ''
+  const { sessions, total, totalPages } = data
+  document.getElementById('modalCountText').textContent = sessions.length ? `共 ${total} 批次，第 ${page}/${totalPages} 页` : ''
   document.getElementById('modalCountText').style.display = ''
-  if (!data.length) {
+  if (!sessions.length) {
     document.getElementById('modalBody').innerHTML = '<div style="padding:24px;text-align:center;font-size:13px;color:var(--muted-soft);">暂无历史批次</div>'
     return
   }
-  document.getElementById('modalBody').innerHTML = data.map(s => `
+  const listHtml = sessions.map(s => `
     <div class="session-item">
       <div class="session-head">
         <div>
@@ -1348,6 +1367,13 @@ async function refreshSessions() {
         </div>
       </div>
     </div>`).join('')
+  const pagerHtml = totalPages > 1 ? `
+    <div style="display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 20px;border-top:1px solid var(--hairline);flex-shrink:0;">
+      <button class="session-pager-btn" ${page <= 1 ? 'disabled' : `onclick="refreshSessions(${page - 1})"`}>&laquo; 上一页</button>
+      <span style="font-size:12px;color:var(--muted);">第 ${page} / ${totalPages} 页</span>
+      <button class="session-pager-btn" ${page >= totalPages ? 'disabled' : `onclick="refreshSessions(${page + 1})"`}>下一页 &raquo;</button>
+    </div>` : ''
+  document.getElementById('modalBody').innerHTML = listHtml + pagerHtml
 }
 
 async function deleteSessionItem(sessionId, label) {
@@ -1356,11 +1382,10 @@ async function deleteSessionItem(sessionId, label) {
   const data = await parseResponse(res)
   if (!data) return
   showToast(data.message || '历史批次已删除', true)
-  // Refresh if either modal is currently open
   const backdrop = document.getElementById('modalBackdrop')
   if (backdrop.style.display === 'flex') {
     const title = document.getElementById('modalTitleText').textContent
-    if (title === '历史批次') await refreshSessions()
+    if (title === '历史批次') { sessionsPage = 1; await refreshSessions(1) }
     else if (title === '出勤统计') await loadStats()
   }
 }
@@ -1403,8 +1428,9 @@ document.getElementById('statsToggle').addEventListener('click', async () => {
 })
 
 document.getElementById('sessionsToggle').addEventListener('click', async () => {
+  sessionsPage = 1
   openModal('历史批次', '<div style="padding:24px;text-align:center;font-size:13px;color:var(--muted-soft);">加载中...</div>')
-  await refreshSessions()
+  await refreshSessions(1)
 })
 
 async function loadStats() {
