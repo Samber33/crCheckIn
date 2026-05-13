@@ -229,6 +229,16 @@
       border: 1px solid #b7e4c7;
       flex-shrink: 0;
     }
+    .class-item-badge.signing {
+      background: #fff7ed;
+      color: #c2410c;
+      border-color: #fdba74;
+      animation: signing-pulse 2s ease-in-out infinite;
+    }
+    @keyframes signing-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .75; }
+    }
     .class-item-progress {
       display: flex;
       align-items: center;
@@ -671,7 +681,9 @@
                     <p class="class-item-name">{{ cls.name }}{% if cls.isArchived %}<span class="archived-badge">已归档</span>{% endif %}</p>
                     <p class="class-item-date">{{ cls.createdAt | dateCN }}</p>
                   </div>
-                  {% if cls.signedCount > 0 %}
+                  {% if cls.isSigning %}
+                  <span class="class-item-badge signing">签到中</span>
+                  {% elif cls.signedCount > 0 %}
                   <span class="class-item-badge">{{ cls.signedCount }} 人签到</span>
                   {% endif %}
                 </div>

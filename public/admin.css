@@ -679,10 +679,13 @@ body {
   font-weight: 500;
 }
 
-.status-badge.active { background: #dcfce7; color: #166534; }
-.status-badge.pending { background: #fef3c7; color: #92400e; }
-.status-badge.done { background: var(--surface-card); color: var(--muted-soft); }
+.status-badge.signing { background: #fff7ed; color: #c2410c; animation: signing-pulse 2s ease-in-out infinite; }
 .status-badge.off { background: #f1f5f9; color: #94a3b8; }
+
+@keyframes signing-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .7; }
+}
 
 /* ── Error Banner ── */
 .error-banner {

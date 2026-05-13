@@ -61,12 +61,10 @@
   <!-- Filter Bar -->
   <div class="filter-bar" id="filterBar">
     <button class="filter-btn active" data-filter="all">全部</button>
-    <button class="filter-btn" data-filter="active">活跃</button>
+    <button class="filter-btn" data-filter="active">未归档</button>
     <button class="filter-btn" data-filter="archived">已归档</button>
-    <button class="filter-btn" data-filter="进行中">进行中</button>
+    <button class="filter-btn" data-filter="签到中">签到中</button>
     <button class="filter-btn" data-filter="未开启">未开启</button>
-    <button class="filter-btn" data-filter="未开始">未开始</button>
-    <button class="filter-btn" data-filter="已结束">已结束</button>
   </div>
 
   <!-- Class Grid -->
@@ -112,9 +110,7 @@ function showToast(text, ok = true) {
 
 function statusBadge(status) {
   const map = {
-    '进行中': 'active',
-    '未开始': 'pending',
-    '已结束': 'done',
+    '签到中': 'signing',
     '未开启': 'off',
   }
   const cls = map[status] || 'off'

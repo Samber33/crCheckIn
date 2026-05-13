@@ -1,5 +1,4 @@
 import { prisma } from '../plugins/db.js'
-import { formatMinute } from '../utils/time.js'
 
 /**
  * 生成批次标签，格式：2025-03-18 周二 上午 · 班级名
@@ -71,13 +70,11 @@ export async function getAllClassesStatus() {
     const config = configMap.get(cls.id)
     const now = new Date()
     let signInStatus = '未开启'
-    if (config?.startTime && config?.endTime) {
-      if (now >= config.startTime && now <= config.endTime) {
-        signInStatus = '进行中'
-      } else if (now < config.startTime) {
-        signInStatus = '未开始'
-      } else {
-        signInStatus = '已结束'
+
+    if (config?.activeStartedAt) {
+      const endTime = new Date(new Date(config.activeStartedAt).getTime() + (config.countdownDurationMin || 40) * 60 * 1000)
+      if (now < endTime) {
+        signInStatus = '签到中'
       }
     }
 
@@ -93,10 +90,7 @@ export async function getAllClassesStatus() {
       totalSessions: sessionCountMap.get(cls.id) || 0,
       signInStatus,
       isArchived: cls.isArchived,
-      window: {
-        start: config ? formatMinute(config.startTime ? new Date(config.startTime) : null) : null,
-        end: config ? formatMinute(config.endTime ? new Date(config.endTime) : null) : null,
-      },
+      isSigning: signInStatus === '签到中',
     }
   })
 }
@@ -136,13 +130,11 @@ export async function getAllClassesDetail() {
     const config = configMap.get(cls.id)
     const now = new Date()
     let signInStatus = '未开启'
-    if (config?.startTime && config?.endTime) {
-      if (now >= config.startTime && now <= config.endTime) {
-        signInStatus = '进行中'
-      } else if (now < config.startTime) {
-        signInStatus = '未开始'
-      } else {
-        signInStatus = '已结束'
+
+    if (config?.activeStartedAt) {
+      const endTime = new Date(new Date(config.activeStartedAt).getTime() + (config.countdownDurationMin || 40) * 60 * 1000)
+      if (now < endTime) {
+        signInStatus = '签到中'
       }
     }
 
@@ -156,10 +148,7 @@ export async function getAllClassesDetail() {
       totalSessions: sessionCountMap.get(cls.id) || 0,
       signInStatus,
       isArchived: cls.isArchived,
-      window: {
-        start: config ? formatMinute(config.startTime ? new Date(config.startTime) : null) : null,
-        end: config ? formatMinute(config.endTime ? new Date(config.endTime) : null) : null,
-      },
+      isSigning: signInStatus === '签到中',
     }
   })
 }
@@ -241,7 +230,7 @@ export async function archiveAllClasses(adminId, ip = '') {
       await tx.signInRecord.deleteMany({ where: { classId: cls.id } })
       await tx.signInConfig.updateMany({
         where: { classId: cls.id },
-        data: { startTime: null, endTime: null },
+        data: { startTime: null, endTime: null, activeStartedAt: null },
       })
 
       totalArchived += count

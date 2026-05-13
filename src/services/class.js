@@ -21,14 +21,22 @@ export async function getClasses(teacherId, { includeArchived = false } = {}) {
           signInRecords: true,
         },
       },
+      signInConfig: true,
     },
   })
 
-  return classes.map((cls) => ({
-    ...cls,
-    studentCount: cls._count.students,
-    signedCount: cls._count.signInRecords,
-  }))
+  const now = new Date()
+  return classes.map((cls) => {
+    const cfg = cls.signInConfig
+    const isSigning = cfg && cfg.activeStartedAt &&
+      now < new Date(cfg.activeStartedAt.getTime() + cfg.countdownDurationMin * 60 * 1000)
+    return {
+      ...cls,
+      studentCount: cls._count.students,
+      signedCount: cls._count.signInRecords,
+      isSigning,
+    }
+  })
 }
 
 /**

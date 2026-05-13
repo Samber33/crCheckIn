@@ -210,7 +210,7 @@ export async function archiveAndReset(classId) {
   }
 
   if (records.length === 0) {
-    // 没有记录，直接重置（清空时间窗口和倒计时）
+    // 没有记录，直接重置
     await prisma.signInConfig.updateMany({
       where: { classId },
       data: { startTime: null, endTime: null, activeStartedAt: null },
@@ -459,12 +459,6 @@ export async function getAttendanceStats(classId) {
   return { totalSessions, students: result }
 }
 
-/**
- * 设置班级签到时间窗口
- * @param {number} classId
- * @param {Date|null} startTime
- * @param {Date|null} endTime
- */
 /**
  * 开始签到，设置 activeStartedAt 为当前时间
  * @param {number} classId
