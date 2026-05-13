@@ -38,102 +38,79 @@
       background: var(--canvas);
       color: var(--body);
       margin: 0;
-    }
-
-    /* === Split Layout === */
-    .signin-page {
-      display: flex;
-      min-height: 100vh;
-    }
-    .signin-hero {
-      flex: 1;
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      padding: 64px 48px;
+      min-height: 100vh;
+    }
+
+    /* === Top Banner === */
+    .signin-banner {
       background: var(--surface-dark);
-      color: var(--on-dark);
+      padding: 40px 24px 32px;
       position: relative;
       overflow: hidden;
     }
-    .signin-hero::before {
+    .signin-banner::before {
       content: '';
       position: absolute;
       top: -40%;
-      right: -20%;
+      right: -10%;
       width: 500px;
       height: 500px;
       border-radius: 50%;
       background: radial-gradient(circle, rgba(204,120,92,.15), transparent 70%);
       pointer-events: none;
     }
-    .signin-hero-title {
+    .signin-banner-inner {
+      max-width: 720px;
+      margin: 0 auto;
+      position: relative;
+    }
+    .banner-class-name {
       font-family: Georgia, 'Times New Roman', serif;
-      font-size: 42px;
+      font-size: 36px;
       font-weight: 400;
-      line-height: 1.15;
       letter-spacing: -1px;
       color: var(--on-dark);
-      margin-bottom: 16px;
-      position: relative;
+      margin: 0 0 8px 0;
+      line-height: 1.15;
     }
-    .signin-hero-sub {
-      font-size: 16px;
-      line-height: 1.6;
-      color: #a09d96;
-      max-width: 380px;
-      position: relative;
+    .banner-meta {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: center;
     }
-    .signin-hero-badge {
+    .banner-meta-item {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      margin-top: 32px;
-      padding: 10px 18px;
-      border-radius: 8px;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 6px;
       background: rgba(255,255,255,.06);
       border: 1px solid rgba(255,255,255,.1);
       color: #a09d96;
       font-size: 13px;
       font-weight: 500;
-      position: relative;
     }
-    .signin-hero-badge .dot {
+    .banner-meta-item .dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
       background: var(--success);
     }
 
-    .signin-form-side {
+    /* === Form Area === */
+    .signin-form-area {
       flex: 1;
       display: flex;
-      flex-direction: column;
       justify-content: center;
-      align-items: center;
-      padding: 48px;
-      max-width: 560px;
+      align-items: flex-start;
+      padding: 48px 24px 32px;
     }
-    .signin-form-wrapper {
+    .signin-form-inner {
       width: 100%;
-      max-width: 460px;
-    }
-    .signin-form-header {
-      margin-bottom: 36px;
-    }
-    .signin-form-header h2 {
-      font-family: Georgia, 'Times New Roman', serif;
-      font-size: 28px;
-      font-weight: 400;
-      letter-spacing: -0.5px;
-      color: var(--ink);
-      margin: 0 0 8px 0;
-    }
-    .signin-form-header p {
-      font-size: 14px;
-      color: var(--muted);
-      margin: 0;
+      max-width: 520px;
     }
 
     #suggestions {
@@ -163,32 +140,32 @@
     }
     .field-input {
       width: 100%;
-      padding: 12px 14px;
-      border-radius: 8px;
-      border: 1px solid var(--hairline);
-      font-size: 15px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      border: 2px solid var(--hairline);
+      font-size: 18px;
       line-height: 1.5;
       color: var(--ink);
-      background: var(--canvas);
-      transition: border-color .15s, box-shadow .15s;
+      background: #fff;
+      transition: border-color .2s, box-shadow .2s;
       box-sizing: border-box;
     }
     .field-input::placeholder { color: var(--muted-soft); }
     .field-input:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(204,120,92,.15);
+      box-shadow: 0 0 0 4px rgba(204,120,92,.12);
     }
     .submit-btn {
       width: 100%;
-      padding: 12px 20px;
+      padding: 14px 20px;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       background: var(--primary);
       color: var(--on-primary);
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 500;
-      height: 48px;
+      height: 52px;
       cursor: pointer;
       transition: background .15s;
       display: flex;
@@ -198,18 +175,12 @@
     }
     .submit-btn:hover { background: var(--primary-active); }
     .submit-btn:disabled { opacity: .5; cursor: not-allowed; }
-    .status-panel {
-      text-align: center;
-      padding: 32px 24px;
-      border-radius: 12px;
-      border: 1px solid #b7e4c7;
-      background: #f0fdf4;
-    }
+
     .selected-chip {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 14px;
+      padding: 12px 16px;
       border-radius: 8px;
       background: #fef3ec;
       border: 1px solid #f5d0b5;
@@ -223,11 +194,20 @@
       color: var(--primary);
       cursor: pointer;
       font-size: 12px;
-      padding: 2px 6px;
+      padding: 4px 8px;
       border-radius: 4px;
       transition: background .15s;
     }
     .selected-chip button:hover { background: rgba(204,120,92,.1); }
+
+    /* Status Panels */
+    .status-panel {
+      text-align: center;
+      padding: 40px 24px;
+      border-radius: 12px;
+      border: 1px solid #b7e4c7;
+      background: #f0fdf4;
+    }
     .msg-box {
       margin-top: 16px;
       padding: 12px 14px;
@@ -242,79 +222,69 @@
       text-align: center;
     }
 
-    /* === Responsive: stack on mobile === */
-    @media (max-width: 900px) {
-      .signin-page { flex-direction: column; }
-      .signin-hero {
-        padding: 40px 24px;
-        min-height: auto;
-      }
-      .signin-hero-title { font-size: 28px; }
-      .signin-form-side {
-        max-width: 100%;
-        padding: 32px 24px;
-      }
+    /* Info collection panel */
+    .info-panel {
+      padding: 14px;
+      background: #fef3ec;
+      border: 1px solid #f5d0b5;
+      border-radius: 8px;
     }
-      }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .signin-banner { padding: 32px 16px 24px; }
+      .banner-class-name { font-size: 28px; }
+      .signin-form-area { padding: 32px 16px 24px; }
     }
   </style>
 </head>
-  <div class="signin-page">
+<body>
 
-    <!-- Left: Hero / Branding -->
-    <div class="signin-hero">
-      <div>
-        <h1 class="signin-hero-title">
-          {% if cls %}{{ cls.name }}{% else %}机房签到{% endif %}
-        </h1>
-        <p class="signin-hero-sub">
-          {% if cls %}
-          请输入你的姓名，从搜索列表中选择后提交签到。签到结果将记录到当前班级。
-          {% else %}
-          请输入你的姓名，从搜索列表中选择对应的班级后提交签到。系统将自动匹配你的信息。
-          {% endif %}
-        </p>
-        <div class="signin-hero-badge">
+  <!-- Top Banner -->
+  <div class="signin-banner">
+    <div class="signin-banner-inner">
+      <h1 class="banner-class-name">
+        {% if cls %}{{ cls.name }}{% else %}机房签到{% endif %}
+      </h1>
+      <div class="banner-meta">
+        <div class="banner-meta-item">
           <span class="dot"></span>
-          <span>当前设备：{{ computer_name }}</span>
+          <span>{{ computer_name }}</span>
         </div>
         {% if cls %}
-        <div class="signin-hero-badge" style="margin-top: 12px;">
+        <div class="banner-meta-item">
           <span style="font-weight: 600; color: var(--on-dark);">{{ studentCount }}</span>
           <span>名学生</span>
         </div>
         {% endif %}
         {% if not cls %}
-        <div class="signin-hero-badge" style="margin-top: 12px;">
+        <div class="banner-meta-item" style="border-color: rgba(212,160,23,.3);">
           <span style="color: var(--warning);">!</span>
           <span>未指定班级，将搜索全部学生</span>
         </div>
         {% endif %}
       </div>
     </div>
+  </div>
 
-    <!-- Right: Form -->
-    <div class="signin-form-side">
-      <div class="signin-form-wrapper">
+  <!-- Form Area -->
+  <div class="signin-form-area">
+    <div class="signin-form-inner">
 
-        <div class="signin-form-header">
-          <h2>提交签到</h2>
-          <p>输入姓名搜索，选择后点击提交</p>
+      <!-- 已签到状态 -->
+      <div id="alreadySignedPanel" class="status-panel hidden">
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4" style="background: #d1fae5;">
+          <svg class="w-7 h-7" style="color: var(--success);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
         </div>
+        <p class="text-base font-medium" style="color: #047857;" id="alreadySignedText"></p>
+        <p class="text-sm mt-2" style="color: var(--muted);">本设备已完成签到，如需重新签到请联系老师</p>
+      </div>
 
-        <!-- 已签到状态 -->
-        <div id="alreadySignedPanel" class="status-panel hidden">
-          <div class="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4" style="background: #d1fae5;">
-            <svg class="w-7 h-7" style="color: var(--success);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-            </svg>
-          </div>
-          <p class="text-base font-medium" style="color: #047857;" id="alreadySignedText"></p>
-          <p class="text-sm mt-2" style="color: var(--muted);">本设备已完成签到，如需重新签到请联系老师</p>
-        </div>
-
-        <!-- 信息收集提示 -->
-        <div id="infoCollectionPanel" class="hidden" style="margin-top: 16px; padding: 14px; background: #fef3ec; border: 1px solid #f5d0b5; border-radius: 8px;">
+      <!-- 信息收集提示 -->
+      <div id="infoCollectionPanel" class="hidden" style="margin-top: 16px;">
+        <div class="info-panel">
           <div style="display: flex; align-items: flex-start; gap: 10px;">
             <svg style="width: 18px; height: 18px; color: var(--primary); flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -331,35 +301,35 @@
             </div>
           </div>
         </div>
-
-        <!-- 签到表单 -->
-        <div id="signInForm">
-          <div class="field-group">
-            <label class="field-label">姓名</label>
-            <input id="nameInput" type="text" autocomplete="off" placeholder="输入姓名片段搜索..." class="field-input" />
-            <div id="suggestions"></div>
-          </div>
-
-          <div id="selectedInfo" class="selected-chip hidden">
-            <span id="selectedText"></span>
-            <button id="clearSelection">重新选择</button>
-          </div>
-
-          <button id="signinBtn" class="submit-btn">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-            </svg>
-            提交签到
-          </button>
-
-          <div id="msg" class="msg-box hidden"></div>
-        </div>
-
-        <div class="signin-footer">
-          教师请输入密码登录管理端
-        </div>
-
       </div>
+
+      <!-- 签到表单 -->
+      <div id="signInForm">
+        <div class="field-group">
+          <label class="field-label">姓名</label>
+          <input id="nameInput" type="text" autocomplete="off" placeholder="输入姓名片段搜索..." class="field-input" />
+          <div id="suggestions"></div>
+        </div>
+
+        <div id="selectedInfo" class="selected-chip hidden">
+          <span id="selectedText"></span>
+          <button id="clearSelection">重新选择</button>
+        </div>
+
+        <button id="signinBtn" class="submit-btn">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+          提交签到
+        </button>
+
+        <div id="msg" class="msg-box hidden"></div>
+      </div>
+
+      <div class="signin-footer">
+        教师请输入密码登录管理端
+      </div>
+
     </div>
   </div>
 
