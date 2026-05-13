@@ -46,7 +46,7 @@ model ArchivedRecord {
   studentName  String
   homeClass    String        @default("")
   computerName String
-  studentIp    String        @default("")
+  studentIp    String?
   signedAt     DateTime
 }
 
