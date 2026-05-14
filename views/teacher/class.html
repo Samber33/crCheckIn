@@ -998,6 +998,8 @@ function openModal(title, content, onClose) {
   document.getElementById('modalTitleText').textContent = title
   document.getElementById('modalCountText').textContent = ''
   document.getElementById('modalCountText').style.display = 'none'
+  document.getElementById('modalContainer').style.minHeight = ''
+  document.getElementById('modalBody').style.minHeight = ''
   document.getElementById('modalBody').innerHTML = content
   document.getElementById('modalBackdrop').style.display = 'flex'
   document.body.style.overflow = 'hidden'
@@ -1006,6 +1008,8 @@ function openModal(title, content, onClose) {
 
 function closeCurrentModal() {
   document.getElementById('modalBackdrop').style.display = 'none'
+  document.getElementById('modalContainer').style.minHeight = ''
+  document.getElementById('modalBody').style.minHeight = ''
   document.body.style.overflow = ''
   sessionsPage = 1
   modalCloseHandler = null
@@ -1373,7 +1377,12 @@ async function refreshSessions(page = 1) {
       <span style="font-size:12px;color:var(--muted);">第 ${page} / ${totalPages} 页</span>
       <button class="session-pager-btn" ${page >= totalPages ? 'disabled' : `onclick="refreshSessions(${page + 1})"`}>下一页 &raquo;</button>
     </div>` : ''
-  document.getElementById('modalBody').innerHTML = listHtml + pagerHtml
+  const body = document.getElementById('modalBody')
+  body.style.minHeight = SESSIONS_PAGE_SIZE * 60 + 'px'
+  body.innerHTML = listHtml + pagerHtml
+  // Ensure modal container is tall enough for empty pages
+  const container = document.getElementById('modalContainer')
+  container.style.minHeight = (SESSIONS_PAGE_SIZE * 60 + 120) + 'px'
 }
 
 async function deleteSessionItem(sessionId, label) {
