@@ -1380,9 +1380,8 @@ async function refreshSessions(page = 1) {
   const body = document.getElementById('modalBody')
   body.style.minHeight = SESSIONS_PAGE_SIZE * 60 + 'px'
   body.innerHTML = listHtml + pagerHtml
-  // Ensure modal container is tall enough for empty pages
   const container = document.getElementById('modalContainer')
-  container.style.minHeight = (SESSIONS_PAGE_SIZE * 60 + 120) + 'px'
+  container.style.height = (SESSIONS_PAGE_SIZE * 60 + 120) + 'px'
 }
 
 async function deleteSessionItem(sessionId, label) {
