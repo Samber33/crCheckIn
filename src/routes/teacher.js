@@ -1,5 +1,5 @@
 import { getClasses } from '../services/class.js'
-import { isTeacherLoggedIn, teacherRequired, classOwnerRequired } from '../utils/auth.js'
+import { teacherRequired, classOwnerRequired } from '../utils/auth.js'
 import { prisma } from '../plugins/db.js'
 import { getSessionDetailForTeacher, getSessionRosterForTeacher } from '../services/attendance.js'
 
