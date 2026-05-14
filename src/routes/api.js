@@ -464,9 +464,14 @@ export default async function apiRoutes(fastify) {
     const targetClassId = parseInt(request.body.targetClassId, 10)
     const teacherId = request.session.teacherId
     const isAdmin = request.session.isAdmin === true
-    const result = await transferStudent(studentId, targetClassId, teacherId, isAdmin)
-    if (!result.ok) return reply.code(result.status || 400).send(result)
-    return reply.send(result)
+    try {
+      const result = await transferStudent(studentId, targetClassId, teacherId, isAdmin)
+      return reply.send(result)
+    } catch (err) {
+      const statusMap = { TARGET_NOT_FOUND: 404, NO_PERMISSION: 403, DUPLICATE: 409 }
+      const status = err.code === 'P2002' ? 409 : (statusMap[err.code] || 400)
+      return reply.code(status).send({ ok: false, message: err.message })
+    }
   })
 
   // ========== 信息收集功能 ==========

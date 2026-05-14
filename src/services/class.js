@@ -46,7 +46,7 @@ export async function getClasses(teacherId, { includeArchived = false } = {}) {
  * @returns {Promise<object>} 创建的 Class 记录
  */
 export async function createClass(teacherId, name) {
-  return prisma.class.create({
+  const cls = await prisma.class.create({
     data: {
       name,
       teacherId,
@@ -56,6 +56,8 @@ export async function createClass(teacherId, name) {
     },
     include: { signInConfig: true },
   })
+  // 新增班级，缓存无需失效（新 classId 首次查询会回写缓存）
+  return cls
 }
 
 /**
@@ -128,9 +130,11 @@ export async function deleteClassesCascadeWithTx(tx, classIds) {
 }
 
 export async function deleteClassesCascade(classIds) {
+  const { invalidateClassTeacherCache } = await import('./sse.js')
   await prisma.$transaction(async (tx) => {
     await deleteClassesCascadeWithTx(tx, classIds)
   })
+  invalidateClassTeacherCache(classIds)
 }
 
 /**

@@ -560,6 +560,9 @@ export async function getAttendanceAnalytics(classId) {
   }))
 
   // === 2 & 3. 时段/星期分布 — 用 SQL 聚合，避免加载全量记录 ===
+  const hourDistribution = new Array(24).fill(0)
+  const dayDistribution = new Array(7).fill(0)
+
   const hourResult = await prisma.$queryRaw`
     SELECT CAST(strftime('%H', signedAt) AS INTEGER) as hour, COUNT(*) as cnt
     FROM SignInRecord WHERE classId = ${classId}

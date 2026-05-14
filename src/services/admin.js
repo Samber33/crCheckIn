@@ -108,6 +108,9 @@ export async function transferClass(classId, newTeacherId, adminId, ip = '') {
     data: { teacherId: newTeacherId },
   })
 
+  const { invalidateClassTeacherCache } = await import('./sse.js')
+  invalidateClassTeacherCache(classId)
+
   await createAuditLog({
     adminId,
     action: 'TRANSFER_CLASS',

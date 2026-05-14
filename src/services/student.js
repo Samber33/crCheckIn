@@ -145,10 +145,6 @@ export async function deleteStudent(studentId, teacherId, isAdmin = false) {
 
 /**
  * 将学生转移到另一个教学班
- * @param {number} studentId
- * @param {number} targetClassId
- * @param {number} teacherId
- * @param {boolean} isAdmin
  */
 export async function transferStudent(studentId, targetClassId, teacherId, isAdmin = false) {
   const check = await assertStudentOwner(studentId, teacherId, isAdmin)
@@ -156,21 +152,27 @@ export async function transferStudent(studentId, targetClassId, teacherId, isAdm
 
   const { student } = check
 
-  // 校验目标班级归属
-  const targetClass = await prisma.class.findUnique({ where: { id: targetClassId } })
-  if (!targetClass) return { ok: false, message: '目标班级不存在', status: 404 }
-  if (!isAdmin && targetClass.teacherId !== teacherId) {
-    return { ok: false, message: '无权限操作目标班级', status: 403 }
-  }
+  await prisma.$transaction(async (tx) => {
+    // 目标班级归属校验（合并到事务中，避免单独查询）
+    const targetClass = await tx.class.findUnique({ where: { id: targetClassId } })
+    if (!targetClass) {
+      throw Object.assign(new Error('目标班级不存在'), { code: 'TARGET_NOT_FOUND' })
+    }
+    if (!isAdmin && targetClass.teacherId !== teacherId) {
+      throw Object.assign(new Error('无权限操作目标班级'), { code: 'NO_PERMISSION' })
+    }
 
-  // 目标班级同名校验
-  const dup = await prisma.student.findFirst({ where: { classId: targetClassId, name: student.name } })
-  if (dup) return { ok: false, message: '目标班级中已存在同名学生', status: 409 }
+    // 目标班级同名校验
+    const dup = await tx.student.findFirst({ where: { classId: targetClassId, name: student.name } })
+    if (dup) {
+      throw Object.assign(new Error('目标班级中已存在同名学生'), { code: 'DUPLICATE' })
+    }
 
-  await prisma.$transaction([
-    prisma.signInRecord.deleteMany({ where: currentSignInRecordWhere(student) }),
-    prisma.studentTag.deleteMany({ where: { classId: student.classId, studentId } }),
-    prisma.student.update({ where: { id: studentId }, data: { classId: targetClassId } }),
-  ])
+    await tx.signInRecord.deleteMany({ where: currentSignInRecordWhere(student) })
+    await tx.studentTag.deleteMany({ where: { classId: student.classId, studentId } })
+    await tx.student.update({ where: { id: studentId }, data: { classId: targetClassId } })
+  })
+
+  // 学生跨班转移后，原班级的缓存不受影响（缓存按 classId 索引），无需失效
   return { ok: true }
 }
