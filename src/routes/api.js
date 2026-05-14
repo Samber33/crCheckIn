@@ -83,7 +83,10 @@ export default async function apiRoutes(fastify) {
   })
 
   // POST /api/signin/start — 开始签到倒计时，需要 classOwnerRequired
-  fastify.post('/api/signin/start', { preHandler: classOwnerRequired }, async (request, reply) => {
+  fastify.post('/api/signin/start', {
+    preHandler: classOwnerRequired,
+    config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
+  }, async (request, reply) => {
     const durationMin = parseInt(request.body?.durationMin, 10) || 30
     const result = await startSignIn(request.classId, durationMin)
     if (!result.ok) return reply.code(result.status).send(result)
@@ -215,8 +218,15 @@ export default async function apiRoutes(fastify) {
         return reply.code(400).send({ ok: false, message: '请上传 Excel 文件。' })
       }
       const teacherId = request.session.teacherId
-      const count = await importStudentsFromExcel(teacherId, fileBuffer)
-      return reply.send({ ok: true, message: `导入完成，新增 ${count} 名学生。` })
+      const result = await importStudentsFromExcel(teacherId, fileBuffer)
+      const parts = [`导入完成，新增 ${result.count} 名学生`]
+      if (result.createdClasses.length > 0) {
+        parts.push(`自动创建 ${result.createdClasses.length} 个班级：${result.createdClasses.join('、')}`)
+      }
+      if (result.existingClasses.length > 0) {
+        parts.push(`${result.existingClasses.length} 个班级已存在：${result.existingClasses.join('、')}`)
+      }
+      return reply.send({ ok: true, message: parts.join('。') + '。' })
     } catch (err) {
       request.log.error(err)
       return reply.code(500).send({ ok: false, message: `导入失败：${err.message}` })
@@ -299,11 +309,11 @@ export default async function apiRoutes(fastify) {
   fastify.post('/api/signin', {
     config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
   }, async (request, reply) => {
-    const { classId: rawClassId, student_name } = request.body
+    const { classId: rawClassId, studentName } = request.body
     const classId = parseInt(rawClassId, 10)
-    const computerName = resolveClientName(request)
-    const studentIp = resolveClientName(request)
-    const result = await signIn(classId, student_name, computerName, studentIp)
+    const computerName = request.headers['x-forwarded-for']?.split(',')[0]?.trim() || request.ip || 'unknown'
+    const studentIp = request.headers['x-real-ip'] || request.ip || 'unknown'
+    const result = await signIn(classId, studentName, computerName, studentIp)
     if (!result.ok) {
       return reply.code(400).send(result)
     }
@@ -380,6 +390,8 @@ export default async function apiRoutes(fastify) {
     if (!result.ok) {
       return reply.code(result.status || 400).send(result)
     }
+    // 广播 SSE 事件通知其他标签页
+    if (result.classId) broadcastToClass(result.classId, 'signin')
     return reply.send(result)
   })
 

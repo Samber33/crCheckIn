@@ -159,6 +159,7 @@ export async function archiveAllClasses(adminId, ip = '') {
               studentName: r.studentName,
               homeClass: r.student?.homeClass ?? '',
               computerName: r.computerName,
+              studentIp: r.studentIp ?? '',
               signedAt: r.signedAt,
             })),
           },

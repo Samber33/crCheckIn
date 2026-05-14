@@ -48,7 +48,7 @@ model ArchivedRecord {
   studentName  String
   homeClass    String        @default("")
   computerName String
-  studentIp    String?
+  studentIp    String        @default("")
   signedAt     DateTime
 
   @@index([sessionId])
@@ -82,7 +82,7 @@ model StudentTag {
 model SignInRecord {
   id           Int      @id @default(autoincrement())
   studentName  String
-  studentIp    String?
+  studentIp    String   @default("")
   computerName String
   signedAt     DateTime @default(now())
   classId      Int
@@ -143,7 +143,7 @@ model InfoResponse {
   submissionId Int
   submission   InfoSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   fieldId      Int
-  field        InfoField      @relation(fields: [fieldId], references: [id])
+  field        InfoField      @relation(fields: [fieldId], references: [id], onDelete: Cascade)
   textValue    String?        // 文本值
   fileUrl      String?        // 附件路径
   createdAt    DateTime       @default(now())

@@ -38,9 +38,11 @@ export function broadcastToTeacher(teacherId, event) {
   if (!sockets || sockets.size === 0) return
   const payload = `event: ${event}\n\n`
   for (const socket of [...sockets]) {
-    try {
-      socket.write(payload)
-    } catch {
+    const written = socket.write(payload, (err) => {
+      if (err) sockets.delete(socket)
+    })
+    if (!written) {
+      // Buffer full — socket is likely dead or slow
       sockets.delete(socket)
     }
   }
@@ -67,9 +69,10 @@ export function broadcastToAllTeachers(event) {
   const payload = `event: ${event}\n\n`
   for (const sockets of teacherSockets.values()) {
     for (const socket of [...sockets]) {
-      try {
-        socket.write(payload)
-      } catch {
+      const written = socket.write(payload, (err) => {
+        if (err) sockets.delete(socket)
+      })
+      if (!written) {
         sockets.delete(socket)
       }
     }

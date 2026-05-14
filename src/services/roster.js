@@ -5,11 +5,20 @@ import { formatSecond } from '../utils/time.js'
 import { matchesPinyin, nameToPinyin } from '../utils/pinyin.js'
 
 /**
+ * 防止 Excel 公式注入：对以 =、+、-、@ 开头的单元格值添加单引号前缀
+ */
+function sanitizeExcelValue(val) {
+  const s = String(val ?? '')
+  if (/^[=+\-@]/.test(s)) return "'" + s
+  return s
+}
+
+/**
  * 行政班级格式化：没有"班"字则补上
  */
 function fmtHomeClass(hc) {
   if (!hc) return ''
-  return hc.endsWith('班') ? hc : hc + '班'
+  return sanitizeExcelValue(hc.endsWith('班') ? hc : hc + '班')
 }
 
 /**
@@ -17,7 +26,7 @@ function fmtHomeClass(hc) {
  * Excel 格式（无表头）：A列=教学班名，B列=行政班级，C列=学生姓名
  * @param {number} teacherId
  * @param {Buffer} buffer
- * @returns {Promise<number>} 新增学生数量
+ * @returns {Promise<{count: number, createdClasses: string[], existingClasses: string[]}>}
  */
 export async function importStudentsFromExcel(teacherId, buffer) {
   const workbook = new ExcelJS.Workbook()
@@ -47,17 +56,25 @@ export async function importStudentsFromExcel(teacherId, buffer) {
   }
 
   let count = 0
+  const createdClasses = []
+  const existingClasses = []
 
   for (const [teachingClassName, students] of classMap) {
-    const result = await prisma.class.upsert({
-      where: { teacherId_name: { teacherId, name: teachingClassName } },
-      update: {},
-      create: {
-        teacherId,
-        name: teachingClassName,
-        signInConfig: { create: {} },
-      },
+    // Check if class already exists
+    const existingClass = await prisma.class.findFirst({
+      where: { teacherId, name: teachingClassName },
     })
+    const result = existingClass
+      ? existingClass
+      : await prisma.class.create({
+          data: {
+            teacherId,
+            name: teachingClassName,
+            signInConfig: { create: {} },
+          },
+        })
+    if (!existingClass) createdClasses.push(teachingClassName)
+    else existingClasses.push(teachingClassName)
     const classId = result.id
 
     const existing = await prisma.student.findMany({
@@ -80,7 +97,7 @@ export async function importStudentsFromExcel(teacherId, buffer) {
     }
   }
 
-  return count
+  return { count, createdClasses, existingClasses }
 }
 
 /**
@@ -149,10 +166,10 @@ export async function exportRecordsToExcel(classId) {
     const signed = !!rec
     const dataRow = ws.addRow([
       fmtHomeClass(student.homeClass),
-      student.name,
-      student.remark || '',
+      sanitizeExcelValue(student.name),
+      sanitizeExcelValue(student.remark || ''),
       signed ? '✓ 已签到' : '✗ 未签到',
-      rec ? rec.computerName : '',
+      rec ? sanitizeExcelValue(rec.computerName) : '',
       rec ? formatSecond(new Date(rec.signedAt)) : '',
     ])
     dataRow.height = 20
@@ -291,7 +308,8 @@ export async function exportSeatTableToExcel(classId) {
 
       if (signed) {
         const stu = students[0]
-        const displayName = dupIp ? students.map((s) => s.name).join('/') : stu.name
+        const rawName = dupIp ? students.map((s) => s.name).join('/') : stu.name
+        const displayName = sanitizeExcelValue(rawName)
         const hc = dupIp ? '' : fmtHomeClass(stu.homeClass)
         cell.value = hc ? `${displayName}\n${hc}` : displayName
         cell.font = {
@@ -391,7 +409,8 @@ export async function exportSeatTableToExcel(classId) {
 
       if (signed) {
         const stu = students[0]
-        const displayName = dupIp ? students.map((s) => s.name).join('/') : stu.name
+        const rawName = dupIp ? students.map((s) => s.name).join('/') : stu.name
+        const displayName = sanitizeExcelValue(rawName)
         const hc = dupIp ? '' : fmtHomeClass(stu.homeClass)
         cell.value = hc ? `${displayName}\n${hc}` : displayName
         cell.font = {
@@ -546,10 +565,10 @@ export async function exportSessionToExcel(session, roster = null) {
     const isSigned = rec.status === '已签到'
     const dataRow = ws.addRow([
       fmtHomeClass(rec.homeClass),
-      rec.studentName,
+      sanitizeExcelValue(rec.studentName),
       isSigned ? '✓ 已签到' : '✗ 未签到',
       isSigned ? (rec.signedAt || '-') : '-',
-      isSigned ? (rec.computerName ?? '-') : '-',
+      isSigned ? (sanitizeExcelValue(rec.computerName) ?? '-') : '-',
     ])
     dataRow.height = 20
     dataRow.eachCell((cell, colNumber) => {
@@ -648,7 +667,8 @@ export async function exportSessionSeatTableToExcel(session) {
         }
         if (signed) {
           const stu = students[0]
-          const displayName = dupIp ? students.map((s) => s.name).join('/') : stu.name
+          const rawName = dupIp ? students.map((s) => s.name).join('/') : stu.name
+          const displayName = sanitizeExcelValue(rawName)
           const hc = dupIp ? '' : fmtHomeClass(stu.homeClass)
           cell.value = hc ? `${displayName}\n${hc}` : displayName
           cell.font = { name: '微软雅黑', size: dupIp ? 8 : 10, bold: !dupIp, color: { argb: dupIp ? 'FFDC2626' : 'FF065F46' } }
@@ -734,7 +754,7 @@ export async function exportStatsToExcel(stats, cls) {
     const isEven = idx % 2 === 0
     const rate = parseFloat(s.rate)
     const rateColor = rate >= 80 ? 'FF059669' : rate >= 60 ? 'FFD97706' : 'FFDC2626'
-    const dataRow = ws.addRow([s.name, fmtHomeClass(s.homeClass), s.signedCount, s.absentCount, `${s.rate}%`])
+    const dataRow = ws.addRow([sanitizeExcelValue(s.name), fmtHomeClass(s.homeClass), s.signedCount, s.absentCount, `${s.rate}%`])
     dataRow.height = 20
     dataRow.eachCell((cell, colNumber) => {
       cell.font = { name: '微软雅黑', size: 10, bold: colNumber === 5, color: { argb: colNumber === 5 ? rateColor : 'FF1E293B' } }

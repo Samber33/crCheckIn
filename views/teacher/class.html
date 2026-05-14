@@ -1008,7 +1008,6 @@ function closeCurrentModal() {
   document.getElementById('modalContainer').style.minHeight = ''
   document.getElementById('modalBody').style.minHeight = ''
   document.body.style.overflow = ''
-  sessionsPage = 1
   modalCloseHandler = null
 }
 
@@ -1130,18 +1129,33 @@ document.getElementById('tagPopupPresets').addEventListener('click', async (e) =
   const currentTags = (window._studentTags || {})[studentId] || []
   const existing = currentTags.find(t => t.tag === tagName)
   if (existing) {
-    await fetch(`/api/tags/${existing.id}?classId=${CLASS_ID}`, { method: 'DELETE' })
+    const res = await fetch(`/api/tags/${existing.id}?classId=${CLASS_ID}`, { method: 'DELETE' })
+    if (!res.ok) { showToast('标签删除失败'); return }
     showToast(`已移除「${tagName}」`)
   } else {
+    // Save original tags for rollback
+    const originalTags = [...currentTags]
     for (const t of currentTags) {
       await fetch(`/api/tags/${t.id}?classId=${CLASS_ID}`, { method: 'DELETE' })
     }
     const pt = getPresetTagInfo(tagName)
-    await fetch('/api/tags', {
+    const addRes = await fetch('/api/tags', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ classId: CLASS_ID, studentId, tag: tagName, color: pt ? pt.color : TAG_COLORS[0] }),
     })
+    if (!addRes.ok) {
+      // Rollback: restore original tags
+      for (const t of originalTags) {
+        await fetch('/api/tags', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ classId: CLASS_ID, studentId, tag: t.tag, color: t.color }),
+        })
+      }
+      showToast('标签添加失败')
+      return
+    }
     showToast(`标签「${tagName}」已添加`)
   }
   await refreshStatus()
@@ -1153,7 +1167,8 @@ document.getElementById('tagPopupCustomTags').addEventListener('click', async (e
   const removeBtn = e.target.closest('.tag-custom-remove-btn')
   if (!removeBtn || !tagPopupTarget.studentId) return
   const tagId = parseInt(removeBtn.dataset.tagId)
-  await fetch(`/api/tags/${tagId}?classId=${CLASS_ID}`, { method: 'DELETE' })
+  const res = await fetch(`/api/tags/${tagId}?classId=${CLASS_ID}`, { method: 'DELETE' })
+  if (!res.ok) { showToast('标签删除失败'); return }
   showToast('标签已删除')
   await refreshStatus()
   openTagPopup(tagPopupTarget.studentId, tagPopupTarget.studentName, findTagTargetEl(tagPopupTarget.studentId))
@@ -1165,6 +1180,8 @@ document.getElementById('tagPopupAddBtn').addEventListener('click', async () => 
   const tag = input.value.trim()
   if (!tag || !tagPopupTarget.studentId) return
   const currentTags = (window._studentTags || {})[tagPopupTarget.studentId] || []
+  // Save originals for rollback
+  const originalTags = [...currentTags]
   for (const t of currentTags) {
     await fetch(`/api/tags/${t.id}?classId=${CLASS_ID}`, { method: 'DELETE' })
   }
@@ -1174,7 +1191,18 @@ document.getElementById('tagPopupAddBtn').addEventListener('click', async () => 
     body: JSON.stringify({ classId: CLASS_ID, studentId: tagPopupTarget.studentId, tag, color: TAG_COLORS[0] }),
   })
   const data = await res.json()
-  if (!data.ok) { showToast(data.message || '添加失败', false); return }
+  if (!data.ok) {
+    // Rollback
+    for (const t of originalTags) {
+      await fetch('/api/tags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ classId: CLASS_ID, studentId: tagPopupTarget.studentId, tag: t.tag, color: t.color }),
+      })
+    }
+    showToast(data.message || '添加失败', false)
+    return
+  }
   showToast(`标签「${tag}」已添加`)
   await refreshStatus()
   closeTagPopup()

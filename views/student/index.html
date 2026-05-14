@@ -678,7 +678,7 @@ async function doSignin() {
     const res = await fetch('/api/signin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ classId: selectedClassId, student_name: val })
+      body: JSON.stringify({ classId: selectedClassId, studentName: val })
     })
     const data = await res.json()
     setMessage(data.message, data.ok)

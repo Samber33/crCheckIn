@@ -155,6 +155,8 @@ export async function deleteClass(classId, teacherId, isAdmin = false) {
 export async function archiveClass(classId, teacherId, isAdmin = false) {
   await assertClassOwner(classId, teacherId, isAdmin)
   await prisma.class.update({ where: { id: classId }, data: { isArchived: true } })
+  const { invalidateClassTeacherCache } = await import('./sse.js')
+  invalidateClassTeacherCache(classId)
   return { ok: true, message: '班级已归档' }
 }
 
@@ -164,5 +166,7 @@ export async function archiveClass(classId, teacherId, isAdmin = false) {
 export async function unarchiveClass(classId, teacherId, isAdmin = false) {
   await assertClassOwner(classId, teacherId, isAdmin)
   await prisma.class.update({ where: { id: classId }, data: { isArchived: false } })
+  const { invalidateClassTeacherCache } = await import('./sse.js')
+  invalidateClassTeacherCache(classId)
   return { ok: true, message: '班级已恢复' }
 }

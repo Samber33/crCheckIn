@@ -169,8 +169,6 @@ export async function getClassStatus(classId) {
     signedCount,
     totalCount,
     absentCount,
-    // 指纹：前端可对比版本号跳过不必要的DOM更新
-    version: `${signedCount}-${totalCount}-${signed.length > 0 ? signed[signed.length - 1].signedAt : '0'}`,
     countdown: config && config.activeStartedAt ? {
       startedAt: config.activeStartedAt,
       durationMin: config.countdownDurationMin,
@@ -190,7 +188,8 @@ export function makeSessionLabel(className) {
   const day = days[now.weekDay]
   const hour = now.hour
   const period = hour < 12 ? '上午' : '下午'
-  return `${date} ${day} ${period} · ${className}`
+  const time = `${pad(hour)}:${pad(now.minute)}:${pad(now.second)}`
+  return `${date} ${day} ${period} ${time} · ${className}`
 }
 
 /**
@@ -435,7 +434,7 @@ export async function deleteSignInRecord(recordId, teacherId, isAdmin = false) {
     return { ok: false, message: '无权限', status: 403 }
   }
   await prisma.signInRecord.delete({ where: { id: recordId } })
-  return { ok: true }
+  return { ok: true, classId: record.classId }
 }
 
 /**
@@ -502,18 +501,19 @@ export async function startSignIn(classId, durationMin = 30) {
 }
 
 /**
- * 检查并自动归档已过期的倒计时（服务器启动时调用）
- * 注意：此时 SSE 连接尚未建立，不需要广播事件。
+ * 检查并自动归档已过期的倒计时（服务器启动时调用 + 运行时每分钟检查）
  */
 export async function recoverExpiredCountdowns() {
   const configs = await prisma.signInConfig.findMany({
     where: { activeStartedAt: { not: null } },
   })
   const now = new Date()
+  const { broadcastToClass } = await import('./sse.js')
   for (const cfg of configs) {
     const endTime = new Date(cfg.activeStartedAt.getTime() + cfg.countdownDurationMin * 60 * 1000)
     if (now >= endTime) {
       await archiveAndReset(cfg.classId)
+      broadcastToClass(cfg.classId, 'countdown-expired')
     }
   }
 }
