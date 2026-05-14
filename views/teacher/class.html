@@ -1617,7 +1617,7 @@ document.getElementById('startSigninBtn').addEventListener('click', async () => 
   const data = await parseResponse(res)
   if (!data) return
   if (!data.ok) { showToast(data.message, false); return }
-  showToast('签到已开始，倒计时40分钟')
+  showToast('签到已开始，倒计时30分钟')
   refreshStatus()
 })
 

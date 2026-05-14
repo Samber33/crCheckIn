@@ -84,7 +84,7 @@ export default async function apiRoutes(fastify) {
 
   // POST /api/signin/start — 开始签到倒计时，需要 classOwnerRequired
   fastify.post('/api/signin/start', { preHandler: classOwnerRequired }, async (request, reply) => {
-    const durationMin = parseInt(request.body?.durationMin, 10) || 40
+    const durationMin = parseInt(request.body?.durationMin, 10) || 30
     const result = await startSignIn(request.classId, durationMin)
     if (!result.ok) return reply.code(result.status).send(result)
     broadcastToClass(request.classId, 'countdown-started')

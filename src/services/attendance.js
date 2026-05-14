@@ -484,7 +484,7 @@ export async function getAttendanceStats(classId) {
  * @param {number} durationMin - 倒计时分钟数，默认 40
  * @returns {Promise<{ ok: boolean, message: string, countdownEnd: Date }>}
  */
-export async function startSignIn(classId, durationMin = 40) {
+export async function startSignIn(classId, durationMin = 30) {
   const cls = await prisma.class.findUnique({ where: { id: classId } })
   if (!cls) {
     return { ok: false, message: '班级不存在', status: 404 }

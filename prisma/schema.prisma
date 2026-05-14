@@ -99,7 +99,7 @@ model SignInConfig {
   classId             Int       @unique
   class               Class     @relation(fields: [classId], references: [id])
   activeStartedAt     DateTime?
-  countdownDurationMin Int      @default(40)
+  countdownDurationMin Int      @default(30)
 }
 
 // 信息收集配置
