@@ -58,11 +58,8 @@ export default async function teacherRoutes(app) {
   // 座位预览页（默认教师视角，支持前端切换）
   app.get('/teacher/classes/:classId/seats', { preHandler: classOwnerRequired }, async (request, reply) => {
     const cls = await prisma.class.findUnique({ where: { id: request.classId } })
-    const { getSeatGrid, getSeatGridTeacher, getSeatGridsFromArchivedRecords } = await import('../services/seat.js')
-    const [studentGrid, teacherGrid] = await Promise.all([
-      getSeatGrid(request.classId),
-      getSeatGridTeacher(request.classId),
-    ])
+    const { getSeatGrids, getSeatGridsFromArchivedRecords } = await import('../services/seat.js')
+    const { studentGrid, teacherGrid } = await getSeatGrids(request.classId)
     const signedCount = teacherGrid.flat().reduce((acc, cell) => acc + cell.students.length, 0)
 
     // 加载上一批次数据（用于对比变动 + 切换查看）

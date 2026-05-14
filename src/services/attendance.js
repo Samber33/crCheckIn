@@ -169,6 +169,8 @@ export async function getClassStatus(classId) {
     signedCount,
     totalCount,
     absentCount,
+    // 指纹：前端可对比版本号跳过不必要的DOM更新
+    version: `${signedCount}-${totalCount}-${signed.length > 0 ? signed[signed.length - 1].signedAt : '0'}`,
     countdown: config && config.activeStartedAt ? {
       startedAt: config.activeStartedAt,
       durationMin: config.countdownDurationMin,
@@ -535,14 +537,15 @@ export async function getAttendanceAnalytics(classId) {
   const MAX_SESSIONS = 50
   const sessions = await prisma.signInSession.findMany({
     where: { classId },
-    include: { records: { select: { studentName: true, signedAt: true } } },
+    include: { records: { select: { studentName: true } } },
     orderBy: { archivedAt: 'asc' },
     skip: Math.max(0, sessionCount - MAX_SESSIONS),
   })
 
-  // 当前签到记录（未归档）
+  // 当前签到记录（未归档）— 仅选需要的字段
   const records = await prisma.signInRecord.findMany({
     where: { classId },
+    select: { studentName: true },
     orderBy: { signedAt: 'asc' },
   })
 
@@ -556,15 +559,36 @@ export async function getAttendanceAnalytics(classId) {
     rate: studentNames.size > 0 ? ((s.records.filter(r => studentNames.has(r.studentName)).length / studentNames.size) * 100).toFixed(1) : '0',
   }))
 
-  // === 2 & 3. 时段/星期分布（单次遍历）===
-  const hourDistribution = new Array(24).fill(0)
-  const dayDistribution = new Array(7).fill(0)
-  const allRecords = [...sessions.flatMap(s => s.records), ...records]
-  for (const rec of allRecords) {
-    const d = new Date(rec.signedAt)
-    hourDistribution[d.getHours()]++
-    dayDistribution[d.getDay()]++
-  }
+  // === 2 & 3. 时段/星期分布 — 用 SQL 聚合，避免加载全量记录 ===
+  const hourResult = await prisma.$queryRaw`
+    SELECT CAST(strftime('%H', signedAt) AS INTEGER) as hour, COUNT(*) as cnt
+    FROM SignInRecord WHERE classId = ${classId}
+    GROUP BY hour
+  `
+  const archivedHourResult = await prisma.$queryRaw`
+    SELECT CAST(strftime('%H', signedAt) AS INTEGER) as hour, COUNT(*) as cnt
+    FROM ArchivedRecord ar
+    JOIN SignInSession ss ON ar.sessionId = ss.id
+    WHERE ss.classId = ${classId}
+    GROUP BY hour
+  `
+  const dayResult = await prisma.$queryRaw`
+    SELECT CAST(strftime('%w', signedAt) AS INTEGER) as day, COUNT(*) as cnt
+    FROM SignInRecord WHERE classId = ${classId}
+    GROUP BY day
+  `
+  const archivedDayResult = await prisma.$queryRaw`
+    SELECT CAST(strftime('%w', signedAt) AS INTEGER) as day, COUNT(*) as cnt
+    FROM ArchivedRecord ar
+    JOIN SignInSession ss ON ar.sessionId = ss.id
+    WHERE ss.classId = ${classId}
+    GROUP BY day
+  `
+
+  for (const row of hourResult) { hourDistribution[row.hour] = row.cnt }
+  for (const row of archivedHourResult) { hourDistribution[row.hour] = (hourDistribution[row.hour] || 0) + row.cnt }
+  for (const row of dayResult) { dayDistribution[row.day] = row.cnt }
+  for (const row of archivedDayResult) { dayDistribution[row.day] = (dayDistribution[row.day] || 0) + row.cnt }
 
   // === 4. 学生个人出勤趋势（最近5个批次）===
   const recentSessions = sessions.slice(-5)

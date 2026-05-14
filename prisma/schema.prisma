@@ -37,6 +37,8 @@ model SignInSession {
   label     String         // 如 "2025-03-18 周二 上午 · 一职B4"
   archivedAt DateTime      @default(now())
   records   ArchivedRecord[]
+
+  @@index([classId])
 }
 
 model ArchivedRecord {
@@ -48,6 +50,8 @@ model ArchivedRecord {
   computerName String
   studentIp    String?
   signedAt     DateTime
+
+  @@index([sessionId])
 }
 
 model Student {
@@ -72,6 +76,7 @@ model StudentTag {
   color       String  @default("#cc785c") // 标签颜色
 
   @@unique([classId, studentId, tag])
+  @@index([classId])
 }
 
 model SignInRecord {
@@ -86,6 +91,7 @@ model SignInRecord {
   student      Student? @relation(fields: [studentId], references: [id])
 
   @@unique([classId, studentName])
+  @@index([studentIp])
 }
 
 model SignInConfig {
@@ -127,6 +133,8 @@ model InfoSubmission {
   studentName String
   submittedAt DateTime  @default(now())
   responses   InfoResponse[]
+
+  @@index([classId])
 }
 
 // 字段响应值
@@ -158,4 +166,6 @@ model AuditLog {
   detail    String   @default("") // 额外详情（JSON 或文本）
   ip        String   @default("")
   createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }

@@ -121,11 +121,12 @@ export async function transferClass(classId, newTeacherId, adminId, ip = '') {
 
 /**
  * 归档所有班级的当前签到记录（期末一键归档）
+ * 优化：每个班级独立事务，避免大事务锁表
  */
 export async function archiveAllClasses(adminId, ip = '') {
   const classes = await prisma.class.findMany({
     where: { signInRecords: { some: {} } },
-    include: { signInRecords: { include: { student: true } } },
+    select: { id: true, name: true },
   })
 
   if (classes.length === 0) {
@@ -135,18 +136,23 @@ export async function archiveAllClasses(adminId, ip = '') {
   let totalArchived = 0
   const results = []
 
-  await prisma.$transaction(async (tx) => {
-    for (const cls of classes) {
-      if (cls.signInRecords.length === 0) continue
+  for (const cls of classes) {
+    const records = await prisma.signInRecord.findMany({
+      where: { classId: cls.id },
+      include: { student: { select: { homeClass: true } } },
+    })
 
-      const label = makeSessionLabel(cls.name)
+    if (records.length === 0) continue
 
+    const label = makeSessionLabel(cls.name)
+
+    await prisma.$transaction(async (tx) => {
       await tx.signInSession.create({
         data: {
           classId: cls.id,
           label,
           records: {
-            create: cls.signInRecords.map(r => ({
+            create: records.map(r => ({
               studentName: r.studentName,
               homeClass: r.student?.homeClass ?? '',
               computerName: r.computerName,
@@ -156,17 +162,16 @@ export async function archiveAllClasses(adminId, ip = '') {
         },
       })
 
-      const count = cls.signInRecords.length
       await tx.signInRecord.deleteMany({ where: { classId: cls.id } })
       await tx.signInConfig.updateMany({
         where: { classId: cls.id },
         data: { activeStartedAt: null },
       })
+    })
 
-      totalArchived += count
-      results.push({ classId: cls.id, className: cls.name, archived: count })
-    }
-  })
+    totalArchived += records.length
+    results.push({ classId: cls.id, className: cls.name, archived: records.length })
+  }
 
   await createAuditLog({
     adminId,
@@ -181,6 +186,7 @@ export async function archiveAllClasses(adminId, ip = '') {
 
 /**
  * 跨班级数据分析（管理员视角）
+ * 优化：批量查询替代 N+1，所有统计通过一次聚合查询完成
  */
 export async function getCrossClassAnalytics() {
   const [teachers, classCount, totalStudents, totalSessions, signInRecordCount, archivedRecordCount] = await Promise.all([
@@ -198,43 +204,105 @@ export async function getCrossClassAnalytics() {
 
   const totalSignIns = signInRecordCount + archivedRecordCount
 
-  // 每个教师的班级统计数据
-  const teacherStats = await Promise.all(
-    teachers.map(async (t) => {
-      const [classes, sessionsCount, signInRecCount, archivedRecCount, studentsCount] = await Promise.all([
-        prisma.class.findMany({
-          where: { teacherId: t.id },
-          include: {
-            _count: { select: { students: true, signInRecords: true, sessions: true } },
-          },
-          orderBy: { name: 'asc' },
-        }),
-        prisma.signInSession.count({ where: { class: { teacherId: t.id } } }),
-        prisma.signInRecord.count({ where: { class: { teacherId: t.id } } }),
-        prisma.archivedRecord.count({ where: { session: { class: { teacherId: t.id } } } }),
-        prisma.student.count({ where: { class: { teacherId: t.id } } }),
-      ])
+  // 批量查询：所有班级及其聚合计数（一次查询）
+  const classes = await prisma.class.findMany({
+    where: { teacherId: { in: teachers.map(t => t.id) } },
+    include: {
+      _count: { select: { students: true, signInRecords: true, sessions: true } },
+    },
+    orderBy: [{ teacherId: 'asc' }, { name: 'asc' }],
+  })
 
-      const recordsCount = signInRecCount + archivedRecCount
+  // 批量查询：每个教师的历史批次总数（一次查询）
+  const sessionsByTeacher = await prisma.signInSession.groupBy({
+    by: ['classId'],
+    _count: true,
+  })
+  const classIdToTeacherId = new Map(classes.map(c => [c.id, c.teacherId]))
+  const sessionCountByTeacher = new Map()
+  for (const item of sessionsByTeacher) {
+    const tid = classIdToTeacherId.get(item.classId)
+    if (tid) {
+      sessionCountByTeacher.set(tid, (sessionCountByTeacher.get(tid) || 0) + item._count)
+    }
+  }
 
-      return {
-        id: t.id,
-        username: t.username,
-        isAdmin: t.isAdmin,
-        classCount: t._count.classes,
-        sessionsCount,
-        recordsCount,
-        studentsCount,
-        classes: classes.map(c => ({
-          id: c.id,
-          name: c.name,
-          studentCount: c._count.students,
-          signedCount: c._count.signInRecords,
-          sessionCount: c._count.sessions,
-        })),
-      }
+  // 批量查询：每个教师的签到记录总数（一次查询）
+  const signInByTeacher = await prisma.signInRecord.groupBy({
+    by: ['classId'],
+    _count: true,
+  })
+  const signInCountByTeacher = new Map()
+  for (const item of signInByTeacher) {
+    const tid = classIdToTeacherId.get(item.classId)
+    if (tid) {
+      signInCountByTeacher.set(tid, (signInCountByTeacher.get(tid) || 0) + item._count)
+    }
+  }
+
+  // 批量查询：每个教师的归档记录总数（一次查询）
+  const archivedByTeacher = await prisma.archivedRecord.groupBy({
+    by: ['sessionId'],
+    _count: true,
+  })
+  // Need to map sessionId -> classId -> teacherId
+  const sessionIdToClassId = new Map()
+  for (const c of classes) {
+    // We need sessions for each class to map sessionId -> teacherId
+  }
+  // Simpler: just query the session->class relationship once
+  const sessionClassMap = await prisma.signInSession.findMany({
+    select: { id: true, classId: true },
+  })
+  for (const s of sessionClassMap) {
+    const tid = classIdToTeacherId.get(s.classId)
+    if (tid) sessionIdToClassId.set(s.id, tid)
+  }
+  const archivedCountByTeacher = new Map()
+  for (const item of archivedByTeacher) {
+    const tid = sessionIdToClassId.get(item.sessionId)
+    if (tid) {
+      archivedCountByTeacher.set(tid, (archivedCountByTeacher.get(tid) || 0) + item._count)
+    }
+  }
+
+  // 批量查询：每个教师的学生总数（一次查询）
+  const studentsByTeacher = await prisma.student.groupBy({
+    by: ['classId'],
+    _count: true,
+  })
+  const studentCountByTeacher = new Map()
+  for (const item of studentsByTeacher) {
+    const tid = classIdToTeacherId.get(item.classId)
+    if (tid) {
+      studentCountByTeacher.set(tid, (studentCountByTeacher.get(tid) || 0) + item._count)
+    }
+  }
+
+  // 按教师分组班级
+  const classesByTeacher = new Map()
+  for (const c of classes) {
+    if (!classesByTeacher.has(c.teacherId)) classesByTeacher.set(c.teacherId, [])
+    classesByTeacher.get(c.teacherId).push({
+      id: c.id,
+      name: c.name,
+      studentCount: c._count.students,
+      signedCount: c._count.signInRecords,
+      sessionCount: c._count.sessions,
     })
-  )
+  }
+
+  // 组装教师统计
+  const teacherStats = teachers.map(t => ({
+    id: t.id,
+    username: t.username,
+    isAdmin: t.isAdmin,
+    classCount: t._count.classes,
+    sessionsCount: sessionCountByTeacher.get(t.id) || 0,
+    recordsCount: (signInCountByTeacher.get(t.id) || 0) + (archivedCountByTeacher.get(t.id) || 0),
+    studentsCount: studentCountByTeacher.get(t.id) || 0,
+    classes: classesByTeacher.get(t.id) || [],
+  }))
 
   // 最近签到的班级（Top 10）
   const recentRecords = await prisma.signInRecord.findMany({

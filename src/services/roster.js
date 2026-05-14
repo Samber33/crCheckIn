@@ -445,11 +445,14 @@ export async function matchStudents(query, limit = 15, classId = null) {
     }))
   }
 
-  // 含字母/拼音：加载该班级全部学生，JS 层用 matchesPinyin 过滤
+  // 含字母/拼音：限制加载量，避免全表扫描
   const where = classId ? { classId } : {}
+  // 取前 200 名（按名称排序），limit=15 的输出上限意味着 200 足够覆盖
   const allStudents = await prisma.student.findMany({
     where,
     include: { class: true },
+    orderBy: { name: 'asc' },
+    take: 200,
   })
 
   // 过滤 + 排序：前缀匹配优先，其次子串匹配

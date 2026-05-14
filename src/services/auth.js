@@ -28,16 +28,15 @@ export async function verifyTeacherByPassword(password) {
     ],
   })
 
-  // 始终对所有教师执行 bcrypt.compare，防止时序攻击暴露教师数量
-  let found = null
-  for (const teacher of teachers) {
-    const match = await bcrypt.compare(password, teacher.passwordHash)
-    if (match) {
-      found = teacher
-      // 不 break，继续完成剩余比较以消耗恒定时间
-    }
-  }
+  // 并行执行所有 bcrypt 比较，既保持恒定时间又提升速度
+  const results = await Promise.all(
+    teachers.map(async (teacher) => {
+      const match = await bcrypt.compare(password, teacher.passwordHash)
+      return { teacher, match }
+    })
+  )
 
+  const found = results.find(r => r.match)?.teacher
   if (found) return { ok: true, teacher: found }
   return { ok: false, message: '密码不正确' }
 }

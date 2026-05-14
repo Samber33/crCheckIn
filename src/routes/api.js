@@ -26,7 +26,7 @@ import {
 } from '../services/roster.js'
 import { createClass, deleteClass, archiveClass, unarchiveClass } from '../services/class.js'
 import { changePassword, verifyTeacherByPassword } from '../services/auth.js'
-import { getSeatGrid, getSeatGridTeacher } from '../services/seat.js'
+import { getSeatGrid, getSeatGridTeacher, getSeatGrids } from '../services/seat.js'
 import { createStudent, updateStudent, deleteStudent, transferStudent } from '../services/student.js'
 import {
   getInfoCollection,
@@ -386,10 +386,7 @@ export default async function apiRoutes(fastify) {
 
   // GET /api/seat-grid — 座位表数据，需要 classOwnerRequired
   fastify.get('/api/seat-grid', { preHandler: classOwnerRequired }, async (request, reply) => {
-    const [studentGrid, teacherGrid] = await Promise.all([
-      getSeatGrid(request.classId),
-      getSeatGridTeacher(request.classId),
-    ])
+    const { studentGrid, teacherGrid } = await getSeatGrids(request.classId)
     const signedCount = teacherGrid.flat().reduce((acc, cell) => acc + cell.students.length, 0)
     return reply.send({ teacherGrid, studentGrid, signedCount })
   })

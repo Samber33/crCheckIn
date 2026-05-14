@@ -10,6 +10,16 @@ const TAG_COLORS = [
   '#e67e22', // orange
 ]
 
+// 预设标签内存缓存（签到高频读取，写操作极少）
+let presetTagCache = null
+
+/**
+ * 清除预设标签缓存（在增删改后调用）
+ */
+export function invalidatePresetTagCache() {
+  presetTagCache = null
+}
+
 /**
  * 获取所有预设标签
  */
@@ -18,11 +28,13 @@ export async function getPresetTags() {
 }
 
 /**
- * 获取预设标签名称列表
+ * 获取预设标签名称列表（带缓存）
  */
 export async function getPresetTagNames() {
-  const tags = await getPresetTags()
-  return tags.map(t => t.tag)
+  if (presetTagCache) return presetTagCache
+  const tags = await prisma.presetTag.findMany({ orderBy: { sortOrder: 'asc' } })
+  presetTagCache = tags.map(t => t.tag)
+  return presetTagCache
 }
 
 /**
@@ -36,6 +48,7 @@ export async function addPresetTag(tag, color) {
   await prisma.presetTag.create({
     data: { tag, color: color || TAG_COLORS[0], sortOrder: newOrder },
   })
+  invalidatePresetTagCache()
   return { ok: true }
 }
 
@@ -59,6 +72,7 @@ export async function updatePresetTag(tagId, data) {
   if (data.color !== undefined) updateData.color = data.color
   if (Object.keys(updateData).length === 0) return { ok: false, message: '无有效字段' }
   await prisma.presetTag.update({ where: { id: tagId }, data: updateData })
+  invalidatePresetTagCache()
   return { ok: true }
 }
 
@@ -73,6 +87,7 @@ export async function deletePresetTag(tagId) {
     where: { tag: existing.tag },
   })
   await prisma.presetTag.delete({ where: { id: tagId } })
+  invalidatePresetTagCache()
   return { ok: true }
 }
 

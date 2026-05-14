@@ -104,32 +104,36 @@ function buildTeacherGridFromSeatMap(seatToStudents) {
 }
 
 /**
- * 学生视角网格（讲台在上方，按学生查看习惯排列）
+ * 一次性返回学生+教师视角网格，共享 buildSeatMap 结果
  */
-export async function getSeatGrid(classId) {
+export async function getSeatGrids(classId) {
   const seatToStudents = await buildSeatMap(classId)
   const tagMap = await getClassTags(classId)
-  // Enrich students with tags
   for (const students of seatToStudents.values()) {
     for (const stu of students) {
       if (stu.id) stu.tags = tagMap.get(stu.id) || []
     }
   }
-  return buildStudentGridFromSeatMap(seatToStudents)
+  return {
+    studentGrid: buildStudentGridFromSeatMap(seatToStudents),
+    teacherGrid: buildTeacherGridFromSeatMap(seatToStudents),
+  }
+}
+
+/**
+ * 学生视角网格（讲台在上方，按学生查看习惯排列）
+ */
+export async function getSeatGrid(classId) {
+  const { studentGrid } = await getSeatGrids(classId)
+  return studentGrid
 }
 
 /**
  * 教师视角网格（讲台在下方，按教师查看习惯排列）
  */
 export async function getSeatGridTeacher(classId) {
-  const seatToStudents = await buildSeatMap(classId)
-  const tagMap = await getClassTags(classId)
-  for (const students of seatToStudents.values()) {
-    for (const stu of students) {
-      if (stu.id) stu.tags = tagMap.get(stu.id) || []
-    }
-  }
-  return buildTeacherGridFromSeatMap(seatToStudents)
+  const { teacherGrid } = await getSeatGrids(classId)
+  return teacherGrid
 }
 
 /**
