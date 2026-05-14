@@ -315,7 +315,6 @@ export default async function apiRoutes(fastify) {
   // GET /api/sse — SSE 实时推送通道，需要 teacherRequired
   fastify.get('/api/sse', { preHandler: teacherRequired }, async (request, reply) => {
     const teacherId = request.session.teacherId
-    const socket = request.raw.socket
 
     reply
       .header('Content-Type', 'text/event-stream')
@@ -323,28 +322,28 @@ export default async function apiRoutes(fastify) {
       .header('Connection', 'keep-alive')
       .header('X-Accel-Buffering', 'no')
 
+    // 先 hijack 接管响应，再用 reply.raw 写入
+    reply.hijack()
+
     // 发送初始连接确认
-    socket.write(`event: connected\ndata: {}\n\n`)
+    reply.raw.write(`event: connected\ndata: {}\n\n`)
 
     // 注册 socket 到 SSE 管理器
-    registerSSE(teacherId, socket)
+    registerSSE(teacherId, reply.raw.socket)
 
     // 心跳保活
     const heartbeat = setInterval(() => {
       try {
-        socket.write(`: heartbeat\n\n`)
+        reply.raw.write(`: heartbeat\n\n`)
       } catch {
         clearInterval(heartbeat)
       }
     }, 30000)
     heartbeat.unref()
 
-    socket.on('close', () => {
+    reply.raw.socket.on('close', () => {
       clearInterval(heartbeat)
     })
-
-    // 告诉 Fastify 我们接管了响应
-    reply.hijack()
   })
 
   // GET /api/stats — 出勤率统计，需要 classOwnerRequired
