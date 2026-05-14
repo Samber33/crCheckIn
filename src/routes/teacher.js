@@ -11,17 +11,6 @@ function noCache(reply) {
 }
 
 export default async function teacherRoutes(app) {
-  app.get('/teacher/login', async (request, reply) => {
-    if (isTeacherLoggedIn(request)) {
-      return reply.redirect('/teacher/classes')
-    }
-    return reply.redirect('/student')
-  })
-
-  app.post('/teacher/login', async (request, reply) => {
-    return reply.redirect('/student')
-  })
-
   app.post('/teacher/logout', async (request, reply) => {
     request.session = null
     return reply.redirect('/student')

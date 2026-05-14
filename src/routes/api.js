@@ -1,5 +1,5 @@
 import { teacherRequired, classOwnerRequired } from '../utils/auth.js'
-import { parseDt, nowParts } from '../utils/time.js'
+import { nowParts } from '../utils/time.js'
 import { resolveClientName } from '../utils/ip.js'
 import {
   signIn,
@@ -34,7 +34,6 @@ import {
   createInfoField,
   updateInfoField,
   deleteInfoField,
-  updateFieldSortOrder,
   submitInfo,
   getSubmissions,
   getSubmissionDetail,
@@ -43,7 +42,6 @@ import {
   uploadAttachment,
 } from '../services/infoCollection.js'
 import {
-  getStudentTags,
   getClassTags,
   addStudentTag,
   deleteStudentTag,

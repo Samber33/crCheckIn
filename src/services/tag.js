@@ -77,28 +77,6 @@ export async function deletePresetTag(tagId) {
 }
 
 /**
- * 更新预设标签排序
- */
-export async function reorderPresetTags(orderedIds) {
-  await prisma.$transaction(
-    orderedIds.map((id, i) =>
-      prisma.presetTag.update({ where: { id }, data: { sortOrder: i } })
-    )
-  )
-  return { ok: true }
-}
-
-/**
- * 获取某个学生的标签
- */
-export async function getStudentTags(classId, studentId) {
-  return prisma.studentTag.findMany({
-    where: { classId, studentId },
-    orderBy: { id: 'asc' },
-  })
-}
-
-/**
  * 获取班级所有学生的标签（批量）
  */
 export async function getClassTags(classId) {

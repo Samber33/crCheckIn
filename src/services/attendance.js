@@ -180,7 +180,7 @@ export async function getClassStatus(classId) {
 /**
  * 生成批次标签，格式：2025-03-18 周二 上午 · 班级名
  */
-function makeSessionLabel(className) {
+export function makeSessionLabel(className) {
   const now = nowParts()
   const pad = (n) => String(n).padStart(2, '0')
   const date = `${now.year}-${pad(now.month)}-${pad(now.day)}`

@@ -24,9 +24,7 @@ export const STUDENT_SEAT_LAYOUT = [
 ]
 
 // 学生视角：过道在列索引 1, 3, 5 右侧
-export const AISLE_AFTER_COLS_STUDENT = new Set([1, 3, 5])
 // 教师视角：同样在列索引 1, 3, 5 右侧留过道
-export const AISLE_AFTER_COLS_TEACHER = new Set([1, 3, 5])
 
 function buildSeatMapFromRecords(records) {
   const seatToStudents = new Map()

@@ -1,18 +1,5 @@
 import { prisma } from '../plugins/db.js'
-
-/**
- * 生成批次标签，格式：2025-03-18 周二 上午 · 班级名
- */
-function makeSessionLabel(className) {
-  const now = new Date()
-  const pad = (n) => String(n).padStart(2, '0')
-  const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
-  const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
-  const day = days[now.getDay()]
-  const hour = now.getHours()
-  const period = hour < 12 ? '上午' : '下午'
-  return `${date} ${day} ${period} · ${className}`
-}
+import { makeSessionLabel } from './attendance.js'
 
 /**
  * 创建审计日志
@@ -36,63 +23,6 @@ export async function getAuditLogs({ limit = 50, offset = 0 } = {}) {
     prisma.auditLog.count(),
   ])
   return { logs, total }
-}
-
-/**
- * 获取所有班级的实时状态（管理员全局看板）
- */
-export async function getAllClassesStatus() {
-  const classes = await prisma.class.findMany({
-    orderBy: [{ teacher: { username: 'asc' } }, { name: 'asc' }],
-    include: { teacher: { select: { username: true } } },
-  })
-
-  const classIds = classes.map(c => c.id)
-  const [configs, recordCounts, sessions] = await Promise.all([
-    prisma.signInConfig.findMany({ where: { classId: { in: classIds } } }),
-    prisma.signInRecord.groupBy({
-      by: ['classId'],
-      _count: true,
-      where: { classId: { in: classIds } },
-    }),
-    prisma.signInSession.groupBy({
-      by: ['classId'],
-      _count: true,
-      where: { classId: { in: classIds } },
-    }),
-  ])
-
-  const configMap = new Map(configs.map(c => [c.classId, c]))
-  const recordCountMap = new Map(recordCounts.map(r => [r.classId, r._count]))
-  const sessionCountMap = new Map(sessions.map(s => [s.classId, s._count]))
-
-  return classes.map(cls => {
-    const config = configMap.get(cls.id)
-    const now = new Date()
-    let signInStatus = '未开启'
-
-    if (config?.activeStartedAt) {
-      const endTime = new Date(new Date(config.activeStartedAt).getTime() + (config.countdownDurationMin || 40) * 60 * 1000)
-      if (now < endTime) {
-        signInStatus = '签到中'
-      }
-    }
-
-    const signedCount = recordCountMap.get(cls.id) || 0
-
-    return {
-      id: cls.id,
-      name: cls.name,
-      teacherUsername: cls.teacher.username,
-      teacherId: cls.teacherId,
-      studentCount: 0, // will be enriched if needed
-      signedCount,
-      totalSessions: sessionCountMap.get(cls.id) || 0,
-      signInStatus,
-      isArchived: cls.isArchived,
-      isSigning: signInStatus === '签到中',
-    }
-  })
 }
 
 /**
