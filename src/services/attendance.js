@@ -588,10 +588,10 @@ export async function getAttendanceAnalytics(classId) {
     GROUP BY day
   `
 
-  for (const row of hourResult) { hourDistribution[row.hour] = row.cnt }
-  for (const row of archivedHourResult) { hourDistribution[row.hour] = (hourDistribution[row.hour] || 0) + row.cnt }
-  for (const row of dayResult) { dayDistribution[row.day] = row.cnt }
-  for (const row of archivedDayResult) { dayDistribution[row.day] = (dayDistribution[row.day] || 0) + row.cnt }
+  for (const row of hourResult) { hourDistribution[row.hour] = Number(row.cnt) }
+  for (const row of archivedHourResult) { hourDistribution[row.hour] = (hourDistribution[row.hour] || 0) + Number(row.cnt) }
+  for (const row of dayResult) { dayDistribution[row.day] = Number(row.cnt) }
+  for (const row of archivedDayResult) { dayDistribution[row.day] = (dayDistribution[row.day] || 0) + Number(row.cnt) }
 
   // === 4. 学生个人出勤趋势（最近5个批次）===
   const recentSessions = sessions.slice(-5)
