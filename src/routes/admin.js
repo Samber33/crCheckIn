@@ -102,6 +102,19 @@ export default async function adminRoutes(app) {
     return reply.send(result)
   })
 
+  // === API: Teacher List (for pool claim dropdown) ===
+
+  app.get('/admin/api/teachers', { preHandler: adminRequired }, async (request, reply) => {
+    const teachers = await prisma.teacher.findMany({
+      orderBy: { username: 'asc' },
+    })
+    return reply.send(teachers.map(t => ({
+      id: t.id,
+      username: t.username,
+      isAdmin: t.isAdmin,
+    })))
+  })
+
   // === API: Class Management ===
 
   app.get('/admin/api/classes', { preHandler: adminRequired }, async (request, reply) => {
