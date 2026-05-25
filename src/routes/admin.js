@@ -146,6 +146,15 @@ export default async function adminRoutes(app) {
     return reply.send(result)
   })
 
+  app.post('/admin/api/classes/:id/move-to-pool', { preHandler: adminRequired }, async (request, reply) => {
+    const classId = parseInt(request.params.id, 10)
+    const ip = getClientIp(request)
+    const { moveClassToPool } = await import('../services/admin.js')
+    const result = await moveClassToPool(classId, request.session.teacherId, ip)
+    if (!result.ok) return reply.code(result.status || 400).send(result)
+    return reply.send(result)
+  })
+
   app.post('/admin/api/classes/:id/transfer', { preHandler: adminRequired }, async (request, reply) => {
     const classId = parseInt(request.params.id, 10)
     const { teacherId } = request.body ?? {}

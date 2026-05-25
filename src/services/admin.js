@@ -411,3 +411,35 @@ export async function deleteClassByAdmin(classId, adminId, ip = '') {
 
   return { ok: true, message: `已删除班级「${cls.name}」` }
 }
+
+/**
+ * 将现有班级移入班级池（设置 teacherId = null）
+ */
+export async function moveClassToPool(classId, adminId, ip = '') {
+  const cls = await prisma.class.findUnique({
+    where: { id: classId },
+    include: { teacher: { select: { username: true } } },
+  })
+  if (!cls) return { ok: false, message: '班级不存在', status: 404 }
+  if (cls.teacherId === null) return { ok: false, message: '该班级已在班级池中', status: 400 }
+
+  const teacherName = cls.teacher?.username ?? '未知'
+
+  await prisma.class.update({
+    where: { id: classId },
+    data: { teacherId: null },
+  })
+
+  const { invalidateClassTeacherCache } = await import('./sse.js')
+  invalidateClassTeacherCache(classId)
+
+  await createAuditLog({
+    adminId,
+    action: 'MOVE_TO_POOL',
+    target: `班级「${cls.name}」(${classId})`,
+    detail: JSON.stringify({ from: teacherName, fromId: cls.teacherId }),
+    ip,
+  })
+
+  return { ok: true, message: `已将「${cls.name}」移入班级池` }
+}
