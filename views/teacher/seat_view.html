@@ -226,6 +226,8 @@
       cursor: pointer;
     }
     .roster-item:hover { background: var(--canvas); }
+    .roster-item.highlight { background: var(--surface-card); box-shadow: inset 2px 0 0 var(--primary); }
+    .seat-card.highlight { box-shadow: 0 0 0 2px var(--primary), 0 4px 16px rgba(204,120,92,.25); }
     .roster-dot {
       width: 8px;
       height: 8px;
@@ -983,14 +985,32 @@ function positionTooltip(event) {
 function attachPhotoTooltip(element, photoUrl, studentName) {
   if (!photoUrl) return
   element.addEventListener('mouseenter', (e) => {
-    photoTooltipTimer = setTimeout(() => showPhotoTooltip(photoUrl, studentName, e), 300)
+    showPhotoTooltip(photoUrl, studentName, e)
   })
   element.addEventListener('mousemove', (e) => {
-    if (photoTooltip.classList.contains('visible')) positionTooltip(e)
+    positionTooltip(e)
   })
   element.addEventListener('mouseleave', () => {
-    clearTimeout(photoTooltipTimer)
     photoTooltip.classList.remove('visible')
+    photoTooltipImg.src = ''
+  })
+}
+
+// === Seat ↔ Roster bidirectional highlight ===
+function highlightSeat(studentName) {
+  document.querySelectorAll('.seat-card.highlight').forEach(el => el.classList.remove('highlight'))
+  if (!studentName) return
+  const card = document.querySelector(`.seat-card[data-student-name="${CSS.escape(studentName)}"]`)
+  if (card) card.classList.add('highlight')
+}
+
+function highlightRoster(studentName) {
+  document.querySelectorAll('.roster-item.highlight').forEach(el => el.classList.remove('highlight'))
+  if (!studentName) return
+  document.querySelectorAll('.roster-item').forEach(el => {
+    if (el.querySelector('.roster-name')?.textContent === studentName) {
+      el.classList.add('highlight')
+    }
   })
 }
 
@@ -1026,10 +1046,14 @@ function renderGrid(grid, aisles, changedSeats, newSeats) {
         noEl.innerHTML = `<svg style="width:12px;height:12px;opacity:.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke-width="2"/><line x1="12" y1="17" x2="12" y2="21" stroke-width="2"/></svg> <span>${seat.label}</span>`
         card.appendChild(noEl)
         if (seat.students.length > 0) {
+          const studentName = seat.dupIp ? seat.students.map(s => s.name).join(' / ') : seat.students[0].name
+          card.dataset.studentName = studentName
+          card.addEventListener('mouseenter', () => highlightRoster(studentName))
+          card.addEventListener('mouseleave', () => highlightRoster(null))
           if (seat.dupIp) {
             const nameEl = document.createElement('div')
             nameEl.className = 'stu-name'
-            nameEl.textContent = seat.students.map(s => s.name).join(' / ')
+            nameEl.textContent = studentName
             card.appendChild(nameEl)
           } else {
             const stu = seat.students[0]
@@ -1144,6 +1168,9 @@ function renderRoster(roster) {
     item.className = 'roster-item'
     item.dataset.studentId = r.studentId
     item.title = '点击编辑标签'
+    // Highlight seat card on hover
+    item.addEventListener('mouseenter', () => highlightSeat(r.studentName))
+    item.addEventListener('mouseleave', () => highlightSeat(null))
     item.innerHTML = `
       <span class="roster-dot ${dotClass}"></span>
       <span class="roster-name">${escHtml(r.studentName)}</span>
