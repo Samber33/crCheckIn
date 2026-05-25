@@ -1009,7 +1009,12 @@ async function saveEdit() {
   row.dataset.name = data.student.name
   row.dataset.homeclass = data.student.homeClass || ''
   row.querySelector('.student-name').textContent = data.student.name
-  row.querySelector('.student-avatar').textContent = data.student.name.charAt(0)
+  const avatarFallback = row.querySelector('.student-avatar-fallback')
+  if (avatarFallback) {
+    avatarFallback.textContent = data.student.name.charAt(0)
+  } else {
+    row.querySelector('.student-avatar').textContent = data.student.name.charAt(0)
+  }
   syncHomeClass(row, data.student.homeClass)
   // Update tag display in row
   const tagsWrap = row.querySelector('.student-name-wrap')
