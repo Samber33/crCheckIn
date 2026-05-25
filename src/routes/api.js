@@ -256,7 +256,7 @@ export default async function apiRoutes(fastify) {
     request.session.isAdmin = result.teacher.isAdmin
     return reply.send({
       ok: true,
-      redirect: '/teacher/classes',
+      redirect: result.teacher.isAdmin ? '/admin' : '/teacher/classes',
     })
   })
 

@@ -17,6 +17,9 @@ export default async function teacherRoutes(app) {
   })
 
   app.get('/teacher', async (request, reply) => {
+    if (request.session?.isAdmin === true) {
+      return reply.redirect('/admin')
+    }
     return reply.redirect('/teacher/classes')
   })
 
