@@ -413,33 +413,49 @@ export async function deleteClassByAdmin(classId, adminId, ip = '') {
 }
 
 /**
- * 将现有班级移入班级池（设置 teacherId = null）
+ * 复制班级及学生到班级池（原班级保留不动）
  */
-export async function moveClassToPool(classId, adminId, ip = '') {
+export async function copyClassToPool(classId, adminId, ip = '') {
   const cls = await prisma.class.findUnique({
     where: { id: classId },
     include: { teacher: { select: { username: true } } },
   })
   if (!cls) return { ok: false, message: '班级不存在', status: 404 }
-  if (cls.teacherId === null) return { ok: false, message: '该班级已在班级池中', status: 400 }
 
   const teacherName = cls.teacher?.username ?? '未知'
 
-  await prisma.class.update({
-    where: { id: classId },
-    data: { teacherId: null },
+  // 在池中新建同名班级
+  const poolClass = await prisma.class.create({
+    data: {
+      name: cls.name,
+      teacherId: null,
+      signInConfig: { create: {} },
+    },
   })
 
-  const { invalidateClassTeacherCache } = await import('./sse.js')
-  invalidateClassTeacherCache(classId)
+  // 复制学生到新池班级
+  const students = await prisma.student.findMany({
+    where: { classId },
+    select: { name: true, homeClass: true, remark: true },
+  })
+  if (students.length > 0) {
+    await prisma.student.createMany({
+      data: students.map(s => ({
+        name: s.name,
+        homeClass: s.homeClass,
+        remark: s.remark,
+        classId: poolClass.id,
+      })),
+    })
+  }
 
   await createAuditLog({
     adminId,
-    action: 'MOVE_TO_POOL',
-    target: `班级「${cls.name}」(${classId})`,
-    detail: JSON.stringify({ from: teacherName, fromId: cls.teacherId }),
+    action: 'COPY_TO_POOL',
+    target: `班级「${cls.name}」→ 班级池 (${poolClass.id})`,
+    detail: JSON.stringify({ from: teacherName, fromId: cls.teacherId, originalClassId: classId, newClassId: poolClass.id, studentCount: students.length }),
     ip,
   })
 
-  return { ok: true, message: `已将「${cls.name}」移入班级池` }
+  return { ok: true, message: `已将「${cls.name}」及 ${students.length} 名学生复制到班级池` }
 }

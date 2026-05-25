@@ -606,7 +606,7 @@
       <!-- Left: Sidebar Actions -->
       <div style="display: flex; flex-direction: column; gap: 16px;">
         <!-- Claim from Pool -->
-        <div class="sidebar-card" {% if poolClasses and poolClasses.length === 0 %}style="display:none;"{% endif %} id="claimPoolCard">
+        <div class="sidebar-card" id="claimPoolCard">
           <div class="sidebar-header">
             <p class="sidebar-title">认领班级池</p>
           </div>
@@ -623,6 +623,8 @@
                 <button class="btn btn-primary pool-claim-btn" data-class-id="{{ cls.id }}" data-class-name="{{ cls.name }}" style="font-size: 12px; height: 32px; padding: 0 12px;">认领</button>
               </div>
               {% endfor %}
+              {% else %}
+              <div style="font-size: 12px; color: var(--muted-soft); text-align: center; padding: 12px 0;">暂无班级池，请联系管理员创建</div>
               {% endif %}
             </div>
           </div>

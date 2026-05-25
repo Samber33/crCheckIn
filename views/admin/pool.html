@@ -92,13 +92,13 @@
           </div>
         </div>
 
-        <!-- Move to Pool -->
+        <!-- Copy to Pool -->
         <div class="sidebar-card">
           <div class="sidebar-header">
-            <p class="sidebar-title">移入班级池</p>
+            <p class="sidebar-title">复制到班级池</p>
           </div>
           <div class="sidebar-body">
-            <p style="font-size: 12px; color: var(--muted-soft); margin: 0 0 12px;">将教师的现有班级移入班级池（取消关联教师）</p>
+            <p style="font-size: 12px; color: var(--muted-soft); margin: 0 0 12px;">将教师班级的学生和配置复制到班级池，原班级保留不动</p>
             <div class="form-field">
               <label for="moveTeacherSelect">选择教师</label>
               <select id="moveTeacherSelect" class="input-field"><option value="">-- 选择教师 --</option></select>
@@ -107,7 +107,7 @@
               <label for="moveClassSelect">选择班级</label>
               <select id="moveClassSelect" class="input-field" disabled><option value="">-- 请先选择教师 --</option></select>
             </div>
-            <button id="moveToPoolBtn" class="btn btn-primary" style="background: var(--warning); color: var(--ink);">确认移入</button>
+            <button id="moveToPoolBtn" class="btn btn-primary" style="background: var(--warning); color: var(--ink);">复制到池</button>
           </div>
         </div>
       </div>
@@ -251,7 +251,7 @@ async function loadClaimData() {
 }
 loadClaimData()
 
-// === Move to Pool ===
+// === Copy to Pool ===
 async function loadMoveData() {
   try {
     const [teacherRes, classRes] = await Promise.all([
@@ -294,11 +294,11 @@ document.getElementById('moveTeacherSelect').addEventListener('change', (e) => {
 document.getElementById('moveToPoolBtn').addEventListener('click', async () => {
   const classId = document.getElementById('moveClassSelect').value
   if (!classId) { showToast('请选择要移入的班级', false); return }
-  if (!confirm('确认将该班级移入班级池？该班级将与当前教师解除关联。')) return
-  const res = await fetch(`/admin/api/classes/${classId}/move-to-pool`, { method: 'POST' })
+  if (!confirm('确认将班级及学生复制到班级池？原班级将保留不动。')) return
+  const res = await fetch(`/admin/api/classes/${classId}/copy-to-pool`, { method: 'POST' })
   const data = await res.json()
-  if (data.ok) { showToast('已移入班级池'); window.location.reload() }
-  else { showToast(data.message || '移入失败', false) }
+  if (data.ok) { showToast(data.message); window.location.reload() }
+  else { showToast(data.message || '复制失败', false) }
 })
 
 // === Claim button ===
