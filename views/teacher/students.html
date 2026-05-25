@@ -508,6 +508,35 @@
 
     /* Force hidden class regardless of Tailwind */
     .hidden { display: none !important; }
+
+    /* === Photo Hover Tooltip === */
+    .photo-tooltip {
+      position: fixed;
+      z-index: 10000;
+      pointer-events: none;
+      display: none;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.18);
+      border: 1px solid var(--hairline);
+      padding: 6px;
+      overflow: hidden;
+    }
+    .photo-tooltip.visible { display: block; }
+    .photo-tooltip img {
+      display: block;
+      max-width: 140px;
+      max-height: 180px;
+      object-fit: cover;
+      border-radius: 6px;
+    }
+    .photo-tooltip .photo-name {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--ink);
+      padding: 4px 0 2px;
+    }
   </style>
 </head>
 <body>
@@ -612,7 +641,7 @@
             {% else %}
             {% for s in students %}
             <li id="row-{{ s.id }}" class="student-item"
-              data-id="{{ s.id }}" data-name="{{ s.name }}" data-homeclass="{{ s.homeClass }}">
+              data-id="{{ s.id }}" data-name="{{ s.name }}" data-homeclass="{{ s.homeClass }}" data-photo-url="{{ s.photoUrl }}">
               <div class="student-head">
                 <div class="student-info">
                   <div class="student-avatar">
@@ -656,6 +685,12 @@
     </div>
 
   </main>
+
+  <!-- Photo Tooltip -->
+  <div id="photoTooltip" class="photo-tooltip">
+    <img id="photoTooltipImg" src="" alt="" />
+    <div id="photoTooltipName" class="photo-name"></div>
+  </div>
 
   <!-- Edit Modal -->
   <div id="editModal" class="hidden modal-overlay">
@@ -792,6 +827,57 @@ function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
 }
 
+// === Photo Tooltip ===
+const photoTooltip = document.getElementById('photoTooltip')
+const photoTooltipImg = document.getElementById('photoTooltipImg')
+const photoTooltipName = document.getElementById('photoTooltipName')
+let photoTooltipTimer = null
+
+function showPhotoTooltip(photoUrl, studentName, event) {
+  if (!photoUrl) return
+  clearTimeout(photoTooltipTimer)
+  photoTooltipImg.src = photoUrl
+  photoTooltipImg.alt = studentName
+  photoTooltipName.textContent = studentName
+  photoTooltip.classList.add('visible')
+  positionTooltip(event)
+}
+
+function hidePhotoTooltip() {
+  clearTimeout(photoTooltipTimer)
+  photoTooltip.classList.remove('visible')
+  photoTooltipImg.src = ''
+}
+
+function positionTooltip(event) {
+  const padding = 12
+  let x = event.clientX + padding
+  let y = event.clientY + padding
+  const rect = photoTooltip.getBoundingClientRect()
+  if (x + rect.width > window.innerWidth) {
+    x = event.clientX - rect.width - padding
+  }
+  if (y + rect.height > window.innerHeight) {
+    y = event.clientY - rect.height - padding
+  }
+  photoTooltip.style.left = Math.max(4, x) + 'px'
+  photoTooltip.style.top = Math.max(4, y) + 'px'
+}
+
+function attachPhotoTooltip(element, photoUrl, studentName) {
+  if (!photoUrl) return
+  element.addEventListener('mouseenter', (e) => {
+    photoTooltipTimer = setTimeout(() => showPhotoTooltip(photoUrl, studentName, e), 300)
+  })
+  element.addEventListener('mousemove', (e) => {
+    if (photoTooltip.classList.contains('visible')) positionTooltip(e)
+  })
+  element.addEventListener('mouseleave', () => {
+    clearTimeout(photoTooltipTimer)
+    photoTooltip.classList.remove('visible')
+  })
+}
+
 async function reloadTags() {
   try {
     const res = await fetch('/api/tags?classId=' + CLASS_ID)
@@ -910,6 +996,11 @@ setupDefaultTagInput(document.getElementById('addCustomTagInput'), '请假')
 // Load tags on page load
 loadPresetTags()
 reloadTags()
+
+// Attach photo tooltips to server-rendered student items
+document.querySelectorAll('.student-item[data-photo-url]').forEach(el => {
+  attachPhotoTooltip(el, el.dataset.photoUrl || '', el.dataset.name || '')
+})
 
 function formatHomeClass(homeClass) {
   const value = (homeClass || '').trim()

@@ -342,6 +342,7 @@ export async function getSessionRosterForTeacher(sessionId, teacherId, isAdmin =
         signedAt: rec.signedAt ? formatSecond(new Date(rec.signedAt)) : '-',
         computerName: rec.computerName || '-',
         tags,
+        photoUrl: stu.photoUrl || '',
       }
     }
     return {
@@ -352,6 +353,7 @@ export async function getSessionRosterForTeacher(sessionId, teacherId, isAdmin =
       signedAt: '-',
       computerName: '-',
       tags,
+      photoUrl: stu.photoUrl || '',
     }
   })
 
@@ -365,6 +367,7 @@ export async function getSessionRosterForTeacher(sessionId, teacherId, isAdmin =
       signedAt: rec.signedAt ? formatSecond(new Date(rec.signedAt)) : '-',
       computerName: rec.computerName || '-',
       tags: [],
+      photoUrl: '',
     }))
 
   roster.push(...snapshotOnlySigned)

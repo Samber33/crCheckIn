@@ -651,7 +651,10 @@
           </div>
         </div>
 
-        <!-- Create Class -->
+        <!--
+        Disabled: 由管理员在后台统一创建班级和导入名单
+        -->
+        <!-- Create Class
         <div class="sidebar-card">
           <div class="sidebar-header">
             <p class="sidebar-title">创建新班级</p>
@@ -665,7 +668,7 @@
           </div>
         </div>
 
-        <!-- Import Excel -->
+        Import Excel
         <div class="sidebar-card">
           <div class="sidebar-header">
             <p class="sidebar-title">从 Excel 导入名单</p>
@@ -685,6 +688,7 @@
             </div>
           </div>
         </div>
+        -->
       </div>
 
       <!-- Right: Class Grid -->
@@ -955,6 +959,8 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async () =
   if (data.ok) { window.location.reload() } else { showToast(data.message || '删除失败', false) }
 })
 
+/*
+// Disabled: 由管理员在后台统一创建班级
 document.getElementById('createBtn').addEventListener('click', async () => {
   const name = document.getElementById('classNameInput').value.trim()
   if (!name) { showToast('请输入班级名称', false); return }
@@ -970,7 +976,10 @@ document.getElementById('createBtn').addEventListener('click', async () => {
 document.getElementById('classNameInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('createBtn').click()
 })
+*/
 
+/*
+// Disabled: 由管理员在后台统一导入名单
 const importFile = document.getElementById('importFile')
 const importBtn = document.getElementById('importBtn')
 const importFileName = document.getElementById('importFileName')
@@ -1001,6 +1010,7 @@ importBtn.addEventListener('click', async () => {
   showToast(data.message || (data.ok ? '导入成功' : '导入失败'), data.ok)
   if (data.ok) setTimeout(() => window.location.reload(), 1000)
 })
+*/
 
 // === Claim Pool Class ===
 const poolSelect = document.getElementById('poolClassSelect')

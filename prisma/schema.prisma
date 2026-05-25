@@ -28,6 +28,10 @@ model Class {
   signInRecords SignInRecord[]
   sessions      SignInSession[]
   infoCollection InfoCollection?
+
+  @@index([teacherId])
+  @@index([teacherId, isArchived])
+  @@index([name])
 }
 
 model SignInSession {
