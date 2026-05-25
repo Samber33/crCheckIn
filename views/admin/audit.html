@@ -108,10 +108,18 @@ function timeCN(dateStr) {
 
 async function loadPage(page) {
   currentPage = page
-  const res = await fetch(`/admin/api/audit-logs?page=${page}&limit=${LIMIT}`)
-  if (res.status === 401 || res.status === 403) { window.location.href = '/student'; return }
-  const data = await res.json()
-  render(data)
+  try {
+    const res = await fetch(`/admin/api/audit-logs?page=${page}&limit=${LIMIT}`)
+    if (res.status === 401 || res.status === 403) { window.location.href = '/student'; return }
+    if (!res.ok) { throw new Error('服务器返回 ' + res.status) }
+    const data = await res.json()
+    render(data)
+  } catch (e) {
+    document.getElementById('loadingView').style.display = 'none'
+    document.getElementById('dataView').innerHTML = '<p style="text-align:center;padding:32px;color:var(--error);">加载失败：' + escHtml(e.message) + '</p>'
+    document.getElementById('dataView').style.display = ''
+    document.getElementById('pagination').style.display = ''
+  }
 }
 
 function render(data) {
