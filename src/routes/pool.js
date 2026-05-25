@@ -1,4 +1,4 @@
-import { adminRequired } from '../utils/auth.js'
+import { adminRequired, teacherRequired } from '../utils/auth.js'
 import { prisma } from '../plugins/db.js'
 import {
   getPoolClasses,
@@ -145,10 +145,7 @@ export default async function poolRoutes(app) {
 
   // === API: 教师认领班级（教师端调用） ===
 
-  app.post('/api/pool/classes/:id/claim', { preHandler: (req, reply, done) => {
-    const { teacherRequired } = require('../utils/auth.js')
-    teacherRequired(req, reply, done)
-  }}, async (request, reply) => {
+  app.post('/api/pool/classes/:id/claim', { preHandler: teacherRequired }, async (request, reply) => {
     const classId = parseInt(request.params.id, 10)
     const result = await claimPoolClass(classId, request.session.teacherId)
     return reply.send(result)
@@ -156,10 +153,7 @@ export default async function poolRoutes(app) {
 
   // === API: 获取可认领的班级池列表（教师端调用） ===
 
-  app.get('/api/pool/classes', { preHandler: (req, reply, done) => {
-    const { teacherRequired } = require('../utils/auth.js')
-    teacherRequired(req, reply, done)
-  }}, async (request, reply) => {
+  app.get('/api/pool/classes', { preHandler: teacherRequired }, async (request, reply) => {
     const classes = await getPoolClasses()
     return reply.send({ ok: true, classes })
   })
