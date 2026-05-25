@@ -218,7 +218,7 @@ async function loadClaimData() {
     }
 
     // Load teachers from existing admin endpoint
-    const teacherRes = await fetch('/admin/teachers')
+    const teacherRes = await fetch('/admin/api/teachers')
     const teachers = await teacherRes.json()
     const teacherSelect = document.getElementById('claimTeacherSelect')
     if (Array.isArray(teachers)) {
@@ -406,7 +406,11 @@ document.addEventListener('click', async (e) => {
   }
 })
 
-// === Preset Tag Modal (复用 admin/index.html 逻辑) ===
+// === Preset Tag Management ===
+const TAG_COLORS = ['#cc785c','#5db872','#d4a017','#7c6cf0','#4a90d9','#e67e22']
+let presetTags = []
+let selectedAddColor = TAG_COLORS[0]
+
 document.getElementById('presetTagBtn').addEventListener('click', () => {
   document.getElementById('presetTagModal').classList.add('active')
   loadPresetTags()
@@ -414,77 +418,104 @@ document.getElementById('presetTagBtn').addEventListener('click', () => {
 document.getElementById('presetTagCloseBtn').addEventListener('click', () => {
   document.getElementById('presetTagModal').classList.remove('active')
 })
+document.getElementById('presetTagModal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) document.getElementById('presetTagModal').classList.remove('active')
+})
 
-const presetColors = ['#cc785c','#4a90d9','#5db872','#d4a017','#9b59b6','#e74c3c','#3498db','#1abc9c']
-
-function renderPresetColorPicker(selected) {
-  const picker = document.getElementById('presetColorPicker')
-  picker.innerHTML = presetColors.map(c =>
-    `<div class="preset-color-option ${c === selected ? 'selected' : ''}" style="background:${c};" data-color="${c}"></div>`
+function renderColorPicker() {
+  document.getElementById('presetColorPicker').innerHTML = TAG_COLORS.map(c =>
+    `<div class="preset-color-option ${c === selectedAddColor ? 'selected' : ''}" data-color="${c}" style="background:${c};"></div>`
   ).join('')
 }
+renderColorPicker()
+
+document.getElementById('presetColorPicker').addEventListener('click', (e) => {
+  const opt = e.target.closest('.preset-color-option')
+  if (!opt) return
+  selectedAddColor = opt.dataset.color
+  document.querySelectorAll('#presetColorPicker .preset-color-option').forEach(o => o.classList.remove('selected'))
+  opt.classList.add('selected')
+})
 
 async function loadPresetTags() {
   try {
     const res = await fetch('/admin/api/preset-tags')
-    const tags = await res.json()
-    const list = document.getElementById('presetTagList')
-    if (!tags.length) {
-      list.innerHTML = '<div class="preset-empty">暂无预设标签</div>'
-      return
-    }
-    list.innerHTML = tags.map(t => `
-      <div class="preset-item" data-id="${t.id}">
-        <span class="preset-color-dot" style="background:${t.color}"></span>
-        <span class="preset-name">${escHtml(t.tag)}</span>
-        <input class="preset-input" type="text" value="${escHtml(t.color)}" data-color-for="${t.id}" />
-        <button class="preset-save-btn" data-save-id="${t.id}">保存</button>
-        <button class="preset-del-btn" data-del-id="${t.id}">删除</button>
-      </div>
-    `).join('')
-  } catch {}
+    if (res.status === 401 || res.status === 403) { return }
+    const data = await res.json()
+    presetTags = data.tags || []
+    renderPresetTags()
+  } catch (e) {}
+}
+
+function renderPresetTags() {
+  const container = document.getElementById('presetTagList')
+  if (!presetTags.length) {
+    container.innerHTML = '<div class="preset-empty">暂无预设标签</div>'
+    return
+  }
+  container.innerHTML = presetTags.map(t => `
+    <div class="preset-item" data-id="${t.id}">
+      <span class="preset-color-dot" style="background:${t.color}"></span>
+      <span class="preset-name">${escHtml(t.tag)}</span>
+      <input class="preset-input name-input" value="${escHtml(t.tag)}" data-id="${t.id}" />
+      <input class="preset-input color-input" value="${t.color}" data-id="${t.id}" style="width:60px;" />
+      <button class="preset-save-btn" data-id="${t.id}">保存</button>
+      <button class="preset-del-btn" data-id="${t.id}">删除</button>
+    </div>
+  `).join('')
 }
 
 document.addEventListener('click', async (e) => {
-  if (e.target.classList.contains('preset-save-btn')) {
-    const id = e.target.dataset.saveId
-    const input = document.querySelector(`[data-color-for="${id}"]`)
-    const res = await fetch(`/admin/api/preset-tags/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ color: input.value })
-    })
-    if (res.ok) showToast('已更新')
-    else showToast('更新失败', false)
+  const saveBtn = e.target.closest('.preset-save-btn')
+  const delBtn = e.target.closest('.preset-del-btn')
+  if (saveBtn) {
+    const id = parseInt(saveBtn.dataset.id)
+    const nameInput = document.querySelector(`.name-input[data-id="${id}"]`)
+    const colorInput = document.querySelector(`.color-input[data-id="${id}"]`)
+    const tag = nameInput.value.trim()
+    const color = colorInput.value.trim()
+    if (!tag) { showToast('标签名不能为空', false); return }
+    if (!/^#[0-9a-fA-F]{6}$/.test(color)) { showToast('颜色格式无效', false); return }
+    try {
+      const res = await fetch(`/admin/api/preset-tags/${id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tag, color }),
+      })
+      const data = await res.json()
+      if (data.ok) { showToast('已保存', true); await loadPresetTags() }
+      else showToast(data.message || '保存失败', false)
+    } catch (e) { showToast('保存失败', false) }
   }
-  if (e.target.dataset.delId) {
-    const id = e.target.dataset.delId
+  if (delBtn) {
+    const id = parseInt(delBtn.dataset.id)
     if (!confirm('确认删除此预设标签？')) return
-    await fetch(`/admin/api/preset-tags/${id}`, { method: 'DELETE' })
-    loadPresetTags()
+    try {
+      const res = await fetch(`/admin/api/preset-tags/${id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (data.ok) { showToast('已删除', true); await loadPresetTags() }
+      else showToast(data.message || '删除失败', false)
+    } catch (e) { showToast('删除失败', false) }
   }
 })
 
 document.getElementById('presetTagAddBtn').addEventListener('click', async () => {
-  const name = document.getElementById('presetTagAddInput').value.trim()
-  if (!name) { showToast('请输入标签名', false); return }
-  const selectedColor = document.querySelector('.preset-color-option.selected')
-  const color = selectedColor ? selectedColor.dataset.color : '#cc785c'
-  const res = await fetch('/admin/api/preset-tags', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ tag: name, color })
-  })
-  const data = await res.json()
-  if (data.ok) {
-    showToast('已添加'); loadPresetTags()
-    document.getElementById('presetTagAddInput').value = ''
-  } else {
-    showToast(data.message || '添加失败', false)
-  }
+  const input = document.getElementById('presetTagAddInput')
+  const tag = input.value.trim()
+  if (!tag) { showToast('标签名不能为空', false); return }
+  try {
+    const res = await fetch('/admin/api/preset-tags', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tag, color: selectedAddColor }),
+    })
+    const data = await res.json()
+    if (data.ok) { input.value = ''; showToast('已添加', true); await loadPresetTags() }
+    else showToast(data.message || '添加失败', false)
+  } catch (e) { showToast('添加失败', false) }
 })
 
-renderPresetColorPicker('#cc785c')
+document.getElementById('presetTagAddInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('presetTagAddBtn').click()
+})
 </script>
 </body>
 </html>
