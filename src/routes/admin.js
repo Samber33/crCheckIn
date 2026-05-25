@@ -105,7 +105,7 @@ export default async function adminRoutes(app) {
   // === API: Class Management ===
 
   app.get('/admin/api/classes', { preHandler: adminRequired }, async (request, reply) => {
-    const data = await getAllClassesDetail()
+    const data = await getAllClassesDetail({ includePool: false })
     return reply.send({ ok: true, classes: data })
   })
 

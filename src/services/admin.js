@@ -28,8 +28,9 @@ export async function getAuditLogs({ limit = 50, offset = 0 } = {}) {
 /**
  * 获取所有班级详细状态（含学生名单摘要）
  */
-export async function getAllClassesDetail() {
+export async function getAllClassesDetail({ includePool = false } = {}) {
   const classes = await prisma.class.findMany({
+    where: includePool ? undefined : { teacherId: { not: null } },
     orderBy: [{ teacher: { username: 'asc' } }, { name: 'asc' }],
     include: {
       teacher: { select: { username: true } },
@@ -71,7 +72,7 @@ export async function getAllClassesDetail() {
     return {
       id: cls.id,
       name: cls.name,
-      teacherUsername: cls.teacher.username,
+      teacherUsername: cls.teacher?.username ?? '班级池',
       teacherId: cls.teacherId,
       studentCount: cls._count.students,
       signedCount: recordCountMap.get(cls.id) || 0,
@@ -79,6 +80,7 @@ export async function getAllClassesDetail() {
       signInStatus,
       isArchived: cls.isArchived,
       isSigning: signInStatus === '签到中',
+      isPoolClass: cls.teacherId === null,
     }
   })
 }
@@ -101,7 +103,7 @@ export async function transferClass(classId, newTeacherId, adminId, ip = '') {
   }
 
   const oldTeacherId = cls.teacherId
-  const oldTeacherName = cls.teacher.username
+  const oldTeacherName = cls.teacher?.username ?? '班级池'
 
   await prisma.class.update({
     where: { id: classId },
@@ -403,7 +405,7 @@ export async function deleteClassByAdmin(classId, adminId, ip = '') {
     adminId,
     action: 'DELETE_CLASS',
     target: `班级「${cls.name}」(${classId})`,
-    detail: JSON.stringify({ teacherId: cls.teacherId, teacher: cls.teacher.username }),
+    detail: JSON.stringify({ teacherId: cls.teacherId, teacher: cls.teacher?.username ?? '班级池' }),
     ip,
   })
 

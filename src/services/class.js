@@ -77,6 +77,16 @@ export async function assertClassOwner(classId, teacherId, isAdmin = false) {
     throw err
   }
 
+  // 班级池班级（teacherId IS NULL）只有管理员可操作
+  if (cls.teacherId === null) {
+    if (!isAdmin) {
+      const err = new Error('无权操作班级池班级')
+      err.statusCode = 403
+      throw err
+    }
+    return cls
+  }
+
   if (isAdmin) return cls
 
   if (cls.teacherId !== teacherId) {
