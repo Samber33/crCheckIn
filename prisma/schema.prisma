@@ -19,8 +19,8 @@ model Teacher {
 model Class {
   id            Int            @id @default(autoincrement())
   name          String
-  teacherId     Int
-  teacher       Teacher        @relation(fields: [teacherId], references: [id])
+  teacherId     Int?
+  teacher       Teacher?       @relation(fields: [teacherId], references: [id])
   isArchived    Boolean        @default(false)
   createdAt     DateTime       @default(now())
   students      Student[]
@@ -59,6 +59,7 @@ model Student {
   name          String
   homeClass     String        @default("")   // 行政班级，如"高一3班"
   remark        String        @default("")   // 学生备注，如"体育生"
+  photoUrl      String        @default("")   // 学生照片路径
   classId       Int
   class         Class         @relation(fields: [classId], references: [id])
   signInRecords SignInRecord[]
