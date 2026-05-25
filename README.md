@@ -1,152 +1,267 @@
-# crCheckIn
+# Lab Attendance
 
-一个面向机房场景的本地签到系统，支持学生签到、教师班级管理、历史批次归档、座位表查看与 Excel 导入导出。
+> 面向机房 / 实验室场景的本地签到系统 — 学生扫码签到、教师实时看板、历史批次归档与数据分析。
+
+[![Release](https://img.shields.io/github/v/release/JehuYu/crCheckIn?label=release&color=cc785c)](https://github.com/JehuYu/crCheckIn/releases)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18-339933)](https://nodejs.org/)
+[![License](https://img.shields.io/badge/license-MIT-green)](#license)
+
+## 预览
+
+| 学生签到 | 教师看板 | 座位表 |
+|---------|---------|--------|
+| 学生端搜索签到 | 实时签到名单 | 可拖拽座位 |
+| 拼音首字母搜索 | 一键撤销 | 历史对比 |
 
 ## 功能特性
 
-- **学生签到** — 姓名搜索 + 自动补全，签到后本地去重
-- **教师口令登录** — 学生端输入口令进入教师管理端
-- **班级管理** — 创建/删除教学班，Excel 批量导入学生名单
-- **实时签到看板** — 已签到/未签到名单，按状态排序，一键撤销
-- **历史批次归档** — 按日期 + 上下午自动打标签，支持查看、导出、删除
-- **出勤统计** — 跨批次出勤率排名，支持导出
-- **座位表** — 教师/学生双视角，实时刷新，支持打印
-- **签到时间窗口** — 可设置签到起止时间，到点自动关闭
-- **管理员面板** — 创建/删除教师账号，密码唯一性校验
+### 签到核心
+- **智能搜索** — 支持中文姓名、拼音首字母、全拼搜索（输入 `csy` 匹配 "陈思源"）
+- **签到倒计时** — 30 分钟倒计时模式，到点自动归档
+- **IP 限制** — 同一 IP 每节课程只能签到一次，归档后自动释放
+- **自动去重** — 学生签到后本地去重，防止重复签到
+- **回车快捷操作** — 匹配单条自动签到，已选学生回车直接签到
+
+### 班级管理
+- **教学班 / 行政班** — 支持多教学班与行政班级映射
+- **Excel 批量导入** — 一键导入学生名单，自动创建不存在的班级
+- **班级归档** — 按日期 + 上下午自动打标签归档
+- **历史批次** — 分页浏览历史签到批次，支持查看、导出、删除
+
+### 座位表
+- **实时座位可视化** — 教师视角拖拽排座，学生视角查看自己的座位
+- **历史对比** — 上节课座位对比，黄色标记变动、蓝色标记新增
+- **签到高亮** — 新签到实时高亮显示
+
+### 标签系统
+- **预设标签** — 管理员统一管理预设标签（如 "缺勤"、"迟到"），级联更新学生标签
+- **自定义标签** — 教师可自定义标签颜色，支持 SSE 实时推送
+- **签到自动清除** — 签到成功后自动清除自定义标签，保留预设标签
+
+### 数据分析
+- **出勤统计** — 跨批次出勤率排名，支持 Excel 导出
+- **数据看板** — 可视化出勤率图表，识别高频缺勤学生
+- **跨班级分析** — 管理员可查看全局出勤数据
+
+### 信息收集
+- **自定义字段** — 支持文本和附件类型字段
+- **学生提交** — 学生端在线填写，教师端查看提交记录
+- **数据导出** — 一键导出收集到的信息
+
+### 安全与管理
+- **双角色体系** — 管理员（全局管理）+ 教师（班级管理）
+- **数据备份 / 恢复** — SQLite 数据库导出与恢复
+- **审计日志** — 管理员操作全程记录
+- **多端防护** — CSRF、XSS、Excel 注入防护，时序攻击防护，速率限制
 
 ## 技术栈
 
-- Node.js + ES Modules
-- Fastify — Web 框架
-- Nunjucks — 模板引擎
-- Prisma + SQLite — 数据层
-- Tailwind CSS — 样式构建
+| 层 | 技术 |
+|---|------|
+| 运行时 | Node.js 18+ / ES Modules |
+| Web 框架 | [Fastify](https://fastify.dev/) v4 |
+| 数据库 | [Prisma](https://www.prisma.io/) v5 + SQLite |
+| 模板引擎 | [Nunjucks](https://mozilla.github.io/nunjucks/) |
+| 样式 | [Tailwind CSS](https://tailwindcss.com/) v3 |
+| 进程管理 | [PM2](https://pm2.keymetrics.io/) |
+| Excel 处理 | [ExcelJS](https://github.com/exceljs/exceljs) |
+| 拼音支持 | [pinyin-pro](https://github.com/niuhuan/pinyin-pro) |
 
 ## 快速开始
 
-### 安装依赖
+### 前置要求
+
+- Node.js >= 18
+- npm >= 9
+
+### 安装
 
 ```bash
+git clone https://github.com/JehuYu/crCheckIn.git
+cd crCheckIn
 npm install
 ```
 
-### 配置环境变量
+### 配置
 
-复制 `.env.example` 或直接创建 `.env`：
-
-```env
+```bash
+# 创建 .env 文件
+cat > .env << 'EOF'
 DATABASE_URL="file:./attendance.db"
 PORT=8080
 HOST=0.0.0.0
 SECRET_KEY="please-change-this-secret-key"
 AUTO_DB_DEPLOY=true
+EOF
 ```
 
-### 启动
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `DATABASE_URL` | `file:./attendance.db` | SQLite 数据库路径 |
+| `PORT` | `8080` | 服务端口 |
+| `HOST` | `0.0.0.0` | 监听地址 |
+| `SECRET_KEY` | 内置默认 | Session 密钥，生产环境务必修改 |
+| `AUTO_DB_DEPLOY` | `true` | 启动时自动初始化数据库 |
+
+### 运行
 
 ```bash
-# 开发模式（自动热重载）
+# 开发模式（文件热重载）
 npm run dev
 
 # 直接启动
 npm run start:direct
 
-# PM2 后台运行
+# PM2 后台运行（推荐生产环境）
 npm start
 ```
 
-首次启动会自动初始化数据库和默认管理员账号。
+首次启动会自动初始化数据库并创建默认管理员账号。
 
-## 项目结构
-
-```text
-crCheckIn/
-├── prisma/                 # Prisma schema、seed、部署脚本
-├── public/                 # 静态资源（Tailwind CSS 等）
-├── src/
-│   ├── routes/             # Fastify 路由定义
-│   ├── services/           # 业务逻辑层（签到、归档、统计等）
-│   ├── plugins/            # Fastify 插件（DB、Session、View 等）
-│   ├── utils/              # 工具函数（时间格式化等）
-│   └── config.js           # 环境变量读取
-├── views/                  # Nunjucks 页面模板
-│   ├── student/            # 学生签到页面
-│   ├── teacher/            # 教师管理页面（班级、学生、座位表）
-│   └── admin/              # 管理员面板
-├── ecosystem.config.cjs    # PM2 配置
-├── server.js               # 入口文件
-├── tailwind.input.css      # Tailwind 源码
-└── package.json
-```
-
-## 默认账号
-
-首次启动自动创建：
+### 默认账号
 
 | 角色 | 用户名 | 密码 |
 |------|--------|------|
 | 管理员 | `admin` | `abc123` |
 
-部署后请尽快修改密码。
+> **重要：** 部署后请立即修改默认密码。
 
-## 页面路由
+## 路由一览
 
 | 路径 | 角色 | 说明 |
 |------|------|------|
-| `/student` | 学生 | 签到入口，支持教师口令登录 |
+| `/student` | 学生 | 签到入口（支持教师口令登录） |
 | `/teacher/classes` | 教师 | 班级列表 |
-| `/teacher/classes/:id` | 教师 | 班级管理（签到看板、时间窗口、归档） |
-| `/teacher/classes/:id/seats` | 教师 | 教师视角座位表 |
+| `/teacher/classes/:id` | 教师 | 班级签到看板 |
+| `/teacher/classes/:id/seats` | 教师 | 座位表管理 |
 | `/teacher/classes/:id/students` | 教师 | 学生名单管理 |
+| `/teacher/classes/:id/info` | 教师 | 信息收集 |
+| `/teacher/classes/:id/analytics` | 教师 | 出勤统计 |
 | `/teacher/sessions/:id/seats` | 教师 | 历史批次座位表 |
-| `/teacher/info?classId=:id` | 教师 | 信息收集（开发中） |
 | `/admin` | 管理员 | 教师账号管理 |
+| `/admin/dashboard` | 管理员 | 全局数据看板 |
+| `/admin/analytics` | 管理员 | 跨班级分析 |
+| `/admin/audit` | 管理员 | 审计日志 |
+
+## 项目结构
+
+```
+crCheckIn/
+├── prisma/
+│   ├── schema.prisma          # 数据库模型定义
+│   ├── deploy.js              # 数据库部署脚本
+│   └── seed.js                # 初始数据填充
+├── public/
+│   ├── tailwind.min.css       # 编译后的样式
+│   ├── admin.css              # 管理端公共样式
+│   └── design-system.css      # 设计系统样式
+├── src/
+│   ├── app.js                 # Fastify 应用构建
+│   ├── config.js              # 环境变量加载
+│   ├── routes/                # 路由层
+│   │   ├── index.js           # 路由注册入口
+│   │   ├── api.js             # API 接口
+│   │   ├── admin.js           # 管理员页面
+│   │   ├── teacher.js         # 教师页面
+│   │   └── student.js         # 学生页面
+│   ├── services/              # 业务逻辑层
+│   │   ├── auth.js            # 认证逻辑
+│   │   ├── class.js           # 班级管理
+│   │   ├── student.js         # 学生管理
+│   │   ├── attendance.js      # 签到逻辑
+│   │   ├── roster.js          # 名单管理
+│   │   ├── seat.js            # 座位表
+│   │   ├── sse.js             # 实时推送
+│   │   ├── tag.js             # 标签管理
+│   │   ├── infoCollection.js  # 信息收集
+│   │   └── admin.js           # 管理员操作
+│   ├── plugins/               # Fastify 插件
+│   │   ├── db.js              # Prisma 数据库连接
+│   │   ├── session.js         # Session 管理
+│   │   └── view.js            # Nunjucks 模板引擎
+│   └── utils/                 # 工具函数
+│       ├── auth.js            # 认证中间件
+│       ├── time.js            # 时间格式化
+│       ├── pinyin.js          # 拼音工具
+│       └── ip.js              # IP 处理
+├── views/                     # Nunjucks 页面模板
+│   ├── student/               # 学生端
+│   ├── teacher/               # 教师端
+│   └── admin/                 # 管理端
+├── uploads/                   # 文件上传目录
+├── ecosystem.config.cjs       # PM2 配置
+├── server.js                  # 入口文件
+└── tailwind.input.css         # Tailwind 源码
+```
+
+## 数据库模型
+
+```
+Teacher ──┬── Class ──┬── Student ── StudentTag
+          │           ├── SignInConfig
+          │           ├── SignInRecord
+          │           ├── SignInSession ── ArchivedRecord
+          │           └── InfoCollection ── InfoField ── InfoResponse
+          └── AuditLog
+
+PresetTag (全局预设标签)
+```
 
 ## Excel 导入格式
 
-导入名单时使用以下列：
+导入学生名单时，Excel 文件需包含以下列：
 
-| 列 | 内容 |
-|----|------|
-| A | 教学班名 |
-| B | 行政班级 |
-| C | 学生姓名 |
+| 列 | 内容 | 示例 |
+|----|------|------|
+| A | 教学班名 | 计算机科学1班 |
+| B | 行政班级 | 计算机学院2024级1班 |
+| C | 学生姓名 | 张三 |
 
 系统会自动创建不存在的教学班。
-
-## 数据库
-
-默认使用 SQLite，启动时自动部署。手动执行：
-
-```bash
-npm run db:deploy
-```
 
 ## PM2 管理
 
 ```bash
-npm run pm2:status    # 查看状态
-npm run pm2:logs      # 查看日志
-npm run pm2:restart   # 重启
-npm run pm2:stop      # 停止
+npm run pm2:status    # 查看进程状态
+npm run pm2:logs      # 查看实时日志
+npm run pm2:restart   # 重启服务
+npm run pm2:stop      # 停止服务
 ```
 
-## 配置项
+## 生产部署
 
-| 变量名 | 默认值 | 说明 |
-|--------|--------|------|
-| `DATABASE_URL` | `file:./attendance.db` | SQLite 数据库地址 |
-| `PORT` | `8080` | 服务端口 |
-| `HOST` | `0.0.0.0` | 监听地址 |
-| `SECRET_KEY` | 内置默认值 | Session 密钥，生产环境请修改 |
-| `AUTO_DB_DEPLOY` | `true` | 启动时自动部署数据库 |
+### 推荐配置
 
-## 安全建议
+```bash
+# 1. 设置生产密钥
+export SECRET_KEY=$(openssl rand -hex 32)
 
-- 生产环境务必修改 `SECRET_KEY`
-- 首次部署后立即修改默认管理员密码
-- 不建议把数据库文件直接暴露到公网可访问目录
+# 2. 设置生产端口
+export PORT=3000
+
+# 3. 后台启动
+npm start
+
+# 4. 使用 nginx 反向代理（可选）
+# server {
+#   listen 80;
+#   server_name your-domain.com;
+#   location / {
+#     proxy_pass http://127.0.0.1:3000;
+#     proxy_set_header Host $host;
+#     proxy_set_header X-Real-IP $remote_addr;
+#   }
+# }
+```
+
+### 数据库备份
+
+在管理端使用"数据备份"功能导出 SQLite 数据库，或直接复制 `attendance.db` 文件。
+
+## 更新日志
+
+详见 [CHANGELOG.zh.md](CHANGELOG.zh.md)（中文）或 [CHANGELOG.md](CHANGELOG.md)（English）。
 
 ## License
 
-仅供学习与内部使用。
+MIT
