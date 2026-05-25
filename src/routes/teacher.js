@@ -203,6 +203,37 @@ export default async function teacherRoutes(app) {
     return reply.view('teacher/students.html', { cls, students: studentsWithTags, classes: allClasses })
   })
 
+  // Student photo upload (teacher-facing)
+  app.post('/api/classes/:classId/students/:studentId/photo', { preHandler: classOwnerRequired }, async (request, reply) => {
+    const classId = request.classId
+    const studentId = parseInt(request.params.studentId, 10)
+    try {
+      let fileBuffer = null
+      let filename = 'photo.jpg'
+      for await (const part of request.parts()) {
+        if (part.type === 'file') {
+          fileBuffer = await part.toBuffer()
+          filename = part.filename || 'photo.jpg'
+        }
+      }
+      if (!fileBuffer) return reply.code(400).send({ ok: false, message: '请上传图片' })
+      const { uploadStudentPhoto } = await import('../services/pool.js')
+      const result = await uploadStudentPhoto(classId, studentId, fileBuffer, filename)
+      return reply.send(result)
+    } catch (err) {
+      return reply.code(500).send({ ok: false, message: '上传失败：' + err.message })
+    }
+  })
+
+  // Student photo delete (teacher-facing)
+  app.delete('/api/classes/:classId/students/:studentId/photo', { preHandler: classOwnerRequired }, async (request, reply) => {
+    const classId = request.classId
+    const studentId = parseInt(request.params.studentId, 10)
+    const { deleteStudentPhoto } = await import('../services/pool.js')
+    const result = await deleteStudentPhoto(studentId, classId)
+    return reply.send(result)
+  })
+
   // 数据分析页
   app.get('/teacher/classes/:classId/analytics', { preHandler: classOwnerRequired }, async (request, reply) => {
     const cls = await prisma.class.findUnique({ where: { id: request.classId } })

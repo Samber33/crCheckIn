@@ -198,6 +198,27 @@
       color: var(--muted);
       flex-shrink: 0;
     }
+    .student-photo {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      object-fit: cover;
+      background: var(--surface-card);
+      flex-shrink: 0;
+    }
+    .student-avatar-fallback {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--surface-card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
     .student-name {
       font-size: 14px;
       font-weight: 500;
@@ -570,7 +591,14 @@
               data-id="{{ s.id }}" data-name="{{ s.name }}" data-homeclass="{{ s.homeClass }}">
               <div class="student-head">
                 <div class="student-info">
-                  <div class="student-avatar">{{ s.name | first }}</div>
+                  <div class="student-avatar">
+                    {% if s.photoUrl %}
+                    <img src="{{ s.photoUrl }}" class="student-photo" alt="{{ s.name }}" onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')" />
+                    <span class="student-avatar-fallback" style="display:none;">{{ s.name | first }}</span>
+                    {% else %}
+                    <span class="student-avatar-fallback">{{ s.name | first }}</span>
+                    {% endif %}
+                  </div>
                   <div style="min-width: 0;">
                   <div class="student-name-wrap">
                     <p class="student-name">{{ s.name }}</p>
@@ -617,6 +645,17 @@
       <div class="modal-field">
         <label for="editStudentHomeClass">行政班级</label>
         <input id="editStudentHomeClass" type="text" class="input-field" placeholder="如：1 或 1班" />
+      </div>
+      <div class="modal-field">
+        <label>学生照片</label>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <img id="editStudentPhoto" src="" class="student-photo hidden" style="width:48px;height:48px;border-radius:8px;object-fit:cover;background:var(--surface-card);" />
+          <label style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--hairline); background: var(--canvas); color: var(--ink);">
+            更换
+            <input type="file" accept="image/*" id="editStudentPhotoInput" style="display:none;" />
+          </label>
+          <button id="editStudentPhotoRemove" class="hidden" style="padding: 6px 12px; border-radius: 6px; font-size: 12px; border: 1px solid var(--error); color: var(--error); background: none; cursor: pointer;">移除</button>
+        </div>
       </div>
       <div class="modal-field">
         <label>标签</label>
@@ -890,6 +929,21 @@ function openEdit(id) {
   document.getElementById('editStudentHint').textContent = `当前学生：${row.dataset.name}`
   document.getElementById('editStudentName').value = row.dataset.name || ''
   document.getElementById('editStudentHomeClass').value = row.dataset.homeclass || ''
+
+  // Load photo
+  const photo = row.querySelector('.student-photo')
+  const photoEl = document.getElementById('editStudentPhoto')
+  const photoRemove = document.getElementById('editStudentPhotoRemove')
+  if (photo && !photo.classList.contains('hidden')) {
+    photoEl.src = photo.src
+    photoEl.classList.remove('hidden')
+    photoRemove.classList.remove('hidden')
+  } else {
+    photoEl.src = ''
+    photoEl.classList.add('hidden')
+    photoRemove.classList.add('hidden')
+  }
+
   renderEditTags()
   document.getElementById('editModal').classList.remove('hidden')
 }
@@ -1185,6 +1239,38 @@ document.getElementById('clearStudentsBtn').addEventListener('click', async () =
   if (!data.ok) { showToast(data.message, false); return }
   showToast(data.message, true)
   window.location.reload()
+})
+
+// === Student Photo Upload in Edit Modal ===
+document.getElementById('editStudentPhotoInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0]
+  if (!file || !editStudentId) return
+  const fd = new FormData()
+  fd.append('file', file)
+  const res = await fetch(`/api/classes/${CLASS_ID}/students/${editStudentId}/photo`, {
+    method: 'POST', body: fd
+  })
+  const data = await res.json()
+  if (data.ok) {
+    showToast('照片已上传')
+    window.location.reload()
+  } else {
+    showToast(data.message || '上传失败', false)
+  }
+  e.target.value = ''
+})
+
+document.getElementById('editStudentPhotoRemove').addEventListener('click', async (e) => {
+  if (!editStudentId) return
+  if (!confirm('确认移除该学生照片？')) return
+  const res = await fetch(`/api/classes/${CLASS_ID}/students/${editStudentId}/photo`, { method: 'DELETE' })
+  const data = await res.json()
+  if (data.ok) {
+    showToast('照片已移除')
+    window.location.reload()
+  } else {
+    showToast(data.message || '移除失败', false)
+  }
 })
 </script>
 </body>
