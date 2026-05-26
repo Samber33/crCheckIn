@@ -25,9 +25,8 @@
       <div class="header-right">
         <button id="presetTagBtn" class="nav-link">预设标签</button>
         <a href="/admin/pool" class="nav-link" style="color: var(--ink); background: var(--surface-card);">班级池</a>
-        <a href="/admin/dashboard" class="nav-link">全局看板</a>
         <a href="/admin/analytics" class="nav-link">数据分析</a>
-        <a href="/admin/audit" class="nav-link">审计日志</a>
+        <a href="/admin/analytics?tab=audit" class="nav-link">审计日志</a>
         <form method="post" action="/teacher/logout" style="display: inline;">
           <button class="nav-link" type="submit">退出</button>
         </form>
@@ -41,7 +40,7 @@
     <div class="compact-banner">
       <div>
         <h1 class="banner-title">班级池管理</h1>
-        <p class="banner-sub">创建全局班级，导入学生名单和照片，教师可从池中认领</p>
+        <p class="banner-sub">导入学生名单和照片，教师可认领班级池中的班级</p>
       </div>
       <div class="banner-stats">
         <div class="banner-stat">
@@ -57,119 +56,76 @@
       </div>
     </div>
 
-    <div class="two-col">
-      <!-- Left: Create Class -->
+    <div class="page-layout">
+      <!-- Left: Batch Import -->
       <div style="display: flex; flex-direction: column; gap: 16px;">
+        <!-- Batch Student Import -->
         <div class="sidebar-card">
           <div class="sidebar-header">
-            <p class="sidebar-title">创建班级</p>
+            <p class="sidebar-title">批量导入学生</p>
           </div>
           <div class="sidebar-body">
-            <div class="form-field">
-              <label for="poolClassName">班级名称</label>
-              <input type="text" id="poolClassName" class="input-field" placeholder="如：计算机基础1班" />
+            <p style="font-size: 12px; color: var(--muted-soft); margin: 0 0 12px;">Excel 格式：A列=班级名称，B列=行政班，C列=学生姓名。自动按班级名归类到对应班级。</p>
+            <label class="file-label" style="width: 100%; justify-content: center;">
+              <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              选择 Excel 文件
+              <input type="file" accept=".xlsx,.xls" id="batchImportFile" style="display:none;" />
+            </label>
+            <div id="batchImportInfo" style="display: none; margin-top: 10px; padding: 8px 12px; background: var(--surface-soft); border-radius: 6px; font-size: 12px; color: var(--muted-soft);">
+              已选择：<span id="batchImportName" style="color: var(--ink); font-weight: 500;"></span>
             </div>
-            <button id="createPoolClassBtn" class="btn btn-primary">创建</button>
+            <button id="batchImportBtn" class="btn btn-primary" style="width: 100%; margin-top: 12px; display: none;">
+              <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+              </svg>
+              批量导入
+            </button>
           </div>
         </div>
 
-        <!-- Claim to Teacher -->
+        <!-- Batch Photo Upload -->
         <div class="sidebar-card">
           <div class="sidebar-header">
-            <p class="sidebar-title">认领到教师</p>
+            <p class="sidebar-title">批量导入照片</p>
           </div>
           <div class="sidebar-body">
-            <div class="form-field">
-              <label for="claimClassSelect">选择班级池班级</label>
-              <select id="claimClassSelect" class="input-field"></select>
+            <p style="font-size: 12px; color: var(--muted-soft); margin: 0 0 12px;">文件名直接匹配学生姓名（如 张三.jpg），跨所有班级池班级自动匹配。</p>
+            <label class="file-label" style="width: 100%; justify-content: center;">
+              <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+              选择照片（可多选）
+              <input type="file" accept="image/*" multiple id="batchPhotoFile" style="display:none;" />
+            </label>
+            <div id="batchPhotoInfo" style="display: none; margin-top: 10px; padding: 8px 12px; background: var(--surface-soft); border-radius: 6px; font-size: 12px; color: var(--muted-soft);">
+              已选择 <span id="batchPhotoCount" style="color: var(--ink); font-weight: 500;"></span> 张照片
             </div>
-            <div class="form-field">
-              <label for="claimTeacherSelect">选择教师</label>
-              <select id="claimTeacherSelect" class="input-field"></select>
-            </div>
-            <button id="claimBtn" class="btn btn-primary">确认认领</button>
-          </div>
-        </div>
-
-        <!-- Copy to Pool -->
-        <div class="sidebar-card">
-          <div class="sidebar-header">
-            <p class="sidebar-title">复制到班级池</p>
-          </div>
-          <div class="sidebar-body">
-            <p style="font-size: 12px; color: var(--muted-soft); margin: 0 0 12px;">将教师班级的学生和配置复制到班级池，原班级保留不动</p>
-            <div class="form-field">
-              <label for="moveTeacherSelect">选择教师</label>
-              <select id="moveTeacherSelect" class="input-field"><option value="">-- 选择教师 --</option></select>
-            </div>
-            <div class="form-field">
-              <label for="moveClassSelect">选择班级</label>
-              <select id="moveClassSelect" class="input-field" disabled><option value="">-- 请先选择教师 --</option></select>
-            </div>
-            <button id="moveToPoolBtn" class="btn btn-primary">复制到池</button>
+            <button id="batchPhotoBtn" class="btn btn-primary" style="width: 100%; margin-top: 12px; display: none; background: var(--info);">
+              <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+              </svg>
+              批量上传照片
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- Right: Pool Classes -->
-      <div class="card">
-        <div class="card-header">
-          <p class="card-title">班级池</p>
-          <span style="font-size: 12px; color: var(--muted-soft); background: var(--surface-card); padding: 3px 10px; border-radius: 9999px;">{{ classes | length }} 个</span>
-        </div>
-
+      <!-- Right: Pool Classes Grid -->
+      <div>
         {% if classes.length === 0 %}
-        <div class="empty-state">暂无班级池班级，请先在左侧创建</div>
+        <div class="empty-state" style="background: #fff; border-radius: 12px; border: 1px solid var(--hairline); padding: 48px;">暂无班级池班级</div>
         {% else %}
-        <div id="poolClassList">
+        <div class="pool-grid">
           {% for cls in classes %}
-          <div class="pool-class-item" data-class-id="{{ cls.id }}">
-            <div class="pool-class-head" data-action="toggle" data-class-id="{{ cls.id }}">
-              <div>
+          <div class="pool-class-card" data-class-id="{{ cls.id }}">
+            <div class="pool-class-head" data-action="open-modal" data-class-id="{{ cls.id }}">
+              <div style="display: flex; align-items: center; gap: 8px;">
                 <span class="pool-class-name">{{ cls.name }}</span>
                 <span class="pool-class-meta">{{ cls.studentCount }} 名学生</span>
               </div>
-              <div style="display: flex; gap: 6px; align-items: center;">
-                <button data-action="delete-class" data-class-id="{{ cls.id }}" class="pool-action-btn" style="color: var(--error);">删除</button>
-                <svg class="pool-chevron" style="width:16px;height:16px;color:var(--muted);transition:transform .2s;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                </svg>
-              </div>
-            </div>
-            <div class="pool-class-detail hidden" data-detail-for="{{ cls.id }}">
-              <!-- Import Excel -->
-              <div style="padding: 12px 16px; border-top: 1px solid var(--hairline);">
-                <p style="font-size: 12px; color: var(--muted); margin: 0 0 8px;">导入学生名单：A=行政班，B=姓名，C=备注（可选）</p>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                  <label class="file-label" style="font-size: 12px; padding: 6px 12px;">
-                    <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                    </svg>
-                    选择 Excel
-                    <input type="file" accept=".xlsx,.xls" class="pool-import-file" data-class-id="{{ cls.id }}" style="display:none;" />
-                  </label>
-                  <span class="pool-import-name" data-for="{{ cls.id }}" style="font-size: 11px; color: var(--muted-soft);"></span>
-                  <button class="btn btn-primary pool-import-btn" data-class-id="{{ cls.id }}" style="font-size: 12px; height: 32px; display: none;">导入</button>
-                </div>
-              </div>
-              <!-- Bulk Photo Upload -->
-              <div style="padding: 12px 16px; border-top: 1px solid var(--hairline);">
-                <p style="font-size: 12px; color: var(--muted); margin: 0 0 8px;">批量上传照片：文件名匹配学生姓名（如 张三.jpg）</p>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                  <label class="file-label" style="font-size: 12px; padding: 6px 12px;">
-                    <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                    </svg>
-                    选择照片（可多选）
-                    <input type="file" accept="image/*" multiple class="pool-photo-file" data-class-id="{{ cls.id }}" style="display:none;" />
-                  </label>
-                  <button class="btn btn-primary pool-photo-btn" data-class-id="{{ cls.id }}" style="font-size: 12px; height: 32px; display: none;">批量上传</button>
-                </div>
-              </div>
-              <!-- Student List -->
-              <div class="pool-student-list" data-class-id="{{ cls.id }}">
-                <div style="padding: 8px 16px; text-align: center; color: var(--muted-soft); font-size: 12px;">点击展开加载学生列表</div>
-              </div>
+              <button data-action="delete-class" data-class-id="{{ cls.id }}" class="pool-action-btn" style="color: var(--error);">删除</button>
             </div>
           </div>
           {% endfor %}
@@ -179,7 +135,7 @@
     </div>
   </main>
 
-  <!-- Preset Tag Modal (复用 admin/index.html 的完整代码) -->
+  <!-- Preset Tag Modal -->
   <div id="presetTagModal" class="modal-overlay">
     <div class="modal-card">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
@@ -195,6 +151,57 @@
     </div>
   </div>
 
+  <!-- Class Detail Modal -->
+  <div id="classDetailModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 640px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+        <div class="modal-title" style="margin: 0;" id="classModalTitle">班级详情</div>
+        <button id="classModalClose" class="preset-close-btn">&times;</button>
+      </div>
+
+      <!-- Import Excel -->
+      <div style="margin-bottom: 16px; padding: 16px; background: var(--surface-soft); border-radius: 8px;">
+        <p style="font-size: 13px; font-weight: 500; margin: 0 0 4px; color: var(--ink);">导入学生名单</p>
+        <p style="font-size: 12px; color: var(--muted); margin: 0 0 8px;">A列=行政班，B列=姓名，C列=备注（可选）</p>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <label class="file-label">
+            <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            选择 Excel
+            <input type="file" accept=".xlsx,.xls" id="modalImportFile" style="display:none;" />
+          </label>
+          <span id="modalImportName" style="font-size: 11px; color: var(--muted-soft);"></span>
+          <button id="modalImportBtn" class="btn btn-primary" style="width: auto; padding: 6px 14px; font-size: 12px; display: none;">导入</button>
+        </div>
+      </div>
+
+      <!-- Bulk Photo Upload -->
+      <div style="margin-bottom: 16px; padding: 16px; background: var(--surface-soft); border-radius: 8px;">
+        <p style="font-size: 13px; font-weight: 500; margin: 0 0 4px; color: var(--ink);">批量上传照片</p>
+        <p style="font-size: 12px; color: var(--muted); margin: 0 0 8px;">文件名匹配学生姓名（如 张三.jpg）</p>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <label class="file-label">
+            <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            选择照片
+            <input type="file" accept="image/*" multiple id="modalPhotoFile" style="display:none;" />
+          </label>
+          <button id="modalPhotoBtn" class="btn btn-primary" style="width: auto; padding: 6px 14px; font-size: 12px; display: none; background: var(--info);">批量上传</button>
+        </div>
+      </div>
+
+      <!-- Student List -->
+      <div>
+        <p style="font-size: 13px; font-weight: 500; margin: 0 0 8px; color: var(--ink);">学生列表</p>
+        <div id="modalStudentList" style="max-height: 320px; overflow-y: auto; border: 1px solid var(--hairline); border-radius: 8px; background: #fff;">
+          <div style="padding: 16px; text-align: center; color: var(--muted-soft); font-size: 12px;">加载中...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 <script>
 function showToast(text, ok = true) {
   const t = document.getElementById('toast')
@@ -205,160 +212,129 @@ function showToast(text, ok = true) {
 
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
 
-// === Create Pool Class ===
-document.getElementById('createPoolClassBtn').addEventListener('click', async () => {
-  const name = document.getElementById('poolClassName').value.trim()
-  if (!name) { showToast('请输入班级名称', false); return }
-  const res = await fetch('/admin/api/pool/classes', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name })
-  })
+// === Batch Student Import ===
+document.getElementById('batchImportFile').addEventListener('change', (e) => {
+  const file = e.target.files[0]
+  const nameEl = document.getElementById('batchImportName')
+  const btnEl = document.getElementById('batchImportBtn')
+  const infoEl = document.getElementById('batchImportInfo')
+  if (file) { nameEl.textContent = file.name; btnEl.style.display = ''; infoEl.style.display = '' }
+  else { nameEl.textContent = ''; btnEl.style.display = 'none'; infoEl.style.display = 'none' }
+})
+
+document.getElementById('batchImportBtn').addEventListener('click', async () => {
+  const file = document.getElementById('batchImportFile').files[0]
+  if (!file) return
+  const btn = document.getElementById('batchImportBtn')
+  btn.disabled = true; btn.textContent = '导入中...'
+  const fd = new FormData(); fd.append('file', file)
+  const res = await fetch('/admin/api/pool/batch-import', { method: 'POST', body: fd })
   const data = await res.json()
+  btn.disabled = false; btn.innerHTML = '<svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>批量导入'
   if (data.ok) {
-    showToast('班级已创建'); window.location.reload()
+    showToast(data.message || `导入 ${data.count} 名学生`)
+    window.location.reload()
   } else {
-    showToast(data.message || '创建失败', false)
+    showToast(data.message || '导入失败', false)
   }
 })
 
-// === Load teachers & pool classes for claim dropdown ===
-async function loadClaimData() {
-  try {
-    // Load pool classes
-    const classRes = await fetch('/admin/api/pool/classes')
-    const classData = await classRes.json()
-    const classSelect = document.getElementById('claimClassSelect')
-    if (classData.ok && classData.classes) {
-      classSelect.innerHTML = classData.classes.map(c =>
-        `<option value="${c.id}">${escHtml(c.name)} (${c.studentCount} 名学生)</option>`
-      ).join('')
-    }
-
-    // Load teachers from existing admin endpoint
-    const teacherRes = await fetch('/admin/api/teachers')
-    const teachers = await teacherRes.json()
-    const teacherSelect = document.getElementById('claimTeacherSelect')
-    if (Array.isArray(teachers)) {
-      teacherSelect.innerHTML = teachers.map(t =>
-        `<option value="${t.id}">${escHtml(t.username)}${t.isAdmin ? ' (管理员)' : ''}</option>`
-      ).join('')
-    }
-  } catch (err) {
-    console.error('Failed to load claim data:', err)
+// === Batch Photo Upload ===
+document.getElementById('batchPhotoFile').addEventListener('change', (e) => {
+  const countEl = document.getElementById('batchPhotoCount')
+  const btnEl = document.getElementById('batchPhotoBtn')
+  const infoEl = document.getElementById('batchPhotoInfo')
+  if (e.target.files.length > 0) {
+    countEl.textContent = e.target.files.length
+    btnEl.style.display = ''
+    infoEl.style.display = ''
+  } else {
+    btnEl.style.display = 'none'
+    infoEl.style.display = 'none'
   }
-}
-loadClaimData()
-
-// === Copy to Pool ===
-async function loadMoveData() {
-  try {
-    const [teacherRes, classRes] = await Promise.all([
-      fetch('/admin/api/teachers'),
-      fetch('/admin/api/classes'),
-    ])
-    const teachers = await teacherRes.json()
-    const classData = await classRes.json()
-    const classList = classData.classes || []
-
-    const teacherSelect = document.getElementById('moveTeacherSelect')
-    teacherSelect.innerHTML = '<option value="">-- 选择教师 --</option>' +
-      teachers.map(t => `<option value="${t.id}">${escHtml(t.username)}${t.isAdmin ? ' (管理员)' : ''}</option>`).join('')
-
-    window._moveClassList = classList
-  } catch (err) { console.error(err) }
-}
-loadMoveData()
-
-document.getElementById('moveTeacherSelect').addEventListener('change', (e) => {
-  const teacherId = parseInt(e.target.value)
-  const classSelect = document.getElementById('moveClassSelect')
-  if (!teacherId) {
-    classSelect.disabled = true
-    classSelect.innerHTML = '<option value="">-- 请先选择教师 --</option>'
-    return
-  }
-  const filtered = (window._moveClassList || []).filter(c => c.teacherId === teacherId)
-  if (filtered.length === 0) {
-    classSelect.disabled = true
-    classSelect.innerHTML = '<option value="">该教师暂无班级</option>'
-    return
-  }
-  classSelect.disabled = false
-  classSelect.innerHTML = filtered.map(c =>
-    `<option value="${c.id}">${escHtml(c.name)} (${c.studentCount} 名学生)</option>`
-  ).join('')
 })
 
-document.getElementById('moveToPoolBtn').addEventListener('click', async () => {
-  const classId = document.getElementById('moveClassSelect').value
-  if (!classId) { showToast('请选择要移入的班级', false); return }
-  if (!confirm('确认将班级及学生复制到班级池？原班级将保留不动。')) return
-  const res = await fetch(`/admin/api/classes/${classId}/copy-to-pool`, { method: 'POST' })
+document.getElementById('batchPhotoBtn').addEventListener('click', async () => {
+  const fileInput = document.getElementById('batchPhotoFile')
+  if (!fileInput.files.length) return
+  const btn = document.getElementById('batchPhotoBtn')
+  btn.disabled = true; btn.textContent = '上传中...'
+  const fd = new FormData()
+  for (const f of fileInput.files) fd.append('files', f)
+  const res = await fetch('/admin/api/pool/batch-photos', { method: 'POST', body: fd })
   const data = await res.json()
-  if (data.ok) { showToast(data.message); window.location.reload() }
-  else { showToast(data.message || '复制失败', false) }
-})
-
-// === Claim button ===
-document.getElementById('claimBtn').addEventListener('click', async () => {
-  const classId = document.getElementById('claimClassSelect').value
-  const teacherId = document.getElementById('claimTeacherSelect').value
-  if (!classId || !teacherId) { showToast('请选择班级和教师', false); return }
-  const res = await fetch(`/admin/api/pool/classes/${classId}/claim`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ teacherId: parseInt(teacherId) })
-  })
-  const data = await res.json()
+  btn.disabled = false; btn.innerHTML = '<svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>批量上传照片'
   if (data.ok) {
-    showToast('认领成功'); window.location.reload()
+    showToast(`已匹配 ${data.matched} 张照片` + (data.unmatched.length ? `，${data.unmatched.length} 张未匹配` : ''))
+    window.location.reload()
   } else {
-    showToast(data.message || '认领失败', false)
+    showToast(data.message || '上传失败', false)
   }
+  fileInput.value = ''
+  btn.style.display = 'none'
+  document.getElementById('batchPhotoInfo').style.display = 'none'
 })
 
-// === Pool Class Toggle ===
+// === Class Detail Modal ===
+let currentClassId = null
+
+function openClassModal(classId) {
+  currentClassId = classId
+  const card = document.querySelector(`.pool-class-card[data-class-id="${classId}"]`)
+  const nameEl = card.querySelector('.pool-class-name')
+  document.getElementById('classModalTitle').textContent = nameEl.textContent
+  document.getElementById('modalStudentList').innerHTML = '<div style="padding: 16px; text-align: center; color: var(--muted-soft); font-size: 12px;">加载中...</div>'
+  document.getElementById('classDetailModal').classList.add('active')
+  // Reset modal inputs
+  document.getElementById('modalImportFile').value = ''
+  document.getElementById('modalImportName').textContent = ''
+  document.getElementById('modalImportBtn').style.display = 'none'
+  document.getElementById('modalPhotoFile').value = ''
+  document.getElementById('modalPhotoBtn').style.display = 'none'
+  loadClassStudents(classId)
+}
+
+function closeClassModal() {
+  document.getElementById('classDetailModal').classList.remove('active')
+  currentClassId = null
+}
+
+document.getElementById('classModalClose').addEventListener('click', closeClassModal)
+document.getElementById('classDetailModal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeClassModal()
+})
+
+// Open modal on card head click
 document.addEventListener('click', (e) => {
-  const toggle = e.target.closest('[data-action="toggle"]')
-  if (toggle) {
-    const classId = toggle.dataset.classId
-    const detail = document.querySelector(`[data-detail-for="${classId}"]`)
-    const chevron = toggle.querySelector('.pool-chevron')
-    detail.classList.toggle('hidden')
-    chevron.style.transform = detail.classList.contains('hidden') ? '' : 'rotate(180deg)'
-
-    // Lazy load student list
-    if (!detail.dataset.loaded) {
-      loadClassStudents(classId, detail)
-      detail.dataset.loaded = 'true'
-    }
+  const openBtn = e.target.closest('[data-action="open-modal"]')
+  if (openBtn) {
+    openClassModal(openBtn.dataset.classId)
   }
 })
 
-async function loadClassStudents(classId, container) {
+async function loadClassStudents(classId) {
   const res = await fetch(`/admin/api/pool/classes/${classId}`)
   const data = await res.json()
   if (!data.ok) return
 
-  const studentList = container.querySelector('.pool-student-list')
+  const container = document.getElementById('modalStudentList')
   if (!data.students.length) {
-    studentList.innerHTML = '<div style="padding: 12px 16px; text-align: center; color: var(--muted-soft); font-size: 12px;">暂无学生</div>'
+    container.innerHTML = '<div style="padding: 12px 16px; text-align: center; color: var(--muted-soft); font-size: 12px;">暂无学生</div>'
     return
   }
 
-  studentList.innerHTML = data.students.map(s => `
-    <div class="pool-student-item" data-student-id="${s.id}">
+  container.innerHTML = data.students.map(s => `
+    <div class="pool-student-item" data-student-id="${s.id}" style="padding: 8px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--hairline);">
       <img src="${s.photoUrl || '/public/placeholder-avatar.svg'}" class="pool-student-photo" onerror="this.src='/public/placeholder-avatar.svg'" />
       <div style="flex: 1; min-width: 0;">
         <div style="font-size: 13px; font-weight: 500; color: var(--ink);">${escHtml(s.name)}</div>
         ${s.homeClass ? `<div style="font-size: 11px; color: var(--muted-soft);">${escHtml(s.homeClass)}</div>` : ''}
       </div>
-      <label class="file-label" style="font-size: 11px; padding: 4px 10px; flex-shrink: 0;">
+      <label class="file-label" style="padding: 4px 10px; font-size: 11px; flex-shrink: 0;">
         上传
-        <input type="file" accept="image/*" class="pool-single-photo" data-student-id="${s.id}" data-class-id="${classId}" style="display:none;" />
+        <input type="file" accept="image/*" class="pool-single-photo" data-student-id="${s.id}" style="display:none;" />
       </label>
-      ${s.photoUrl ? `<button class="pool-del-photo" data-student-id="${s.id}" data-class-id="${classId}" style="padding: 4px 10px; font-size: 11px; border: 1px solid var(--error); color: var(--error); border-radius: 6px; background: none; cursor: pointer; flex-shrink: 0;">删除</button>` : ''}
+      ${s.photoUrl ? `<button class="pool-del-photo" data-student-id="${s.id}" style="padding: 4px 10px; font-size: 11px; border: 1px solid var(--error); color: var(--error); border-radius: 6px; background: none; cursor: pointer; flex-shrink: 0;">删除</button>` : ''}
     </div>
   `).join('')
 }
@@ -367,17 +343,16 @@ async function loadClassStudents(classId, container) {
 document.addEventListener('change', async (e) => {
   if (e.target.classList.contains('pool-single-photo')) {
     const file = e.target.files[0]
-    if (!file) return
+    if (!file || !currentClassId) return
     const studentId = e.target.dataset.studentId
-    const classId = e.target.dataset.classId
     const fd = new FormData()
     fd.append('file', file)
-    const res = await fetch(`/admin/api/pool/classes/${classId}/students/${studentId}/photo`, {
+    const res = await fetch(`/admin/api/pool/classes/${currentClassId}/students/${studentId}/photo`, {
       method: 'POST', body: fd
     })
     const data = await res.json()
     if (data.ok) {
-      showToast('照片已上传'); loadClassStudents(classId, document.querySelector(`[data-detail-for="${classId}"]`))
+      showToast('照片已上传'); loadClassStudents(currentClassId)
     } else {
       showToast(data.message || '上传失败', false)
     }
@@ -390,76 +365,69 @@ document.addEventListener('click', async (e) => {
   if (e.target.classList.contains('pool-del-photo')) {
     if (!confirm('确认删除此学生照片？')) return
     const studentId = e.target.dataset.studentId
-    const classId = e.target.dataset.classId
-    const res = await fetch(`/admin/api/pool/classes/${classId}/students/${studentId}/photo`, { method: 'DELETE' })
+    if (!currentClassId) return
+    const res = await fetch(`/admin/api/pool/classes/${currentClassId}/students/${studentId}/photo`, { method: 'DELETE' })
     const data = await res.json()
     if (data.ok) {
-      showToast('照片已删除'); loadClassStudents(classId, document.querySelector(`[data-detail-for="${classId}"]`))
+      showToast('照片已删除'); loadClassStudents(currentClassId)
     } else {
       showToast(data.message || '删除失败', false)
     }
   }
 })
 
-// === Import Excel ===
-document.addEventListener('change', (e) => {
-  if (e.target.classList.contains('pool-import-file')) {
-    const classId = e.target.dataset.classId
-    const file = e.target.files[0]
-    const nameEl = document.querySelector(`.pool-import-name[data-for="${classId}"]`)
-    const btnEl = document.querySelector(`.pool-import-btn[data-class-id="${classId}"]`)
-    if (file) { nameEl.textContent = file.name; btnEl.style.display = '' }
-    else { nameEl.textContent = ''; btnEl.style.display = 'none' }
-  }
+// === Import Excel (Modal) ===
+document.getElementById('modalImportFile').addEventListener('change', (e) => {
+  const file = e.target.files[0]
+  const nameEl = document.getElementById('modalImportName')
+  const btnEl = document.getElementById('modalImportBtn')
+  if (file) { nameEl.textContent = file.name; btnEl.style.display = '' }
+  else { nameEl.textContent = ''; btnEl.style.display = 'none' }
 })
 
-document.addEventListener('click', async (e) => {
-  if (e.target.classList.contains('pool-import-btn')) {
-    const classId = e.target.dataset.classId
-    const file = document.querySelector(`.pool-import-file[data-class-id="${classId}"]`).files[0]
-    if (!file) return
-    e.target.disabled = true; e.target.textContent = '导入中...'
-    const fd = new FormData(); fd.append('file', file)
-    const res = await fetch(`/admin/api/pool/classes/${classId}/import`, { method: 'POST', body: fd })
-    const data = await res.json()
-    e.target.disabled = false; e.target.textContent = '导入'
-    if (data.ok) {
-      showToast(data.message); loadClassStudents(classId, document.querySelector(`[data-detail-for="${classId}"]`))
-    } else {
-      showToast(data.message || '导入失败', false)
-    }
+document.getElementById('modalImportBtn').addEventListener('click', async () => {
+  const file = document.getElementById('modalImportFile').files[0]
+  if (!file || !currentClassId) return
+  const btn = document.getElementById('modalImportBtn')
+  btn.disabled = true; btn.textContent = '导入中...'
+  const fd = new FormData(); fd.append('file', file)
+  const res = await fetch(`/admin/api/pool/classes/${currentClassId}/import`, { method: 'POST', body: fd })
+  const data = await res.json()
+  btn.disabled = false; btn.textContent = '导入'
+  if (data.ok) {
+    showToast(data.message); loadClassStudents(currentClassId)
+  } else {
+    showToast(data.message || '导入失败', false)
   }
+  document.getElementById('modalImportFile').value = ''
+  document.getElementById('modalImportName').textContent = ''
+  btn.style.display = 'none'
 })
 
-// === Bulk Photo Upload ===
-document.addEventListener('change', (e) => {
-  if (e.target.classList.contains('pool-photo-file')) {
-    const classId = e.target.dataset.classId
-    const btn = document.querySelector(`.pool-photo-btn[data-class-id="${classId}"]`)
-    btn.style.display = e.target.files.length > 0 ? '' : 'none'
-  }
+// === Bulk Photo Upload (Modal) ===
+document.getElementById('modalPhotoFile').addEventListener('change', (e) => {
+  const btn = document.getElementById('modalPhotoBtn')
+  btn.style.display = e.target.files.length > 0 ? '' : 'none'
 })
 
-document.addEventListener('click', async (e) => {
-  if (e.target.classList.contains('pool-photo-btn')) {
-    const classId = e.target.dataset.classId
-    const fileInput = document.querySelector(`.pool-photo-file[data-class-id="${classId}"]`)
-    if (!fileInput.files.length) return
-    e.target.disabled = true; e.target.textContent = '上传中...'
-    const fd = new FormData()
-    for (const f of fileInput.files) fd.append('files', f)
-    const res = await fetch(`/admin/api/pool/classes/${classId}/photos/bulk`, { method: 'POST', body: fd })
-    const data = await res.json()
-    e.target.disabled = false; e.target.textContent = '批量上传'
-    if (data.ok) {
-      showToast(`已匹配 ${data.matched} 张照片` + (data.unmatched.length ? `，${data.unmatched.length} 张未匹配` : ''))
-      loadClassStudents(classId, document.querySelector(`[data-detail-for="${classId}"]`))
-    } else {
-      showToast(data.message || '上传失败', false)
-    }
-    fileInput.value = ''
-    e.target.style.display = 'none'
+document.getElementById('modalPhotoBtn').addEventListener('click', async () => {
+  const fileInput = document.getElementById('modalPhotoFile')
+  if (!fileInput.files.length || !currentClassId) return
+  const btn = document.getElementById('modalPhotoBtn')
+  btn.disabled = true; btn.textContent = '上传中...'
+  const fd = new FormData()
+  for (const f of fileInput.files) fd.append('files', f)
+  const res = await fetch(`/admin/api/pool/classes/${currentClassId}/photos/bulk`, { method: 'POST', body: fd })
+  const data = await res.json()
+  btn.disabled = false; btn.textContent = '批量上传'
+  if (data.ok) {
+    showToast(`已匹配 ${data.matched} 张照片` + (data.unmatched.length ? `，${data.unmatched.length} 张未匹配` : ''))
+    loadClassStudents(currentClassId)
+  } else {
+    showToast(data.message || '上传失败', false)
   }
+  fileInput.value = ''
+  btn.style.display = 'none'
 })
 
 // === Delete Pool Class ===

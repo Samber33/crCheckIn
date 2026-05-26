@@ -207,6 +207,47 @@
       margin-top: 6px;
     }
 
+    /* Stats Table */
+    .stats-table-wrapper {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid var(--hairline);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+    .stats-table-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--hairline);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .stats-table-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0;
+    }
+    .stats-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .stats-table th {
+      text-align: left; padding: 10px 16px; font-size: 11px; font-weight: 600;
+      color: var(--muted-soft); border-bottom: 1px solid var(--hairline);
+      background: var(--canvas);
+    }
+    .stats-table td { padding: 10px 16px; border-bottom: 1px solid var(--hairline); }
+    .stats-table tr:last-child td { border-bottom: none; }
+    .stats-table td.name { font-weight: 500; color: var(--ink); }
+    .stats-table .rate-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .stats-table .rate-badge.high { background: #f0fdf4; color: #047857; }
+    .stats-table .rate-badge.mid { background: #fefce8; color: #a16207; }
+    .stats-table .rate-badge.low { background: #fef2f2; color: #c64545; }
+
     /* Personal Trend Table */
     .personal-table { width: 100%; border-collapse: collapse; font-size: 12px; }
     .personal-table th {
@@ -285,6 +326,16 @@
       <!-- Summary Cards -->
       <div class="summary-grid" id="summaryGrid"></div>
 
+      <!-- Attendance Rate Stats Table -->
+      <div class="stats-table-wrapper">
+        <div class="stats-table-header">
+          <p class="stats-table-title">出勤率统计</p>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="stats-table" id="statsTable"></table>
+        </div>
+      </div>
+
       <!-- Charts Row 1: Session Trend + Hour Distribution -->
       <div class="chart-grid">
         <div class="chart-card">
@@ -355,10 +406,13 @@ function showToast(text, ok = true) {
 }
 
 async function loadAnalytics() {
-  const res = await fetch(`/api/analytics?classId=${CLASS_ID}`)
-  if (res.status === 401) { window.location.href = '/student'; return }
-  if (res.status === 403) { window.location.href = '/student'; return }
-  const data = await res.json()
+  const [analyticsRes, statsRes] = await Promise.all([
+    fetch(`/api/analytics?classId=${CLASS_ID}`),
+    fetch(`/api/stats?classId=${CLASS_ID}`),
+  ])
+  if (analyticsRes.status === 401 || analyticsRes.status === 403) { window.location.href = '/student'; return }
+  const data = await analyticsRes.json()
+  const stats = statsRes.ok ? await statsRes.json() : null
 
   if (!data.summary || data.summary.totalSessions === 0) {
     document.getElementById('loadingView').style.display = 'none'
@@ -370,6 +424,7 @@ async function loadAnalytics() {
   document.getElementById('dataView').style.display = ''
 
   renderSummary(data.summary)
+  if (stats) renderStatsTable(stats)
   renderTrendChart(data.sessionTrend)
   renderHourChart(data.hourDistribution)
   renderDayChart(data.dayDistribution)
@@ -386,6 +441,26 @@ function renderSummary(s) {
     <div class="summary-card"><div class="label">整体出勤率</div><div class="value success">${s.overallRate}%</div></div>
     <div class="summary-card"><div class="label">签到速度</div><div class="value">${s.avgSpeed}%</div><div class="label">前10min内签到占比</div></div>
   `
+}
+
+function renderStatsTable(stats) {
+  const table = document.getElementById('statsTable')
+  if (!stats.students.length) {
+    table.innerHTML = '<tr><td style="text-align:center;padding:24px;color:var(--muted-soft);">暂无数据</td></tr>'
+    return
+  }
+  const rows = stats.students.map(s => {
+    const rate = parseFloat(s.rate)
+    const badgeCls = rate >= 80 ? 'high' : rate >= 60 ? 'mid' : 'low'
+    return `<tr>
+      <td class="name">${escHtml(s.name)}</td>
+      <td>${escHtml(s.homeClass || '-')}</td>
+      <td>${s.signedCount}</td>
+      <td>${s.absentCount}</td>
+      <td><span class="rate-badge ${badgeCls}">${s.rate}%</span></td>
+    </tr>`
+  }).join('')
+  table.innerHTML = `<thead><tr><th>姓名</th><th>行政班级</th><th>签到</th><th>缺勤</th><th>出勤率</th></tr></thead><tbody>${rows}</tbody>`
 }
 
 function renderTrendChart(sessions) {

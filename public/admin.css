@@ -925,11 +925,19 @@ select.input-field:disabled {
   .class-grid { grid-template-columns: 1fr; }
 }
 
-/* ── Pool class items ── */
-.pool-class-item {
-  border-bottom: 1px solid var(--hairline);
+/* ── Pool Grid (2-column) ── */
+.pool-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
 }
-.pool-class-item:last-child { border-bottom: none; }
+
+.pool-class-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid var(--hairline);
+  overflow: hidden;
+}
 
 .pool-class-head {
   display: flex;
@@ -941,6 +949,10 @@ select.input-field:disabled {
 }
 .pool-class-head:hover {
   background: var(--surface-soft);
+}
+
+.pool-class-card {
+  cursor: pointer;
 }
 
 .pool-class-name {
@@ -990,6 +1002,46 @@ select.input-field:disabled {
   flex-shrink: 0;
 }
 
-.pool-class-detail {
+/* ── File Upload Buttons ── */
+.file-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px dashed var(--hairline);
   background: var(--canvas);
+  color: var(--body);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .15s;
+}
+.file-label:hover {
+  border-color: var(--primary);
+  background: #fef3ec;
+  color: var(--primary);
+}
+.file-label svg {
+  flex-shrink: 0;
+  opacity: 0.6;
+  transition: opacity .15s;
+}
+.file-label:hover svg { opacity: 1; }
+
+/* ── Pool import/photo action buttons ── */
+.pool-import-btn, .pool-photo-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  background: var(--primary);
+  color: var(--on-primary);
+  transition: background .15s;
+  height: 34px;
+}
+.pool-import-btn:hover, .pool-photo-btn:hover {
+  background: var(--primary-active);
 }

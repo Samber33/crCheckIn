@@ -2,7 +2,6 @@ import { prisma } from '../plugins/db.js'
 import ExcelJS from 'exceljs'
 import path from 'path'
 import fs from 'fs/promises'
-import { randomBytes } from 'node:crypto'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -150,18 +149,29 @@ export async function uploadStudentPhoto(classId, studentId, fileBuffer, filenam
     return { ok: false, message: '学生不存在或不属于该班级' }
   }
 
-  // 保存到 uploads/photos/{classId}/{random}_{studentId}{ext}
-  const classDir = path.join(UPLOAD_DIR, String(classId))
-  await fs.mkdir(classDir, { recursive: true })
+  // 保存到 uploads/photos/{YYYY}/{MM}/{original_filename}
+  // 文件名冲突时添加时间戳后缀
+  const now = new Date()
+  const year = String(now.getFullYear())
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const yearDir = path.join(UPLOAD_DIR, year)
+  const monthDir = path.join(yearDir, month)
+  await fs.mkdir(monthDir, { recursive: true })
 
-  const randomHex = randomBytes(6).toString('hex')
-  const safeFilename = `${randomHex}_${studentId}${ext}`
-  const filePath = path.join(classDir, safeFilename)
+  // 处理文件名冲突：检查文件是否存在，存在则添加 _1, _2... 后缀
+  const baseName = path.basename(filename, ext)
+  let safeFilename = `${baseName}${ext}`
+  let counter = 1
+  while (await fs.access(path.join(monthDir, safeFilename)).then(() => true).catch(() => false)) {
+    safeFilename = `${baseName}_${counter}${ext}`
+    counter++
+  }
+
+  const filePath = path.join(monthDir, safeFilename)
   await fs.writeFile(filePath, fileBuffer)
 
-  const url = `/uploads/photos/${classId}/${safeFilename}`
+  const url = `/uploads/photos/${year}/${month}/${safeFilename}`
 
-  // 更新学生 photoUrl
   // 删除旧照片（如果有）
   if (student.photoUrl) {
     try {
@@ -243,4 +253,131 @@ export async function deleteStudentPhoto(studentId, classId) {
   })
 
   return { ok: true, message: '照片已删除' }
+}
+
+/**
+ * 批量从 Excel 导入学生到班级池（按 A 列班级名自动匹配）
+ * Excel 格式：A=班级名称，B=行政班，C=学生姓名
+ */
+export async function batchImportPoolStudentsFromExcel(buffer) {
+  const workbook = new ExcelJS.Workbook()
+  await workbook.xlsx.load(buffer)
+  const worksheet = workbook.worksheets[0]
+
+  const HEADER_KEYWORDS = new Set(['班级', '名称', '行政班', '行政班级', '姓名', '学生姓名', '备注', '教学班', '教学班名'])
+  const rows = []
+  worksheet.eachRow((row) => {
+    const c1 = row.getCell(1).value
+    const c2 = row.getCell(2).value
+    const c3 = row.getCell(3).value
+    if (c1 == null || String(c1).trim() === '') return
+    if (HEADER_KEYWORDS.has(String(c1).trim())) return
+
+    rows.push({
+      className: String(c1).trim(),
+      homeClass: c2 != null ? String(c2).trim() : '',
+      name: c3 != null ? String(c3).trim() : '',
+    })
+  })
+
+  // 过滤掉姓名为空的行
+  const validRows = rows.filter(r => r.name && r.name !== '')
+  if (validRows.length === 0) return { ok: false, message: '未找到有效学生数据' }
+
+  // 获取所有班级池班级
+  const poolClasses = await prisma.class.findMany({
+    where: { teacherId: null },
+    select: { id: true, name: true },
+  })
+  const classMap = new Map()
+  for (const cls of poolClasses) {
+    classMap.set(cls.name, cls)
+  }
+
+  let totalCount = 0
+  const newClasses = []
+
+  // 按班级名分组
+  const grouped = new Map()
+  for (const r of validRows) {
+    if (!grouped.has(r.className)) grouped.set(r.className, [])
+    grouped.get(r.className).push(r)
+  }
+
+  for (const [className, students] of grouped) {
+    let cls = classMap.get(className)
+    if (!cls) {
+      // 自动创建班级池班级
+      cls = await prisma.class.create({
+        data: { name: className, teacherId: null, signInConfig: { create: {} } },
+      })
+      classMap.set(className, cls)
+      newClasses.push(className)
+    }
+
+    const existing = await prisma.student.findMany({
+      where: { classId: cls.id },
+      select: { name: true },
+    })
+    const existingSet = new Set(existing.map(s => s.name))
+    const toInsert = []
+    const seen = new Set()
+    for (const r of students) {
+      if (existingSet.has(r.name) || seen.has(r.name)) continue
+      seen.add(r.name)
+      toInsert.push({ name: r.name, homeClass: r.homeClass, classId: cls.id })
+    }
+
+    if (toInsert.length > 0) {
+      const res = await prisma.student.createMany({ data: toInsert })
+      totalCount += res.count
+    }
+  }
+
+  let msg = `导入 ${totalCount} 名学生`
+  if (newClasses.length) msg += `，新建 ${newClasses.length} 个班级（${newClasses.join('、')}）`
+  return { ok: true, count: totalCount, newClasses, message: msg }
+}
+
+/**
+ * 批量上传照片到班级池 — 文件名直接匹配学生姓名（跨所有班级池班级）
+ */
+export async function batchUploadPoolPhotos(files) {
+  // 加载所有班级池班级和学生
+  const poolClasses = await prisma.class.findMany({
+    where: { teacherId: null },
+    include: { students: true },
+  })
+
+  // 构建 studentName -> { classId, student } 映射（如果多个班级有同名学生，优先匹配第一个）
+  const studentMap = new Map()
+  for (const cls of poolClasses) {
+    for (const s of cls.students) {
+      if (!studentMap.has(s.name)) {
+        studentMap.set(s.name, { classId: cls.id, student: s })
+      }
+    }
+  }
+
+  const matched = []
+  const unmatched = []
+
+  for (const file of files) {
+    // 文件名去除扩展名后作为姓名直接匹配
+    const nameKey = path.basename(file.filename, path.extname(file.filename)).trim()
+    const match = studentMap.get(nameKey)
+    if (!match) {
+      unmatched.push(file.filename)
+      continue
+    }
+
+    const result = await uploadStudentPhoto(match.classId, match.student.id, file.buffer, file.filename)
+    if (result.ok) {
+      matched.push({ name: nameKey, url: result.url })
+    } else {
+      unmatched.push(`${file.filename} (${result.message})`)
+    }
+  }
+
+  return { ok: true, matched: matched.length, unmatched }
 }

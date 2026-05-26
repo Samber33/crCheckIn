@@ -391,64 +391,6 @@
       border-radius: 8px;
     }
 
-    /* === Stats Panel === */
-    .stats-panel {
-      margin-bottom: 16px;
-    }
-    .stats-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-    .stats-table thead th {
-      text-align: left;
-      padding: 10px 16px;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--muted-soft);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      border-bottom: 1px solid var(--hairline);
-      background: var(--canvas);
-      box-sizing: border-box;
-    }
-    .stats-table thead th.center { text-align: center; }
-    .stats-table tbody tr {
-      border-bottom: 1px solid var(--hairline);
-      transition: background .12s;
-    }
-    .stats-table tbody tr:hover { background: var(--surface-card); }
-    .stats-table tbody tr:last-child { border-bottom: none; }
-    .stats-table td {
-      padding: 10px 16px;
-      color: var(--body);
-      box-sizing: border-box;
-      text-align: left;
-    }
-    .stats-table td.name {
-      font-weight: 500;
-      color: var(--ink);
-    }
-    .stats-table td.muted {
-      font-size: 12px;
-      color: var(--muted-soft);
-    }
-    .stats-table td.center { text-align: center; }
-    .stats-table td.rate {
-      text-align: center;
-      font-weight: 600;
-      font-family: Georgia, serif;
-    }
-    .stats-table td.rate.high { color: var(--success); }
-    .stats-table td.rate.mid { color: var(--warning); }
-    .stats-table td.rate.low { color: var(--error); }
-    .stats-footer {
-      padding: 10px 16px;
-      font-size: 11px;
-      color: var(--muted-soft);
-      border-top: 1px solid var(--hairline);
-      background: var(--canvas);
-    }
     /* === Sidebar === */
     .sidebar {
       display: flex;
@@ -496,6 +438,17 @@
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
+    }
+    .sidebar-link--primary {
+      font-weight: 600;
+      color: var(--ink);
+      background: #fef3ec;
+      border: 1px solid rgba(204,120,92,.2);
+    }
+    .sidebar-link--primary:hover { background: #fde8d8; }
+    .sidebar-link--primary .sidebar-link-icon {
+      width: 32px;
+      height: 32px;
     }
     .sidebar-btn {
       display: flex;
@@ -886,17 +839,25 @@
           <div class="sidebar-card-header">
             <p class="sidebar-card-title">课堂工具</p>
           </div>
-          <div class="sidebar-card-body" style="display: flex; flex-direction: column; gap: 2px;">
-            <a href="/teacher/classes/{{ cls.id }}/seats" class="sidebar-link">
+          <div class="sidebar-card-body" style="display: flex; flex-direction: column; gap: 4px;">
+            <a href="/teacher/classes/{{ cls.id }}/seats" class="sidebar-link sidebar-link--primary">
               <span class="sidebar-link-icon" style="background: #fef3ec; color: var(--primary);">
-                <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
                 </svg>
               </span>
               座位表
             </a>
+            <button id="memoryStudentBtn" class="sidebar-link" style="opacity: 0.55; cursor: pointer;">
+              <span class="sidebar-link-icon" style="background: #fef3ec; color: var(--primary);">
+                <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                </svg>
+              </span>
+              记忆学生
+            </button>
             <a href="/teacher/classes/{{ cls.id }}/students" class="sidebar-link">
-              <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
+              <span class="sidebar-link-icon" style="background: #e8f4fd; color: var(--info);">
                 <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
                 </svg>
@@ -904,7 +865,7 @@
               学生管理
             </a>
             <a href="/teacher/info?classId={{ cls.id }}" class="sidebar-link" style="display:none;">
-              <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
+              <span class="sidebar-link-icon" style="background: #f3e8ff; color: #7c6cf0;">
                 <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
@@ -912,23 +873,15 @@
               信息收集
             </a>
             <button id="sessionsToggle" class="sidebar-btn">
-              <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
+              <span class="sidebar-link-icon" style="background: #f5f5f0; color: var(--muted);">
                 <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h6"/>
                 </svg>
               </span>
               历史批次
             </button>
-            <button id="statsToggle" class="sidebar-btn">
-              <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
-                <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                </svg>
-              </span>
-              出勤统计
-            </button>
             <a href="/teacher/classes/{{ cls.id }}/analytics" class="sidebar-link">
-              <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
+              <span class="sidebar-link-icon" style="background: #f0fdf4; color: var(--success);">
                 <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
                 </svg>
@@ -943,9 +896,9 @@
           <div class="sidebar-card-header">
             <p class="sidebar-card-title">数据管理</p>
           </div>
-          <div class="sidebar-card-body" style="display: flex; flex-direction: column; gap: 2px;">
+          <div class="sidebar-card-body" style="display: flex; flex-direction: column; gap: 4px;">
             <button id="importBtn" class="sidebar-btn">
-              <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
+              <span class="sidebar-link-icon" style="background: #fef3ec; color: var(--primary);">
                 <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
                 </svg>
@@ -953,7 +906,7 @@
               导入名单
             </button>
             <a href="/api/export?classId={{ cls.id }}" class="sidebar-link">
-              <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
+              <span class="sidebar-link-icon" style="background: #e8f4fd; color: var(--info);">
                 <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                 </svg>
@@ -961,7 +914,7 @@
               导出签到记录
             </a>
             <a href="/api/stats/export?classId={{ cls.id }}" class="sidebar-link">
-              <span class="sidebar-link-icon" style="background: var(--canvas); color: var(--muted);">
+              <span class="sidebar-link-icon" style="background: #f0fdf4; color: var(--success);">
                 <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
@@ -1511,46 +1464,8 @@ async function deleteSessionItem(sessionId, label) {
   if (backdrop.style.display === 'flex') {
     const title = document.getElementById('modalTitleText').textContent
     if (title === '历史批次') { sessionsPage = 1; await refreshSessions(1) }
-    else if (title === '出勤统计') await loadStats()
   }
 }
-
-document.getElementById('statsToggle').addEventListener('click', async () => {
-  openModal('出勤统计', '<div style="padding:24px;text-align:center;font-size:13px;color:var(--muted-soft);">加载中...</div>')
-  const res = await fetch('/api/stats?classId=' + CLASS_ID)
-  if (res.status === 401) { window.location.href = '/student'; return }
-  const data = await res.json()
-  if (!data.students || !data.students.length) {
-    document.getElementById('modalBody').innerHTML = '<div style="padding:24px;text-align:center;font-size:13px;color:var(--muted-soft);">暂无历史批次数据</div>'
-    return
-  }
-  const rateCls = (rate) => {
-    const v = parseFloat(rate)
-    return v >= 80 ? 'high' : v >= 60 ? 'mid' : 'low'
-  }
-  document.getElementById('modalBody').innerHTML = `<table class="stats-table">
-    <thead><tr>
-      <th style="width:18%">姓名</th>
-      <th style="width:20%">行政班级</th>
-      <th class="center" style="width:14%">签到</th>
-      <th class="center" style="width:14%">缺勤</th>
-      <th class="center" style="width:34%">出勤率</th>
-    </tr></thead>
-    <tbody>${data.students.map(s => {
-      const tagHtml = (s.tags || []).map(t =>
-        `<span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:500;color:#fff;background:${t.color};margin-left:4px;">${escHtml(t.tag)}</span>`
-      ).join('')
-      return `<tr>
-        <td class="name">${s.name}${tagHtml}</td>
-        <td class="muted">${formatHomeClass(s.homeClass)}</td>
-        <td class="center">${s.signedCount}</td>
-        <td class="center muted">${s.absentCount}</td>
-        <td class="rate ${rateCls(s.rate)}">${s.rate}%</td>
-      </tr>`
-    }).join('')}</tbody>
-  </table>
-  <div class="stats-footer">共 ${data.totalSessions} 个历史批次</div>`
-})
 
 document.getElementById('sessionsToggle').addEventListener('click', async () => {
   sessionsPage = 1
@@ -1558,43 +1473,9 @@ document.getElementById('sessionsToggle').addEventListener('click', async () => 
   await refreshSessions(1)
 })
 
-async function loadStats() {
-  const content = document.getElementById('modalBody')
-  content.innerHTML = '<div style="padding:24px;text-align:center;font-size:13px;color:var(--muted-soft);">加载中...</div>'
-  const res = await fetch('/api/stats?classId=' + CLASS_ID)
-  if (res.status === 401) { window.location.href = '/student'; return }
-  const data = await res.json()
-  if (!data.students || !data.students.length) {
-    content.innerHTML = '<div style="padding:24px;text-align:center;font-size:13px;color:var(--muted-soft);">暂无历史批次数据</div>'
-    return
-  }
-  const rateClass = (rate) => {
-    const v = parseFloat(rate)
-    return v >= 80 ? 'high' : v >= 60 ? 'mid' : 'low'
-  }
-  content.innerHTML = `<table class="stats-table">
-    <thead><tr>
-      <th style="width:18%">姓名</th>
-      <th style="width:20%">行政班级</th>
-      <th class="center" style="width:14%">签到</th>
-      <th class="center" style="width:14%">缺勤</th>
-      <th class="center" style="width:34%">出勤率</th>
-    </tr></thead>
-    <tbody>${data.students.map(s => {
-      const tagHtml = (s.tags || []).map(t =>
-        `<span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:500;color:#fff;background:${t.color};margin-left:4px;">${escHtml(t.tag)}</span>`
-      ).join('')
-      return `<tr>
-        <td class="name">${s.name}${tagHtml}</td>
-        <td class="muted">${formatHomeClass(s.homeClass)}</td>
-        <td class="center">${s.signedCount}</td>
-        <td class="center muted">${s.absentCount}</td>
-        <td class="rate ${rateClass(s.rate)}">${s.rate}%</td>
-      </tr>`
-    }).join('')}</tbody>
-  </table>
-  <div class="stats-footer">共 ${data.totalSessions} 个历史批次</div>`
-}
+document.getElementById('memoryStudentBtn').addEventListener('click', () => {
+  showToast('功能即将上线', true)
+})
 
 async function revokeRecord(recordId) {
   if (!confirm('确认撤销该签到记录？')) return
@@ -1662,7 +1543,6 @@ document.getElementById('resetBtn').addEventListener('click', async () => {
   if (backdrop.style.display === 'flex') {
     const title = document.getElementById('modalTitleText').textContent
     if (title === '历史批次') await refreshSessions()
-    else if (title === '出勤统计') await loadStats()
   }
 })
 

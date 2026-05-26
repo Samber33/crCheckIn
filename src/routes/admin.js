@@ -21,6 +21,7 @@ import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DB_PATH = path.resolve(__dirname, '../../prisma/attendance.db')
+const SYSTEM_BACKUP_PATH = path.resolve(__dirname, '../../prisma/attendance.system.db')
 
 function getClientIp(request) {
   return request.headers['x-forwarded-for']?.split(',')[0]?.trim()
@@ -46,16 +47,12 @@ export default async function adminRoutes(app) {
     })
   })
 
-  app.get('/admin/dashboard', { preHandler: adminRequired }, async (request, reply) => {
-    return reply.view('admin/dashboard.html', {})
-  })
-
   app.get('/admin/analytics', { preHandler: adminRequired }, async (request, reply) => {
     return reply.view('admin/analytics.html', {})
   })
 
   app.get('/admin/audit', { preHandler: adminRequired }, async (request, reply) => {
-    return reply.view('admin/audit.html', {})
+    return reply.redirect('/admin/analytics?tab=audit')
   })
 
   // === API: Preset Tag Management ===
@@ -259,15 +256,35 @@ export default async function adminRoutes(app) {
     return reply.send({ ok: true, ...data, page, limit })
   })
 
-  // === API: Database Backup ===
-
-  app.get('/admin/api/backup', { preHandler: adminRequired }, async (request, reply) => {
+  // === API: System Backup ===
+  app.get('/admin/api/system-backup', { preHandler: adminRequired }, async (request, reply) => {
     try {
       const data = await fs.readFile(DB_PATH)
+      await fs.writeFile(SYSTEM_BACKUP_PATH, data)
       await createAuditLog({
         adminId: request.session.teacherId,
         action: 'BACKUP',
-        target: '数据库备份',
+        target: '系统备份',
+        detail: JSON.stringify({ size: data.length }),
+        ip: getClientIp(request),
+      })
+      return reply.send({ ok: true, message: '系统备份已保存' })
+    } catch (err) {
+      return reply.code(500).send({ ok: false, message: '系统备份失败：' + err.message })
+    }
+  })
+
+  // === API: Database Backup ===
+  app.get('/admin/api/backup', { preHandler: adminRequired }, async (request, reply) => {
+    try {
+      if (!fs.existsSync(SYSTEM_BACKUP_PATH)) {
+        return reply.code(404).send({ ok: false, message: '请先点击「系统备份」' })
+      }
+      const data = await fs.readFile(SYSTEM_BACKUP_PATH)
+      await createAuditLog({
+        adminId: request.session.teacherId,
+        action: 'BACKUP',
+        target: '数据库备份下载',
         detail: JSON.stringify({ size: data.length }),
         ip: getClientIp(request),
       })
@@ -375,10 +392,12 @@ export default async function adminRoutes(app) {
       dbError = err.message
     }
 
-    const [teacherCount, classCount, studentCount, sessionCount, recordCount, archivedCount] = await Promise.all([
+    const [teacherCount, classCount, studentCount, poolClassCount, poolStudentCount, sessionCount, recordCount, archivedCount] = await Promise.all([
       prisma.teacher.count().catch(() => 0),
       prisma.class.count().catch(() => 0),
       prisma.student.count().catch(() => 0),
+      prisma.class.count({ where: { teacherId: null } }).catch(() => 0),
+      prisma.student.count({ where: { class: { teacherId: null } } }).catch(() => 0),
       prisma.signInSession.count().catch(() => 0),
       prisma.signInRecord.count().catch(() => 0),
       prisma.archivedRecord.count().catch(() => 0),
@@ -407,6 +426,8 @@ export default async function adminRoutes(app) {
         teachers: teacherCount,
         classes: classCount,
         students: studentCount,
+        poolClasses: poolClassCount,
+        poolStudents: poolStudentCount,
         sessions: sessionCount,
         currentRecords: recordCount,
         archivedRecords: archivedCount,

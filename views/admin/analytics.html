@@ -6,6 +6,20 @@
   <title>数据分析 - 管理员</title>
   <link rel="stylesheet" href="/public/admin.css">
   <link rel="stylesheet" href="/public/tailwind.min.css">
+  <style>
+    /* Tab styles */
+    .tab-bar { display: flex; gap: 0; border-bottom: 2px solid var(--hairline); margin-bottom: 20px; }
+    .tab-btn {
+      padding: 10px 20px; font-size: 14px; font-weight: 500; color: var(--muted-soft);
+      background: none; border: none; cursor: pointer; position: relative; transition: color .15s;
+    }
+    .tab-btn:hover { color: var(--ink); }
+    .tab-btn.active { color: var(--ink); }
+    .tab-btn.active::after {
+      content: ''; position: absolute; bottom: -2px; left: 0; right: 0;
+      height: 2px; background: var(--primary);
+    }
+  </style>
 </head>
 <body>
 
@@ -19,14 +33,12 @@
         管理面板
       </a>
       <span style="color: var(--hairline);">|</span>
-      <span class="page-title text-lg">数据分析</span>
+      <span class="page-title text-lg" id="pageTitle">数据分析</span>
     </div>
     <div class="header-right">
       <button id="tagManageBtn" class="nav-link">预设标签</button>
       <a href="/admin/pool" class="nav-link">班级池</a>
-      <a href="/admin/dashboard" class="nav-link">全局看板</a>
       <a href="/admin/analytics" class="nav-link active">数据分析</a>
-      <a href="/admin/audit" class="nav-link">审计日志</a>
       <form method="post" action="/teacher/logout" style="display: inline;">
         <button class="nav-link" type="submit">退出</button>
       </form>
@@ -39,36 +51,62 @@
   <div id="loadingView" class="loading">加载中...</div>
   <div id="dataView" style="display: none;">
 
-    <!-- Summary -->
-    <div class="summary-grid" id="summaryGrid"></div>
+    <!-- Tabs -->
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="analytics">数据分析</button>
+      <button class="tab-btn" data-tab="audit">审计日志</button>
+    </div>
 
-    <!-- Charts Row -->
-    <div class="chart-grid">
+    <!-- Analytics Tab -->
+    <div id="analyticsTab">
+      <div class="summary-grid" id="summaryGrid"></div>
+      <div class="chart-grid">
+        <div class="chart-card">
+          <div class="chart-header"><p class="chart-title">各教师班级数</p></div>
+          <div class="chart-body"><div id="classChart"></div></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><p class="chart-title">各教师签到量</p></div>
+          <div class="chart-body"><div id="recordChart"></div></div>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-bottom: 24px;">
+        <div class="chart-header"><p class="chart-title">教师详细数据</p></div>
+        <div class="chart-body" style="overflow-x: auto;">
+          <table class="admin-table" id="teacherTable"></table>
+        </div>
+      </div>
       <div class="chart-card">
-        <div class="chart-header"><p class="chart-title">各教师班级数</p></div>
-        <div class="chart-body"><div id="classChart"></div></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-header"><p class="chart-title">各教师签到量</p></div>
-        <div class="chart-body"><div id="recordChart"></div></div>
+        <div class="chart-header"><p class="chart-title">最近签到活动（Top 10）</p></div>
+        <div class="chart-body">
+          <ul class="activity-list" id="activityList"></ul>
+        </div>
       </div>
     </div>
 
-    <!-- Teacher Table -->
-    <div class="chart-card" style="margin-bottom: 24px;">
-      <div class="chart-header"><p class="chart-title">教师详细数据</p></div>
-      <div class="chart-body" style="overflow-x: auto;">
-        <table class="admin-table" id="teacherTable"></table>
+    <!-- Audit Tab -->
+    <div id="auditTab" style="display: none;">
+      <div class="card" style="margin-bottom: 16px;">
+        <div class="card-header">
+          <p class="card-title">操作日志</p>
+        </div>
+        <table class="admin-table" id="logTable">
+          <thead><tr>
+            <th style="width:140px;">时间</th>
+            <th style="width:120px;">操作类型</th>
+            <th>操作目标</th>
+            <th style="width:100px;">IP</th>
+          </tr></thead>
+          <tbody id="logBody"></tbody>
+        </table>
+        <div class="pagination" id="pagination" style="display: none;">
+          <button id="prevBtn" disabled>上一页</button>
+          <span class="page-info" id="pageInfo"></span>
+          <button id="nextBtn" disabled>下一页</button>
+        </div>
       </div>
     </div>
 
-    <!-- Recent Activity -->
-    <div class="chart-card">
-      <div class="chart-header"><p class="chart-title">最近签到活动（Top 10）</p></div>
-      <div class="chart-body">
-        <ul class="activity-list" id="activityList"></ul>
-      </div>
-    </div>
   </div>
 </main>
 
@@ -91,6 +129,34 @@
 <div id="toast" class="toast"></div>
 
 <script>
+// === Tab Management ===
+let currentTab = 'analytics'
+const urlParams = new URLSearchParams(window.location.search)
+if (urlParams.get('tab') === 'audit') currentTab = 'audit'
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentTab = btn.dataset.tab
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'))
+    btn.classList.add('active')
+    document.getElementById('analyticsTab').style.display = currentTab === 'analytics' ? '' : 'none'
+    document.getElementById('auditTab').style.display = currentTab === 'audit' ? '' : 'none'
+    document.getElementById('pageTitle').textContent = currentTab === 'analytics' ? '数据分析' : '审计日志'
+    if (currentTab === 'audit' && !window._auditLoaded) {
+      window._auditLoaded = true
+      loadAuditPage(1)
+    }
+  })
+})
+
+// Set initial tab state
+document.querySelectorAll('.tab-btn').forEach(b => {
+  b.classList.toggle('active', b.dataset.tab === currentTab)
+})
+document.getElementById('analyticsTab').style.display = currentTab === 'analytics' ? '' : 'none'
+document.getElementById('auditTab').style.display = currentTab === 'audit' ? '' : 'none'
+if (currentTab === 'audit') document.getElementById('pageTitle').textContent = '审计日志'
+
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
 }
@@ -105,13 +171,14 @@ function timeAgo(date) {
   return Math.floor(diff / 86400) + '天前'
 }
 
-async function loadData() {
+// === Analytics ===
+async function loadAnalytics() {
   try {
     const res = await fetch('/admin/api/analytics')
     if (res.status === 401 || res.status === 403) { window.location.href = '/student'; return }
     if (!res.ok) { throw new Error('服务器返回 ' + res.status) }
     const data = await res.json()
-    render(data)
+    renderAnalytics(data)
   } catch (e) {
     document.getElementById('loadingView').style.display = 'none'
     document.getElementById('dataView').innerHTML = '<p style="text-align:center;padding:32px;color:var(--error);">加载失败：' + escHtml(e.message) + '</p>'
@@ -119,11 +186,10 @@ async function loadData() {
   }
 }
 
-function render(data) {
+function renderAnalytics(data) {
   document.getElementById('loadingView').style.display = 'none'
   document.getElementById('dataView').style.display = ''
 
-  // Summary
   const s = data.summary
   document.getElementById('summaryGrid').innerHTML = `
     <div class="summary-card"><div class="label">教师数</div><div class="value primary">${s.teacherCount}</div></div>
@@ -133,7 +199,6 @@ function render(data) {
     <div class="summary-card"><div class="label">历史批次数</div><div class="value">${s.totalSessions}</div></div>
   `
 
-  // Teacher bar chart (class count)
   const teachers = data.teacherStats.filter(t => !t.isAdmin)
   const maxClasses = Math.max(...teachers.map(t => t.classCount), 1)
   document.getElementById('classChart').innerHTML = `<div class="bar-chart">${
@@ -143,7 +208,6 @@ function render(data) {
     }).join('')
   }</div>`
 
-  // Record chart
   const maxRecords = Math.max(...teachers.map(t => t.recordsCount), 1)
   document.getElementById('recordChart').innerHTML = `<div class="bar-chart">${
     teachers.map(t => {
@@ -152,7 +216,6 @@ function render(data) {
     }).join('')
   }</div>`
 
-  // Teacher table
   document.getElementById('teacherTable').innerHTML = `<thead><tr>
     <th>教师</th><th>班级</th><th>批次</th><th>签到人次</th><th>学生</th>
   </tr></thead><tbody>${
@@ -165,7 +228,6 @@ function render(data) {
     </tr>`).join('')
   }</tbody>`
 
-  // Recent activity
   document.getElementById('activityList').innerHTML = data.recentActivity.length
     ? data.recentActivity.map(a => `
       <li class="activity-item">
@@ -174,9 +236,76 @@ function render(data) {
         <span class="activity-time">${timeAgo(a.signedAt)}</span>
       </li>`).join('')
     : '<div class="empty-state">暂无签到记录</div>'
+
+  // Load audit data if audit tab is active
+  if (currentTab === 'audit' && !window._auditLoaded) {
+    window._auditLoaded = true
+    loadAuditPage(1)
+  }
 }
 
-loadData()
+// === Audit Logs ===
+let auditPage = 1
+const AUDIT_LIMIT = 50
+
+function timeCN(dateStr) {
+  const d = new Date(dateStr)
+  const pad = n => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+async function loadAuditPage(page) {
+  auditPage = page
+  try {
+    const res = await fetch(`/admin/api/audit-logs?page=${page}&limit=${AUDIT_LIMIT}`)
+    if (res.status === 401 || res.status === 403) { window.location.href = '/student'; return }
+    if (!res.ok) { throw new Error('服务器返回 ' + res.status) }
+    const data = await res.json()
+    renderAudit(data)
+  } catch (e) {
+    document.getElementById('logBody').innerHTML = '<tr><td colspan="4" style="text-align:center;padding:32px;color:var(--error);">加载失败：' + escHtml(e.message) + '</td></tr>'
+  }
+}
+
+const ACTION_LABELS = {
+  CREATE_TEACHER: '创建教师',
+  DELETE_TEACHER: '删除教师',
+  RESET_PASSWORD: '重置密码',
+  BATCH_RESET_PASSWORD: '批量重置密码',
+  TRANSFER_CLASS: '班级转交',
+  EDIT_CLASS: '编辑班级',
+  DELETE_CLASS: '删除班级',
+  ARCHIVE_ALL: '一键归档',
+  BACKUP: '数据库备份',
+  RESTORE: '数据库恢复',
+}
+
+function renderAudit(data) {
+  document.getElementById('pagination').style.display = ''
+
+  const rows = data.logs.map(log => {
+    const label = ACTION_LABELS[log.action] || log.action
+    return `<tr>
+      <td style="white-space: nowrap; color: var(--muted-soft); font-size: 12px;">${timeCN(log.createdAt)}</td>
+      <td><span class="action-badge ${log.action}">${escHtml(label)}</span></td>
+      <td style="font-size: 13px;">${escHtml(log.target)}${log.detail ? `<br><span style="color: var(--muted-soft); font-size: 11px;">${escHtml(log.detail)}</span>` : ''}</td>
+      <td style="font-size: 12px; color: var(--muted-soft);">${escHtml(log.ip || '-')}</td>
+    </tr>`
+  }).join('')
+
+  document.getElementById('logBody').innerHTML = rows || '<tr><td colspan="4" class="empty-state">暂无日志</td></tr>'
+
+  const totalPages = Math.ceil(data.total / data.limit)
+  document.getElementById('pageInfo').textContent = `第 ${data.page} / ${totalPages || 1} 页（共 ${data.total} 条）`
+  document.getElementById('prevBtn').disabled = data.page <= 1
+  document.getElementById('nextBtn').disabled = data.page >= totalPages
+}
+
+document.getElementById('prevBtn').addEventListener('click', () => { if (auditPage > 1) loadAuditPage(auditPage - 1) })
+document.getElementById('nextBtn').addEventListener('click', () => loadAuditPage(auditPage + 1))
+
+// Load analytics on page load
+loadAnalytics()
 
 // === Preset Tag Management ===
 const TAG_COLORS = ['#cc785c','#5db872','#d4a017','#7c6cf0','#4a90d9','#e67e22']
@@ -296,5 +425,6 @@ document.getElementById('presetTagAddBtn').addEventListener('click', async () =>
 document.getElementById('presetTagAddInput').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') document.getElementById('presetTagAddBtn').click()
 })
+</script>
 </body>
 </html>

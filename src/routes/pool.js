@@ -8,6 +8,8 @@ import {
   uploadStudentPhoto,
   bulkUploadPhotos,
   deleteStudentPhoto,
+  batchImportPoolStudentsFromExcel,
+  batchUploadPoolPhotos,
 } from '../services/pool.js'
 
 export default async function poolRoutes(app) {
@@ -113,6 +115,45 @@ export default async function poolRoutes(app) {
       }
       if (files.length === 0) return reply.code(400).send({ ok: false, message: '请上传图片' })
       const result = await bulkUploadPhotos(classId, files)
+      return reply.send(result)
+    } catch (err) {
+      return reply.code(500).send({ ok: false, message: '上传失败：' + err.message })
+    }
+  })
+
+  // === API: 批量导入学生到班级池 ===
+
+  app.post('/admin/api/pool/batch-import', { preHandler: adminRequired }, async (request, reply) => {
+    try {
+      let fileBuffer = null
+      for await (const part of request.parts()) {
+        if (part.type === 'file') {
+          const chunks = []
+          for await (const chunk of part.file) chunks.push(chunk)
+          fileBuffer = Buffer.concat(chunks)
+        }
+      }
+      if (!fileBuffer) return reply.code(400).send({ ok: false, message: '请上传 Excel 文件' })
+      const result = await batchImportPoolStudentsFromExcel(fileBuffer)
+      return reply.send(result)
+    } catch (err) {
+      return reply.code(500).send({ ok: false, message: '导入失败：' + err.message })
+    }
+  })
+
+  // === API: 批量上传照片到班级池 ===
+
+  app.post('/admin/api/pool/batch-photos', { preHandler: adminRequired }, async (request, reply) => {
+    try {
+      const files = []
+      for await (const part of request.parts()) {
+        if (part.type === 'file') {
+          const buf = await part.toBuffer()
+          files.push({ filename: part.filename, buffer: buf })
+        }
+      }
+      if (files.length === 0) return reply.code(400).send({ ok: false, message: '请上传图片' })
+      const result = await batchUploadPoolPhotos(files)
       return reply.send(result)
     } catch (err) {
       return reply.code(500).send({ ok: false, message: '上传失败：' + err.message })
