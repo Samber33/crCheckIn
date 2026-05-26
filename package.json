@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "db:deploy": "node prisma/deploy.js",
-    "test": "node --test src/services/*.test.js src/utils/*.test.js",
+    "test": "node --test --test-concurrency=1 src/services/*.test.js src/utils/*.test.js src/routes/*.test.js",
     "start": "pm2 startOrRestart ecosystem.config.cjs --env production",
     "start:direct": "node server.js",
     "dev": "node --watch server.js",

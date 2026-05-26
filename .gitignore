@@ -6,6 +6,7 @@ prisma/*.db
 prisma/*.db-journal
 prisma/*.db-shm
 prisma/*.db-wal
+test-*.db
 
 # Prisma 生成的客户端
 node_modules/.prisma/
@@ -33,3 +34,5 @@ dist/
 build/
 
 claude/DESIGN.md
+
+uploads/
