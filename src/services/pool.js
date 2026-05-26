@@ -251,9 +251,13 @@ export async function bulkUploadPhotos(classId, files) {
     dbUpdates.push({ studentId: student.id, photoUrl: url })
   }
 
-  // 并行写文件
+  // 分批写文件
+  const BATCH_SIZE = 20
   if (writeTasks.length > 0) {
-    await Promise.all(writeTasks.map(t => fs.writeFile(t.filePath, t.buffer)))
+    for (let i = 0; i < writeTasks.length; i += BATCH_SIZE) {
+      const batch = writeTasks.slice(i, i + BATCH_SIZE)
+      await Promise.all(batch.map(t => fs.writeFile(t.filePath, t.buffer)))
+    }
   }
 
   // 批量更新数据库（每批 20 个）
@@ -451,15 +455,17 @@ export async function batchUploadPoolPhotos(files) {
     dbUpdates.push({ studentId: match.student.id, photoUrl: url })
   }
 
-  // 第 2 步：并行写文件
+  // 第 2 步：分批并行写文件（避免 EMFILE）
+  const BATCH_SIZE = 20
   if (writeTasks.length > 0) {
-    await Promise.all(writeTasks.map(t => fs.writeFile(t.filePath, t.buffer)))
+    for (let i = 0; i < writeTasks.length; i += BATCH_SIZE) {
+      const batch = writeTasks.slice(i, i + BATCH_SIZE)
+      await Promise.all(batch.map(t => fs.writeFile(t.filePath, t.buffer)))
+    }
   }
 
-  // 第 3 步：批量更新数据库（用 createMany 风格的并发 update）
+  // 第 3 步：分批更新数据库
   if (dbUpdates.length > 0) {
-    // 分批执行，避免一次性太多并发请求（每批最多 20 个）
-    const BATCH_SIZE = 20
     for (let i = 0; i < dbUpdates.length; i += BATCH_SIZE) {
       const batch = dbUpdates.slice(i, i + BATCH_SIZE)
       await Promise.all(
