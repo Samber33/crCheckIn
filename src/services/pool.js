@@ -206,11 +206,25 @@ export async function bulkUploadPhotos(classId, files) {
     studentMap.set(s.name, s)
   }
 
+  const now = new Date()
+  const year = String(now.getFullYear())
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const yearDir = path.join(UPLOAD_DIR, year)
+  const monthDir = path.join(yearDir, month)
+  await fs.mkdir(monthDir, { recursive: true })
+
+  const existingFiles = new Set()
+  try {
+    const entries = await fs.readdir(monthDir)
+    for (const entry of entries) existingFiles.add(entry)
+  } catch { /* 空 */ }
+
   const matched = []
   const unmatched = []
+  const writeTasks = []
+  const dbUpdates = []
 
   for (const file of files) {
-    // 文件名去除扩展名后作为姓名匹配
     const nameKey = path.basename(file.filename, path.extname(file.filename)).trim()
     const student = studentMap.get(nameKey)
     if (!student) {
@@ -218,12 +232,42 @@ export async function bulkUploadPhotos(classId, files) {
       continue
     }
 
-    const result = await uploadStudentPhoto(classId, student.id, file.buffer, file.filename)
-    if (result.ok) {
-      matched.push({ name: nameKey, url: result.url })
-    } else {
-      unmatched.push(`${file.filename} (${result.message})`)
+    // 确定不冲突的文件名
+    const ext = path.extname(file.filename).toLowerCase()
+    const baseName = path.basename(file.filename, ext)
+    let safeFilename = `${baseName}${ext}`
+    let counter = 1
+    while (existingFiles.has(safeFilename)) {
+      safeFilename = `${baseName}_${counter}${ext}`
+      counter++
     }
+    existingFiles.add(safeFilename)
+
+    const url = `/uploads/photos/${year}/${month}/${safeFilename}`
+    const filePath = path.join(monthDir, safeFilename)
+
+    matched.push({ name: nameKey, url })
+    writeTasks.push({ buffer: file.buffer, filePath, student })
+    dbUpdates.push({ studentId: student.id, photoUrl: url })
+  }
+
+  // 并行写文件
+  if (writeTasks.length > 0) {
+    await Promise.all(writeTasks.map(t => fs.writeFile(t.filePath, t.buffer)))
+  }
+
+  // 批量更新数据库（每批 20 个）
+  const BATCH_SIZE = 20
+  for (let i = 0; i < dbUpdates.length; i += BATCH_SIZE) {
+    const batch = dbUpdates.slice(i, i + BATCH_SIZE)
+    await Promise.all(
+      batch.map(u =>
+        prisma.student.update({
+          where: { id: u.studentId },
+          data: { photoUrl: u.photoUrl },
+        })
+      )
+    )
   }
 
   return { ok: true, matched: matched.length, unmatched }
@@ -341,6 +385,7 @@ export async function batchImportPoolStudentsFromExcel(buffer) {
 
 /**
  * 批量上传照片到班级池 — 文件名直接匹配学生姓名（跨所有班级池班级）
+ * 优化：批量 DB 操作，避免 800+ 张照片产生 1600+ 次查询
  */
 export async function batchUploadPoolPhotos(files) {
   // 加载所有班级池班级和学生
@@ -349,7 +394,7 @@ export async function batchUploadPoolPhotos(files) {
     include: { students: true },
   })
 
-  // 构建 studentName -> { classId, student } 映射（如果多个班级有同名学生，优先匹配第一个）
+  // 构建 studentName -> { classId, student } 映射
   const studentMap = new Map()
   for (const cls of poolClasses) {
     for (const s of cls.students) {
@@ -359,11 +404,27 @@ export async function batchUploadPoolPhotos(files) {
     }
   }
 
+  const now = new Date()
+  const year = String(now.getFullYear())
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const yearDir = path.join(UPLOAD_DIR, year)
+  const monthDir = path.join(yearDir, month)
+  await fs.mkdir(monthDir, { recursive: true })
+
+  // 扫描已有文件，用于冲突检测
+  const existingFiles = new Set()
+  try {
+    const entries = await fs.readdir(monthDir)
+    for (const entry of entries) existingFiles.add(entry)
+  } catch { /* 目录不存在或为空 */ }
+
+  // 第 1 步：匹配 + 确定文件名
   const matched = []
   const unmatched = []
+  const writeTasks = [] // { buffer, filePath }
+  const dbUpdates = []  // { studentId, photoUrl }
 
   for (const file of files) {
-    // 文件名去除扩展名后作为姓名直接匹配
     const nameKey = path.basename(file.filename, path.extname(file.filename)).trim()
     const match = studentMap.get(nameKey)
     if (!match) {
@@ -371,11 +432,44 @@ export async function batchUploadPoolPhotos(files) {
       continue
     }
 
-    const result = await uploadStudentPhoto(match.classId, match.student.id, file.buffer, file.filename)
-    if (result.ok) {
-      matched.push({ name: nameKey, url: result.url })
-    } else {
-      unmatched.push(`${file.filename} (${result.message})`)
+    // 确定不冲突的文件名
+    const ext = path.extname(file.filename).toLowerCase()
+    const baseName = path.basename(file.filename, ext)
+    let safeFilename = `${baseName}${ext}`
+    let counter = 1
+    while (existingFiles.has(safeFilename)) {
+      safeFilename = `${baseName}_${counter}${ext}`
+      counter++
+    }
+    existingFiles.add(safeFilename)
+
+    const url = `/uploads/photos/${year}/${month}/${safeFilename}`
+    const filePath = path.join(monthDir, safeFilename)
+
+    matched.push({ name: nameKey, url })
+    writeTasks.push({ buffer: file.buffer, filePath })
+    dbUpdates.push({ studentId: match.student.id, photoUrl: url })
+  }
+
+  // 第 2 步：并行写文件
+  if (writeTasks.length > 0) {
+    await Promise.all(writeTasks.map(t => fs.writeFile(t.filePath, t.buffer)))
+  }
+
+  // 第 3 步：批量更新数据库（用 createMany 风格的并发 update）
+  if (dbUpdates.length > 0) {
+    // 分批执行，避免一次性太多并发请求（每批最多 20 个）
+    const BATCH_SIZE = 20
+    for (let i = 0; i < dbUpdates.length; i += BATCH_SIZE) {
+      const batch = dbUpdates.slice(i, i + BATCH_SIZE)
+      await Promise.all(
+        batch.map(u =>
+          prisma.student.update({
+            where: { id: u.studentId },
+            data: { photoUrl: u.photoUrl },
+          })
+        )
+      )
     }
   }
 
