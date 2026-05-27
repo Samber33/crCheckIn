@@ -128,6 +128,7 @@
 
 <div id="toast" class="toast"></div>
 
+<script src="/public/confirm.js"></script>
 <script>
 // === Tab Management ===
 let currentTab = 'analytics'
@@ -397,7 +398,7 @@ document.getElementById('presetTagList').addEventListener('click', async (e) => 
   }
   if (delBtn) {
     const id = parseInt(delBtn.dataset.id)
-    if (!confirm('确认删除此预设标签？')) return
+    if (!await showConfirmDialog('删除标签', '确认删除此预设标签？', '确认删除', 'danger')) return
     try {
       const res = await fetch(`/admin/api/preset-tags/${id}`, { method: 'DELETE' })
       const data = await res.json()

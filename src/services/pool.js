@@ -8,12 +8,74 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const UPLOAD_DIR = path.resolve(__dirname, '../../uploads/photos')
 
 /**
- * 获取班级池中的所有班级（teacherId IS NULL）
+ * 标准化姓名用于匹配：去除空白、全角转半角、去除标点等
  */
-export async function getPoolClasses() {
+function normalizeName(name) {
+  return name
+    .replace(/[﻿​‌‍ ]/g, '')   // BOM、零宽空格、不间断空格
+    .trim()
+    .replace(/\s+/g, '')                                   // 去除所有空白
+    .replace(/[（）()【】\[\]《》<>「」『』""''、，。：:；;！!？?～~·]/g, '') // 去除中英文标点
+    .replace(/[Ａ-Ｚａ-ｚ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)) // 全角字母→半角
+    .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)) // 全角数字→半角
+    .replace(/^[.\-_\s]+|[.\-_\s]+$/g, '')                 // 去除首尾标点
+    .toLowerCase()
+}
+
+/**
+ * 获取班级池中的所有班级（teacherId IS NULL，未删除）
+ * @param {object} [opts]
+ * @param {string} [opts.semester] - 按学期筛选，空字符串=当前未归档
+ * @param {number} [opts.teacherId] - 当前教师ID，用于判断认领状态
+ */
+export async function getPoolClasses(opts = {}) {
+  const where = { teacherId: null, deletedAt: null }
+  if (opts.semester !== undefined) {
+    where.semester = opts.semester
+  } else {
+    where.isArchived = false
+  }
   const classes = await prisma.class.findMany({
-    where: { teacherId: null, isArchived: false },
-    orderBy: { createdAt: 'desc' },
+    where,
+    orderBy: { name: 'asc' },
+    include: {
+      _count: { select: { students: true } },
+    },
+  })
+
+  // 获取所有教师班级的名称，用于判断认领状态
+  const teacherClassNames = await prisma.class.findMany({
+    where: { teacherId: { not: null }, deletedAt: null },
+    select: { name: true, teacherId: true },
+  })
+  const nameToTeachers = new Map()
+  for (const tc of teacherClassNames) {
+    if (!nameToTeachers.has(tc.name)) nameToTeachers.set(tc.name, new Set())
+    nameToTeachers.get(tc.name).add(tc.teacherId)
+  }
+
+  return classes.map(c => {
+    const teachers = nameToTeachers.get(c.name)
+    return {
+      id: c.id,
+      name: c.name,
+      studentCount: c._count.students,
+      semester: c.semester,
+      isArchived: c.isArchived,
+      createdAt: c.createdAt,
+      claimedByAnyTeacher: !!teachers && teachers.size > 0,
+      claimedByCurrentTeacher: !!teachers && opts.teacherId != null && teachers.has(opts.teacherId),
+    }
+  })
+}
+
+/**
+ * 获取回收站中的班级（已软删除）
+ */
+export async function getRecycleBinClasses() {
+  const classes = await prisma.class.findMany({
+    where: { deletedAt: { not: null } },
+    orderBy: { deletedAt: 'desc' },
     include: {
       _count: { select: { students: true } },
     },
@@ -22,8 +84,138 @@ export async function getPoolClasses() {
     id: c.id,
     name: c.name,
     studentCount: c._count.students,
-    createdAt: c.createdAt,
+    deletedAt: c.deletedAt ? new Date(c.deletedAt).toLocaleDateString('zh-CN') : '',
   }))
+}
+
+/**
+ * 软删除班级池班级（移入回收站）
+ */
+export async function softDeletePoolClass(classId) {
+  const cls = await prisma.class.findUnique({ where: { id: classId } })
+  if (!cls || cls.teacherId !== null) return { ok: false, message: '班级不存在或不属于班级池' }
+  await prisma.class.update({
+    where: { id: classId },
+    data: { deletedAt: new Date() },
+  })
+  return { ok: true, message: `「${cls.name}」已移入回收站` }
+}
+
+/**
+ * 恢复回收站中的班级
+ */
+export async function restorePoolClass(classId) {
+  const cls = await prisma.class.findUnique({ where: { id: classId } })
+  if (!cls || cls.deletedAt === null) return { ok: false, message: '班级不在回收站中' }
+  await prisma.class.update({
+    where: { id: classId },
+    data: { deletedAt: null },
+  })
+  return { ok: true, message: `「${cls.name}」已恢复` }
+}
+
+/**
+ * 彻底删除回收站中的班级（连同学生数据）
+ */
+export async function hardDeletePoolClass(classId) {
+  const cls = await prisma.class.findUnique({ where: { id: classId } })
+  if (!cls || cls.deletedAt === null) return { ok: false, message: '班级不在回收站中' }
+  const { deleteClassesCascadeWithTx } = await import('./class.js')
+  await prisma.$transaction(async (tx) => {
+    await deleteClassesCascadeWithTx(tx, [classId])
+  })
+  return { ok: true, message: `「${cls.name}」已彻底删除` }
+}
+
+/**
+ * 将班级池中的照片同步到同名教师班级
+ * @param {number} poolClassId - 班级池班级 ID
+ * @returns {{ ok: boolean, synced: number }}
+ */
+export async function syncPoolPhotosToTeacherClasses(poolClassId) {
+  const poolClass = await prisma.class.findUnique({ where: { id: poolClassId } })
+  if (!poolClass || poolClass.teacherId !== null) return { ok: false, synced: 0 }
+
+  // 查找所有同名的教师班级
+  const teacherClasses = await prisma.class.findMany({
+    where: { name: poolClass.name, teacherId: { not: null }, deletedAt: null },
+    select: { id: true },
+  })
+  if (teacherClasses.length === 0) return { ok: true, synced: 0 }
+
+  // 获取班级池中有照片的学生
+  const poolStudents = await prisma.student.findMany({
+    where: { classId: poolClassId, photoUrl: { not: '' } },
+    select: { name: true, photoUrl: true, homeClass: true },
+  })
+  if (poolStudents.length === 0) return { ok: true, synced: 0 }
+
+  const poolPhotoMap = new Map(poolStudents.map(s => [normalizeName(s.name), s]))
+  let totalSynced = 0
+
+  for (const tc of teacherClasses) {
+    const teacherStudents = await prisma.student.findMany({
+      where: { classId: tc.id },
+      select: { id: true, name: true, photoUrl: true },
+    })
+
+    const updates = []
+    const inserts = []
+    const teacherMap = new Map(teacherStudents.map(s => [normalizeName(s.name), s]))
+
+    for (const [normName, ps] of poolPhotoMap) {
+      const ts = teacherMap.get(normName)
+      if (ts) {
+        if (!ts.photoUrl) {
+          updates.push(prisma.student.update({
+            where: { id: ts.id },
+            data: { photoUrl: ps.photoUrl },
+          }))
+          totalSynced++
+        }
+      } else {
+        inserts.push(prisma.student.create({
+          data: {
+            name: ps.name,
+            homeClass: ps.homeClass,
+            photoUrl: ps.photoUrl,
+            classId: tc.id,
+          },
+        }))
+        totalSynced++
+      }
+    }
+
+    await Promise.all([...updates, ...inserts])
+  }
+
+  return { ok: true, synced: totalSynced }
+}
+
+/**
+ * 获取班级池中所有学期列表
+ */
+export async function getPoolSemesters() {
+  const result = await prisma.class.findMany({
+    where: { teacherId: null, isArchived: true, semester: { not: '' } },
+    select: { semester: true },
+    distinct: ['semester'],
+    orderBy: { semester: 'desc' },
+  })
+  return result.map(r => r.semester)
+}
+
+/**
+ * 归档班级池中的当前学期班级
+ * @param {string} semester - 学期名称，如 "2025秋"
+ */
+export async function archivePoolSemester(semester) {
+  if (!semester || !semester.trim()) return { ok: false, message: '学期名不能为空' }
+  const result = await prisma.class.updateMany({
+    where: { teacherId: null, isArchived: false, semester: '' },
+    data: { isArchived: true, semester: semester.trim() },
+  })
+  return { ok: true, count: result.count, message: `已归档 ${result.count} 个班级` }
 }
 
 /**
@@ -41,24 +233,80 @@ export async function createPoolClass(name) {
 
 /**
  * 教师认领班级池中的班级
+ * 班级池中的班级始终保留（teacherId 保持 null），认领后仅同步照片到教师的同名班级
  */
 export async function claimPoolClass(classId, teacherId) {
   const cls = await prisma.class.findUnique({ where: { id: classId } })
   if (!cls) return { ok: false, message: '班级不存在', status: 404 }
-  if (cls.teacherId !== null) return { ok: false, message: '该班级已被其他教师认领', status: 409 }
+  if (cls.teacherId !== null) return { ok: false, message: '该班级不属于班级池', status: 409 }
 
   // 检查教师是否已有同名班级
   const existing = await prisma.class.findFirst({
     where: { teacherId, name: cls.name, isArchived: false },
   })
-  if (existing) return { ok: false, message: `你已有同名班级「${cls.name}」，请先删除或归档后再认领`, status: 409 }
 
-  await prisma.class.update({
-    where: { id: classId },
-    data: { teacherId },
+  if (existing) {
+    // 合并：将班级池中有照片的学生同步到教师已有班级
+    const poolStudents = await prisma.student.findMany({
+      where: { classId },
+      select: { id: true, name: true, homeClass: true, photoUrl: true },
+    })
+    const existingStudents = await prisma.student.findMany({
+      where: { classId: existing.id },
+      select: { id: true, name: true, photoUrl: true },
+    })
+    const existingMap = new Map(existingStudents.map(s => [normalizeName(s.name), s]))
+
+    let mergedCount = 0
+    for (const ps of poolStudents) {
+      if (!ps.photoUrl) continue
+      const es = existingMap.get(normalizeName(ps.name))
+      if (es) {
+        if (!es.photoUrl) {
+          await prisma.student.update({
+            where: { id: es.id },
+            data: { photoUrl: ps.photoUrl },
+          })
+          mergedCount++
+        }
+      } else {
+        await prisma.student.create({
+          data: {
+            name: ps.name,
+            homeClass: ps.homeClass,
+            photoUrl: ps.photoUrl,
+            classId: existing.id,
+          },
+        })
+        mergedCount++
+      }
+    }
+
+    return { ok: true, message: `已将 ${mergedCount} 名学生的照片同步到「${cls.name}」` }
+  }
+
+  // 教师没有同名班级：创建新班级并复制所有学生
+  const { createClass } = await import('./class.js')
+  const newClass = await createClass(teacherId, cls.name)
+
+  const poolStudents = await prisma.student.findMany({
+    where: { classId },
+    select: { name: true, homeClass: true, remark: true, photoUrl: true },
   })
 
-  return { ok: true, message: `已认领班级「${cls.name}」` }
+  if (poolStudents.length > 0) {
+    await prisma.student.createMany({
+      data: poolStudents.map(s => ({
+        name: s.name,
+        homeClass: s.homeClass,
+        remark: s.remark,
+        photoUrl: s.photoUrl,
+        classId: newClass.id,
+      })),
+    })
+  }
+
+  return { ok: true, message: `已认领班级「${cls.name}」，${poolStudents.length} 名学生已同步` }
 }
 
 /**
@@ -187,6 +435,9 @@ export async function uploadStudentPhoto(classId, studentId, fileBuffer, filenam
     data: { photoUrl: url },
   })
 
+  // 同步照片到同名教师班级
+  await syncPoolPhotosToTeacherClasses(classId)
+
   return { ok: true, url, message: '照片已上传' }
 }
 
@@ -203,7 +454,7 @@ export async function bulkUploadPhotos(classId, files) {
   })
   const studentMap = new Map()
   for (const s of students) {
-    studentMap.set(s.name, s)
+    studentMap.set(normalizeName(s.name), s)
   }
 
   const now = new Date()
@@ -225,8 +476,8 @@ export async function bulkUploadPhotos(classId, files) {
   const dbUpdates = []
 
   for (const file of files) {
-    const nameKey = path.basename(file.filename, path.extname(file.filename)).trim()
-    const student = studentMap.get(nameKey)
+    const nameKey = path.basename(file.filename, path.extname(file.filename))
+    const student = studentMap.get(normalizeName(nameKey))
     if (!student) {
       unmatched.push(file.filename)
       continue
@@ -268,7 +519,18 @@ export async function bulkUploadPhotos(classId, files) {
     await prisma.$executeRawUnsafe(sql)
   }
 
-  return { ok: true, matched: matched.length, unmatched }
+  // 获取班级中没有照片的学生
+  const studentsWithoutPhotos = await prisma.student.findMany({
+    where: { classId, OR: [{ photoUrl: null }, { photoUrl: '' }] },
+    select: { id: true, name: true, classId: true },
+  })
+
+  // 同步照片到同名教师班级
+  if (matched.length > 0) {
+    await syncPoolPhotosToTeacherClasses(classId)
+  }
+
+  return { ok: true, matched: matched.length, unmatched, unmatchedStudents: studentsWithoutPhotos }
 }
 
 /**
@@ -382,6 +644,20 @@ export async function batchImportPoolStudentsFromExcel(buffer) {
 }
 
 /**
+ * 获取班级池中所有没有照片的学生
+ */
+export async function getStudentsWithoutPhotos() {
+  const students = await prisma.$queryRawUnsafe(`
+    SELECT s.id, s.name, s.classId, c.name AS className
+    FROM student s
+    JOIN class c ON s.classId = c.id
+    WHERE c.teacherId IS NULL AND (s.photoUrl IS NULL OR s.photoUrl = '')
+    ORDER BY c.name, s.name
+  `)
+  return students.map(s => ({ id: Number(s.id), name: s.name, classId: Number(s.classId), className: s.className }))
+}
+
+/**
  * 批量上传照片到班级池 — 文件名直接匹配学生姓名（跨所有班级池班级）
  * 优化：批量 DB 操作，避免 800+ 张照片产生 1600+ 次查询
  */
@@ -392,12 +668,13 @@ export async function batchUploadPoolPhotos(files) {
     include: { students: true },
   })
 
-  // 构建 studentName -> { classId, student } 映射
+  // 构建 studentName -> { classId, student } 映射（标准化姓名用于匹配）
   const studentMap = new Map()
   for (const cls of poolClasses) {
     for (const s of cls.students) {
-      if (!studentMap.has(s.name)) {
-        studentMap.set(s.name, { classId: cls.id, student: s })
+      const key = normalizeName(s.name)
+      if (!studentMap.has(key)) {
+        studentMap.set(key, { classId: cls.id, student: s })
       }
     }
   }
@@ -423,8 +700,8 @@ export async function batchUploadPoolPhotos(files) {
   const dbUpdates = []  // { studentId, photoUrl }
 
   for (const file of files) {
-    const nameKey = path.basename(file.filename, path.extname(file.filename)).trim()
-    const match = studentMap.get(nameKey)
+    const nameKey = path.basename(file.filename, path.extname(file.filename))
+    const match = studentMap.get(normalizeName(nameKey))
     if (!match) {
       unmatched.push(file.filename)
       continue
@@ -466,5 +743,22 @@ export async function batchUploadPoolPhotos(files) {
     await prisma.$executeRawUnsafe(sql)
   }
 
-  return { ok: true, matched: matched.length, unmatched }
+  // 获取班级池中所有没有照片的学生
+  const unmatchedStudents = await getStudentsWithoutPhotos()
+
+  // 同步照片到同名教师班级（按受影响的班级去重）
+  if (matched.length > 0) {
+    const affectedClassIds = [...new Set(dbUpdates.map(u => {
+      // 从 studentMap 反查 classId
+      for (const [, v] of studentMap) {
+        if (v.student.id === u.studentId) return v.classId
+      }
+      return null
+    }).filter(Boolean))]
+    for (const cid of affectedClassIds) {
+      await syncPoolPhotosToTeacherClasses(cid)
+    }
+  }
+
+  return { ok: true, matched: matched.length, unmatched, unmatchedStudents }
 }

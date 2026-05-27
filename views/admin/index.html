@@ -208,6 +208,7 @@
     </div>
   </div>
 
+<script src="/public/confirm.js"></script>
 <script>
 const params = new URLSearchParams(window.location.search)
 const error = params.get('error')
@@ -334,7 +335,7 @@ function bindRestore(btnId, fileId) {
   document.getElementById(fileId).addEventListener('change', async (e) => {
     const file = e.target.files[0]
     if (!file) return
-    if (!confirm(`确定要恢复数据库备份「${file.name}」吗？当前数据库将被替换。`)) { e.target.value = ''; return }
+    if (!await showConfirmDialog('恢复数据库', `确定要恢复数据库备份「${file.name}」吗？当前数据库将被替换。`, '确认恢复', 'danger')) { e.target.value = ''; return }
     const formData = new FormData()
     formData.append('file', file)
     showToast('正在恢复，请稍候...')
@@ -487,7 +488,7 @@ document.getElementById('presetTagList').addEventListener('click', async (e) => 
   }
   if (delBtn) {
     const id = parseInt(delBtn.dataset.id)
-    if (!confirm('确认删除此预设标签？')) return
+    if (!await showConfirmDialog('删除标签', '确认删除此预设标签？', '确认删除', 'danger')) return
     try {
       const res = await fetch(`/admin/api/preset-tags/${id}`, { method: 'DELETE' })
       const data = await res.json()

@@ -667,44 +667,6 @@
     }
     .modal-close:hover { background: var(--surface-card); color: var(--ink); }
 
-    /* === Confirm Dialog === */
-    .confirm-overlay {
-      position: fixed; inset: 0; z-index: 10001;
-      background: rgba(20,20,19,.35);
-      display: flex; align-items: center; justify-content: center;
-    }
-    .confirm-card {
-      background: #fff; border-radius: 12px;
-      box-shadow: 0 16px 48px rgba(20,20,19,.25);
-      border: 1px solid var(--hairline);
-      width: min(90vw, 420px); padding: 32px 28px 24px;
-      text-align: center;
-    }
-    .confirm-icon-wrap {
-      width: 48px; height: 48px; margin: 0 auto 16px;
-      border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    }
-    .confirm-icon-wrap.warn { background: #fff7ed; color: #c2410c; }
-    .confirm-icon-wrap.danger { background: #fef2f2; color: #c64545; }
-    .confirm-title { font-size: 16px; font-weight: 600; color: var(--ink); margin: 0 0 8px; }
-    .confirm-message { font-size: 13px; color: var(--body); margin: 0 0 24px; line-height: 1.6; }
-    .confirm-actions { display: flex; gap: 10px; }
-    .confirm-btn {
-      flex: 1; padding: 10px 16px; border-radius: 8px;
-      font-size: 14px; font-weight: 600; cursor: pointer;
-      border: 1px solid var(--hairline); background: #fff; color: var(--body);
-      transition: all .12s;
-    }
-    .confirm-btn:hover { background: var(--canvas); }
-    .confirm-btn.primary {
-      background: var(--error); color: #fff; border-color: var(--error);
-    }
-    .confirm-btn.primary:hover { background: #b53d3d; }
-    .confirm-btn.danger {
-      background: var(--error); color: #fff; border-color: var(--error);
-    }
-    .confirm-btn.danger:hover { background: #b53d3d; }
-
     .modal-card-overlay {
       position: relative;
       z-index: 2;
@@ -972,6 +934,7 @@
     </div>
   </div>
 
+<script src="/public/confirm.js"></script>
 <script>
 const CLASS_ID = {{ cls.id }}
 
@@ -1277,7 +1240,7 @@ document.getElementById('rosterCompactGrid').addEventListener('click', async (e)
   const tagEl = e.target.closest('.roster-tag[data-tag-id]')
   if (tagEl) {
     const tagId = parseInt(tagEl.dataset.tagId)
-    if (!confirm('删除此标签？')) return
+    if (!await showConfirmDialog('删除标签', '确认删除此标签？', '确认删除', 'danger')) return
     const res = await fetch(`/api/tags/${tagId}?classId=${CLASS_ID}`, { method: 'DELETE' })
     const data = await res.json()
     if (!data.ok) { showToast(data.message || '删除失败', false); return }
@@ -1455,7 +1418,7 @@ async function refreshSessions(page = 1) {
 }
 
 async function deleteSessionItem(sessionId, label) {
-  if (!confirm(`确认删除历史批次「${label}」？此操作不可恢复。`)) return
+  if (!await showConfirmDialog('删除历史批次', `确认删除历史批次「${label}」？此操作不可恢复。`, '确认删除', 'danger')) return
   const res = await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' })
   const data = await parseResponse(res)
   if (!data) return
@@ -1478,48 +1441,13 @@ document.getElementById('memoryStudentBtn').addEventListener('click', () => {
 })
 
 async function revokeRecord(recordId) {
-  if (!confirm('确认撤销该签到记录？')) return
+  if (!await showConfirmDialog('撤销签到', '确认撤销该签到记录？', '确认撤销', 'danger')) return
   const res = await fetch('/api/signin/' + recordId, { method: 'DELETE' })
   if (res.status === 401) { window.location.href = '/student'; return }
   const data = await res.json()
   if (!data.ok) { showToast(data.message, false); return }
   showToast('已撤销')
   refreshStatus()
-}
-
-// === Confirmation Dialog ===
-function showConfirmDialog(title, message, confirmText = '确认', style = 'danger') {
-  return new Promise((resolve) => {
-    const overlay = document.createElement('div')
-    overlay.className = 'confirm-overlay'
-    const iconStyle = style === 'danger' ? 'danger' : 'warn'
-    overlay.innerHTML = `
-      <div class="confirm-card">
-        <div class="confirm-icon-wrap ${iconStyle}">
-          <svg style="width:24px;height:24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-          </svg>
-        </div>
-        <p class="confirm-title">${title}</p>
-        <p class="confirm-message">${message}</p>
-        <div class="confirm-actions">
-          <button class="confirm-btn" id="confirmCancelBtn">取消</button>
-          <button class="confirm-btn ${style}" id="confirmOkBtn">${confirmText}</button>
-        </div>
-      </div>
-    `
-    document.body.appendChild(overlay)
-    document.body.style.overflow = 'hidden'
-
-    const cleanup = () => {
-      overlay.remove()
-      document.body.style.overflow = ''
-    }
-
-    document.getElementById('confirmCancelBtn').onclick = () => { cleanup(); resolve(false) }
-    document.getElementById('confirmOkBtn').onclick = () => { cleanup(); resolve(true) }
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) { cleanup(); resolve(false) } })
-  })
 }
 
 document.getElementById('resetBtn').addEventListener('click', async () => {

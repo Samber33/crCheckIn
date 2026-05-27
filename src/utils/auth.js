@@ -37,12 +37,18 @@ export async function teacherRequired(request, reply) {
  */
 export async function adminRequired(request, reply) {
   if (!request.session?.teacherId) {
-    return reply.code(401).send({ ok: false, message: '未登录。' })
+    if (request.url.startsWith('/admin/api/') || request.url.startsWith('/api/')) {
+      return reply.code(401).send({ ok: false, message: '未登录。' })
+    }
+    return reply.redirect('/student')
   }
   if (request.session?.isAdmin === true) {
     return
   }
-  reply.code(403).send({ ok: false, message: '需要管理员权限。' })
+  if (request.url.startsWith('/admin/api/') || request.url.startsWith('/api/')) {
+    return reply.code(403).send({ ok: false, message: '需要管理员权限。' })
+  }
+  return reply.redirect('/student')
 }
 
 /**

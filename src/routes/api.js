@@ -25,7 +25,7 @@ import {
   exportStatsToExcel,
   exportSessionSeatTableToExcel,
 } from '../services/roster.js'
-import { createClass, deleteClass, archiveClass, unarchiveClass } from '../services/class.js'
+import { createClass, deleteClass, archiveClass, unarchiveClass, reorderClasses } from '../services/class.js'
 import { changePassword, verifyTeacherByPassword } from '../services/auth.js'
 import { getSeatGrid, getSeatGridTeacher, getSeatGrids } from '../services/seat.js'
 import { createStudent, updateStudent, deleteStudent, transferStudent } from '../services/student.js'
@@ -275,30 +275,20 @@ export default async function apiRoutes(fastify) {
     const teacherId = request.session.teacherId
     const isAdmin = request.session.isAdmin === true
 
-    // 检查是否存在同名班级池版本（teacherId IS NULL）
-    // 如果存在，说明此班级是从池中认领的，应回归班级池而非完全删除
     const cls = await prisma.class.findUnique({ where: { id: classId } })
-    if (cls) {
-      const poolClass = await prisma.class.findFirst({
-        where: { teacherId: null, name: cls.name, isArchived: false },
-      })
-      if (poolClass) {
-        // 回归班级池：删除教师名下的学生和签到记录，班级保留
-        await prisma.$transaction(async (tx) => {
-          await tx.signInSession.deleteMany({ where: { classId } })
-          await tx.signInConfig.deleteMany({ where: { classId } })
-          await tx.signInRecord.deleteMany({ where: { classId } })
-          await tx.student.deleteMany({ where: { classId } })
-          await tx.class.update({ where: { id: classId }, data: { teacherId: null } })
-        })
-        const { invalidateClassTeacherCache } = await import('./sse.js')
-        invalidateClassTeacherCache(classId)
-        return reply.send({ ok: true, message: `「${cls.name}」已归还班级池` })
-      }
-    }
+    if (!cls) return reply.send({ ok: false, message: '班级不存在' })
 
-    await deleteClass(classId, teacherId, isAdmin)
-    return reply.send({ ok: true, message: '班级已删除。' })
+    // 所有教师班级删除时都回归班级池
+    await prisma.$transaction(async (tx) => {
+      await tx.signInSession.deleteMany({ where: { classId } })
+      await tx.signInConfig.deleteMany({ where: { classId } })
+      await tx.signInRecord.deleteMany({ where: { classId } })
+      await tx.student.deleteMany({ where: { classId } })
+      await tx.class.update({ where: { id: classId }, data: { teacherId: null } })
+    })
+    const { invalidateClassTeacherCache } = await import('./sse.js')
+    invalidateClassTeacherCache(classId)
+    return reply.send({ ok: true, message: `「${cls.name}」已归还班级池` })
   })
 
   // POST /api/classes/:classId/archive — 归档班级，需要 classOwnerRequired
@@ -317,6 +307,16 @@ export default async function apiRoutes(fastify) {
     const isAdmin = request.session.isAdmin === true
     const result = await unarchiveClass(classId, teacherId, isAdmin)
     return reply.send(result)
+  })
+
+  // PUT /api/classes/reorder — 教师端班级拖拽排序
+  fastify.put('/api/classes/reorder', { preHandler: teacherRequired }, async (request, reply) => {
+    const { classIds } = request.body ?? {}
+    if (!Array.isArray(classIds) || classIds.length === 0) {
+      return reply.send({ ok: false, message: '参数错误' })
+    }
+    await reorderClasses(request.session.teacherId, classIds.map(Number))
+    return reply.send({ ok: true })
   })
 
   // GET /api/students/match — 无需登录，限速防枚举

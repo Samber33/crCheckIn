@@ -110,26 +110,89 @@
             </button>
           </div>
         </div>
+
+        <!-- View Students Without Photos -->
+        <div class="sidebar-card">
+          <div class="sidebar-header">
+            <p class="sidebar-title">缺照片学生</p>
+          </div>
+          <div class="sidebar-body">
+            <p style="font-size: 12px; color: var(--muted-soft); margin: 0 0 12px;">查看当前班级池中还没有照片的学生，可逐个上传或忽略。</p>
+            <button id="viewNoPhotoBtn" class="btn btn-primary" style="width: 100%;">
+              <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+              查看缺照片学生
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Right: Pool Classes Grid -->
       <div>
-        {% if classes.length === 0 %}
-        <div class="empty-state" style="background: #fff; border-radius: 12px; border: 1px solid var(--hairline); padding: 48px;">暂无班级池班级</div>
-        {% else %}
-        <div class="pool-grid">
-          {% for cls in classes %}
-          <div class="pool-class-card" data-class-id="{{ cls.id }}">
-            <div class="pool-class-head" data-action="open-modal" data-class-id="{{ cls.id }}">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <span class="pool-class-name">{{ cls.name }}</span>
-                <span class="pool-class-meta">{{ cls.studentCount }} 名学生</span>
-              </div>
-              <button data-action="delete-class" data-class-id="{{ cls.id }}" class="pool-action-btn" style="color: var(--error);">删除</button>
-            </div>
-          </div>
+        <!-- Semester Tabs -->
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
+          <a href="/admin/pool" class="nav-link" style="padding: 6px 14px; font-size: 13px; border-radius: 8px; {% if not currentSemester %}color: var(--ink); background: var(--surface-card);{% endif %}">当前</a>
+          {% for sem in semesters %}
+          <a href="/admin/pool?semester={{ sem }}" class="nav-link" style="padding: 6px 14px; font-size: 13px; border-radius: 8px; {% if currentSemester == sem %}color: var(--ink); background: var(--surface-card);{% endif %}">{{ sem }}</a>
           {% endfor %}
+          <a href="/admin/pool?view=recycle" class="nav-link" style="padding: 6px 14px; font-size: 13px; border-radius: 8px; {% if isRecycleView %}color: var(--ink); background: var(--surface-card);{% endif %}">
+            <svg style="width:12px;height:12px;margin-right:4px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            回收站{% if recycleBin.length > 0 %} ({{ recycleBin.length }}){% endif %}
+          </a>
+          {% if not currentSemester and classes.length > 0 %}
+          <button id="archiveSemesterBtn" class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px; margin-left: auto;">归档当前学期</button>
+          {% endif %}
         </div>
+
+        {% if isRecycleView %}
+          <!-- Recycle Bin View -->
+          {% if recycleBin.length === 0 %}
+          <div class="empty-state" style="background: #fff; border-radius: 12px; border: 1px solid var(--hairline); padding: 48px;">回收站为空</div>
+          {% else %}
+          <div class="pool-grid">
+            {% for cls in recycleBin %}
+            <div class="pool-class-card" style="opacity: 0.75;">
+              <div class="pool-class-head" style="cursor: default;">
+                <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                  <span class="pool-class-name">{{ cls.name }}</span>
+                  <span class="pool-class-meta">{{ cls.studentCount }} 名学生</span>
+                  <span style="font-size: 11px; color: var(--muted-soft);">· 删除于 {{ cls.deletedAt }}</span>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                  <button data-action="restore-class" data-class-id="{{ cls.id }}" class="pool-action-btn" style="color: var(--success, #5db872);">恢复</button>
+                  <button data-action="hard-delete-class" data-class-id="{{ cls.id }}" class="pool-action-btn" style="color: var(--error);">彻底删除</button>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+        {% else %}
+          <!-- Normal Pool View -->
+          {% if classes.length === 0 %}
+          <div class="empty-state" style="background: #fff; border-radius: 12px; border: 1px solid var(--hairline); padding: 48px;">{% if currentSemester %}该学期暂无班级{% else %}暂无班级池班级{% endif %}</div>
+          {% else %}
+          <div class="pool-grid">
+            {% for cls in classes %}
+            <div class="pool-class-card {% if cls.claimedByAnyTeacher %}pool-class-claimed{% endif %}" data-class-id="{{ cls.id }}">
+              <div class="pool-class-head" data-action="open-modal" data-class-id="{{ cls.id }}">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="pool-class-name">{{ cls.name }}</span>
+                  <span class="pool-class-meta">{{ cls.studentCount }} 名学生</span>
+                  {% if cls.claimedByAnyTeacher %}
+                  <span style="font-size: 11px; padding: 2px 8px; background: var(--surface-soft); border-radius: 10px; color: var(--muted-soft);">已认领</span>
+                  {% endif %}
+                </div>
+                {% if not currentSemester and not cls.claimedByAnyTeacher %}
+                <button data-action="delete-class" data-class-id="{{ cls.id }}" class="pool-action-btn" style="color: var(--error);">删除</button>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
         {% endif %}
       </div>
     </div>
@@ -202,6 +265,33 @@
     </div>
   </div>
 
+  <!-- Unmatched Students Modal -->
+  <div id="unmatchedStudentsModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 520px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+        <div class="modal-title" style="margin: 0;" id="unmatchedModalTitle">缺照片学生</div>
+        <button class="preset-close-btn" onclick="closeUnmatchedModal()">&times;</button>
+      </div>
+
+      <!-- Unmatched files -->
+      <div id="unmatchedFilesSection" style="display: none; margin-bottom: 16px;">
+        <p style="font-size: 12px; color: var(--muted-soft); margin: 0 0 8px;">以下照片文件名未匹配到学生，可忽略或检查文件名是否正确</p>
+        <div id="unmatchedFilesList" style="max-height: 120px; overflow-y: auto; border: 1px solid var(--hairline); border-radius: 8px; padding: 8px;"></div>
+      </div>
+
+      <!-- Students without photos -->
+      <div>
+        <p style="font-size: 12px; color: var(--muted-soft); margin: 0 0 8px;">以下学生还没有照片，可以上传或忽略</p>
+        <div id="unmatchedStudentsList" style="max-height: 360px; overflow-y: auto; border: 1px solid var(--hairline); border-radius: 8px; background: #fff;"></div>
+      </div>
+
+      <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
+        <button class="btn btn-secondary" onclick="closeUnmatchedModal()">完成</button>
+      </div>
+    </div>
+  </div>
+
+<script src="/public/confirm.js"></script>
 <script>
 function showToast(text, ok = true) {
   const t = document.getElementById('toast')
@@ -266,7 +356,9 @@ document.getElementById('batchPhotoBtn').addEventListener('click', async () => {
   btn.disabled = false; btn.innerHTML = '<svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>批量上传照片'
   if (data.ok) {
     showToast(`已匹配 ${data.matched} 张照片` + (data.unmatched.length ? `，${data.unmatched.length} 张未匹配` : ''))
-    window.location.reload()
+    if (data.unmatchedStudents && data.unmatchedStudents.length > 0) {
+      openUnmatchedModal(data.unmatched, data.unmatchedStudents)
+    }
   } else {
     showToast(data.message || '上传失败', false)
   }
@@ -363,7 +455,7 @@ document.addEventListener('change', async (e) => {
 // === Delete Photo ===
 document.addEventListener('click', async (e) => {
   if (e.target.classList.contains('pool-del-photo')) {
-    if (!confirm('确认删除此学生照片？')) return
+    if (!await showConfirmDialog('删除照片', '确认删除此学生照片？', '确认删除', 'danger')) return
     const studentId = e.target.dataset.studentId
     if (!currentClassId) return
     const res = await fetch(`/admin/api/pool/classes/${currentClassId}/students/${studentId}/photo`, { method: 'DELETE' })
@@ -423,6 +515,9 @@ document.getElementById('modalPhotoBtn').addEventListener('click', async () => {
   if (data.ok) {
     showToast(`已匹配 ${data.matched} 张照片` + (data.unmatched.length ? `，${data.unmatched.length} 张未匹配` : ''))
     loadClassStudents(currentClassId)
+    if (data.unmatchedStudents && data.unmatchedStudents.length > 0) {
+      openUnmatchedModal(data.unmatched, data.unmatchedStudents)
+    }
   } else {
     showToast(data.message || '上传失败', false)
   }
@@ -430,15 +525,59 @@ document.getElementById('modalPhotoBtn').addEventListener('click', async () => {
   btn.style.display = 'none'
 })
 
-// === Delete Pool Class ===
+// === Delete Pool Class (Move to Recycle Bin) ===
 document.addEventListener('click', async (e) => {
   if (e.target.dataset.action === 'delete-class') {
+    e.stopPropagation()
     const classId = e.target.dataset.classId
-    if (!confirm('确认删除此班级及其所有学生数据？')) return
+    if (!await showConfirmDialog('移入回收站', '确认将此班级移入回收站？可从回收站恢复。', '确认移入', 'warn')) return
     const res = await fetch(`/admin/api/pool/classes/${classId}`, { method: 'DELETE' })
     const data = await res.json()
     if (data.ok) { window.location.reload() }
+    else { showToast(data.message || '操作失败', false) }
+  }
+})
+
+// === Restore from Recycle Bin ===
+document.addEventListener('click', async (e) => {
+  if (e.target.dataset.action === 'restore-class') {
+    e.stopPropagation()
+    const classId = e.target.dataset.classId
+    if (!await showConfirmDialog('恢复班级', '确认将此班级恢复到班级池？', '确认恢复', 'info')) return
+    const res = await fetch(`/admin/api/pool/classes/${classId}/restore`, { method: 'POST' })
+    const data = await res.json()
+    if (data.ok) { showToast('班级已恢复'); window.location.reload() }
+    else { showToast(data.message || '恢复失败', false) }
+  }
+})
+
+// === Hard Delete from Recycle Bin ===
+document.addEventListener('click', async (e) => {
+  if (e.target.dataset.action === 'hard-delete-class') {
+    e.stopPropagation()
+    const classId = e.target.dataset.classId
+    if (!await showConfirmDialog('彻底删除', '确认永久删除此班级及所有学生数据？此操作不可恢复！', '确认删除', 'danger')) return
+    const res = await fetch(`/admin/api/pool/classes/${classId}/hard-delete`, { method: 'DELETE' })
+    const data = await res.json()
+    if (data.ok) { showToast('已彻底删除'); window.location.reload() }
     else { showToast(data.message || '删除失败', false) }
+  }
+})
+
+// === Archive Semester ===
+document.getElementById('archiveSemesterBtn')?.addEventListener('click', async () => {
+  const semester = prompt('请输入学期名称（如 2025秋、2026春）：')
+  if (!semester || !semester.trim()) return
+  if (!await showConfirmDialog('归档学期', `确认将当前所有班级归档到「${semester.trim()}」学期？归档后班级将从当前列表移除。`, '确认归档', 'warn')) return
+  const res = await fetch('/admin/api/pool/archive-semester', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ semester: semester.trim() }),
+  })
+  const data = await res.json()
+  if (data.ok) {
+    showToast(data.message); window.location.reload()
+  } else {
+    showToast(data.message || '归档失败', false)
   }
 })
 
@@ -524,7 +663,7 @@ document.addEventListener('click', async (e) => {
   }
   if (delBtn) {
     const id = parseInt(delBtn.dataset.id)
-    if (!confirm('确认删除此预设标签？')) return
+    if (!await showConfirmDialog('删除标签', '确认删除此预设标签？', '确认删除', 'danger')) return
     try {
       const res = await fetch(`/admin/api/preset-tags/${id}`, { method: 'DELETE' })
       const data = await res.json()
@@ -551,6 +690,114 @@ document.getElementById('presetTagAddBtn').addEventListener('click', async () =>
 
 document.getElementById('presetTagAddInput').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') document.getElementById('presetTagAddBtn').click()
+})
+
+// === Unmatched Students Modal ===
+
+function renderUnmatchedStudentsList(students) {
+  const studentsList = document.getElementById('unmatchedStudentsList')
+  if (students && students.length > 0) {
+    studentsList.innerHTML = students.map(s =>
+      `<div class="unmatched-student-item" data-student-id="${s.id}" data-class-id="${s.classId}" style="padding: 8px 12px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--hairline);">
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-size: 13px; font-weight: 500; color: var(--ink);">${escHtml(s.name)}</div>
+          ${s.className ? `<div style="font-size: 11px; color: var(--muted-soft);">${escHtml(s.className)}</div>` : ''}
+        </div>
+        <label class="file-label" style="padding: 4px 12px; font-size: 11px; flex-shrink: 0;">
+          上传照片
+          <input type="file" accept="image/*" class="unmatched-photo-input" data-student-id="${s.id}" data-class-id="${s.classId}" style="display:none;" />
+        </label>
+        <button class="btn btn-secondary skip-btn" style="padding: 4px 12px; font-size: 11px; flex-shrink: 0;" onclick="this.closest('.unmatched-student-item').remove(); checkUnmatchedModalEmpty();">忽略</button>
+      </div>`
+    ).join('')
+  } else {
+    studentsList.innerHTML = '<div style="padding: 16px; text-align: center; color: var(--muted-soft); font-size: 12px;">所有学生已有照片</div>'
+  }
+}
+
+// 上传后弹窗：显示未匹配文件 + 缺照片学生
+function openUnmatchedModal(unmatchedFiles, unmatchedStudents) {
+  document.getElementById('unmatchedModalTitle').textContent = '上传结果'
+  const filesSection = document.getElementById('unmatchedFilesSection')
+  const filesList = document.getElementById('unmatchedFilesList')
+
+  if (unmatchedFiles && unmatchedFiles.length > 0) {
+    filesSection.style.display = ''
+    filesList.innerHTML = unmatchedFiles.map(f =>
+      `<div style="padding: 6px 10px; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--hairline); display: flex; align-items: center; gap: 6px;">
+        <svg style="width:12px;height:12px;flex-shrink:0;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.072 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+        ${escHtml(f)}
+      </div>`
+    ).join('')
+  } else {
+    filesSection.style.display = 'none'
+  }
+
+  renderUnmatchedStudentsList(unmatchedStudents)
+  document.getElementById('unmatchedStudentsModal').classList.add('active')
+}
+
+// 手动查看：仅显示缺照片学生
+async function openNoPhotoModal() {
+  document.getElementById('unmatchedModalTitle').textContent = '缺照片学生'
+  document.getElementById('unmatchedFilesSection').style.display = 'none'
+  document.getElementById('unmatchedStudentsList').innerHTML = '<div style="padding: 16px; text-align: center; color: var(--muted-soft); font-size: 12px;">加载中...</div>'
+  document.getElementById('unmatchedStudentsModal').classList.add('active')
+
+  try {
+    const res = await fetch('/admin/api/pool/students-without-photos')
+    const data = await res.json()
+    if (data.ok) {
+      renderUnmatchedStudentsList(data.students)
+    } else {
+      document.getElementById('unmatchedStudentsList').innerHTML = '<div style="padding: 16px; text-align: center; color: var(--error); font-size: 12px;">加载失败</div>'
+    }
+  } catch {
+    document.getElementById('unmatchedStudentsList').innerHTML = '<div style="padding: 16px; text-align: center; color: var(--error); font-size: 12px;">网络错误</div>'
+  }
+}
+
+document.getElementById('viewNoPhotoBtn').addEventListener('click', openNoPhotoModal)
+
+function closeUnmatchedModal() {
+  document.getElementById('unmatchedStudentsModal').classList.remove('active')
+}
+
+document.getElementById('unmatchedStudentsModal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeUnmatchedModal()
+})
+
+function checkUnmatchedModalEmpty() {
+  const list = document.getElementById('unmatchedStudentsList')
+  if (list.children.length === 0) {
+    list.innerHTML = '<div style="padding: 16px; text-align: center; color: var(--muted-soft); font-size: 12px;">所有学生已有照片</div>'
+  }
+}
+
+// Unmatched student photo upload
+document.addEventListener('change', async (e) => {
+  if (e.target.classList.contains('unmatched-photo-input')) {
+    const file = e.target.files[0]
+    if (!file) return
+    const studentId = parseInt(e.target.dataset.studentId)
+    const classId = parseInt(e.target.dataset.classId)
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await fetch(`/admin/api/pool/classes/${classId}/students/${studentId}/photo`, {
+      method: 'POST', body: fd
+    })
+    const data = await res.json()
+    if (data.ok) {
+      showToast('照片已上传')
+      const item = e.target.closest('.unmatched-student-item')
+      if (item) item.remove()
+      checkUnmatchedModalEmpty()
+      if (currentClassId) loadClassStudents(currentClassId)
+    } else {
+      showToast(data.message || '上传失败', false)
+    }
+    e.target.value = ''
+  }
 })
 </script>
 </body>

@@ -22,6 +22,9 @@ model Class {
   teacherId     Int?
   teacher       Teacher?       @relation(fields: [teacherId], references: [id])
   isArchived    Boolean        @default(false)
+  semester      String         @default("")  // 学期，如 "2025秋"、"2026春"
+  deletedAt     DateTime?      // 回收站：软删除时间，null=正常
+  sortOrder     Int            @default(0) // 教师端班级排序
   createdAt     DateTime       @default(now())
   students      Student[]
   signInConfig  SignInConfig?
@@ -31,7 +34,9 @@ model Class {
 
   @@index([teacherId])
   @@index([teacherId, isArchived])
+  @@index([teacherId, sortOrder])
   @@index([name])
+  @@index([deletedAt])
 }
 
 model SignInSession {

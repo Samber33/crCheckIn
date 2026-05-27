@@ -24,6 +24,9 @@ export default async function teacherRoutes(app) {
   })
 
   app.get('/teacher/classes', { preHandler: teacherRequired }, async (request, reply) => {
+    if (request.session?.isAdmin === true) {
+      return reply.redirect('/admin/pool')
+    }
     const teacherId = request.session.teacherId
     const showArchived = request.query.archived === '1'
     // 一次查询拿全量班级，归档计数和列表过滤都在内存中完成
@@ -39,7 +42,7 @@ export default async function teacherRoutes(app) {
 
     // Fetch pool classes for claim UI
     const { getPoolClasses } = await import('../services/pool.js')
-    const poolClasses = await getPoolClasses()
+    const poolClasses = await getPoolClasses({ teacherId })
 
     noCache(reply)
     return reply.view('teacher/classes.html', {

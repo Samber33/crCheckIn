@@ -13,7 +13,7 @@ export async function getClasses(teacherId, { includeArchived = false } = {}) {
       teacherId,
       ...(includeArchived ? {} : { isArchived: false }),
     },
-    orderBy: { createdAt: 'asc' },
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     include: {
       _count: {
         select: {
@@ -37,6 +37,21 @@ export async function getClasses(teacherId, { includeArchived = false } = {}) {
       isSigning,
     }
   })
+}
+
+/**
+ * 重新排序教师的班级
+ * @param {number} teacherId
+ * @param {number[]} classIds - 按新顺序排列的班级 ID 数组
+ */
+export async function reorderClasses(teacherId, classIds) {
+  const updates = classIds.map((id, index) =>
+    prisma.class.updateMany({
+      where: { id, teacherId },
+      data: { sortOrder: index },
+    })
+  )
+  await Promise.all(updates)
 }
 
 /**

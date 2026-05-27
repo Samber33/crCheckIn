@@ -252,6 +252,7 @@
   <!-- 通知 -->
   <div id="msg" class="hidden toast"></div>
 
+<script src="/public/confirm.js"></script>
 <script>
 const CLASS_ID = {{ cls.id }}
 let state = { enabled: false, fields: [], submissions: [] }
@@ -377,7 +378,7 @@ async function saveField() {
 }
 
 async function deleteField(fieldId, fieldName) {
-  if (!confirm(`确认删除字段"${fieldName}"？已提交的数据将一并删除。`)) return
+  if (!await showConfirmDialog('删除字段', `确认删除字段"${fieldName}"？已提交的数据将一并删除。`, '确认删除', 'danger')) return
   const res = await fetch(`/api/info-collection/fields/${fieldId}`, { method: 'DELETE' })
   const data = await parseResponse(res)
   if (!data) return

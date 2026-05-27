@@ -199,6 +199,17 @@
       border-color: var(--primary);
       box-shadow: 0 4px 16px rgba(204,120,92,.1);
     }
+    .class-item[draggable="true"] {
+      cursor: grab;
+    }
+    .class-item[draggable="true"]:active {
+      cursor: grabbing;
+    }
+    .class-item.drag-over {
+      border-color: var(--primary);
+      border-style: dashed;
+      background: rgba(204,120,92,.04);
+    }
     .class-item-head {
       display: flex;
       align-items: flex-start;
@@ -642,7 +653,7 @@
                 <option value="">-- 选择班级 --</option>
                 {% if poolClasses %}
                 {% for cls in poolClasses %}
-                <option value="{{ cls.id }}" data-name="{{ cls.name }}">{{ cls.name }}（{{ cls.studentCount }}人）</option>
+                <option value="{{ cls.id }}" data-name="{{ cls.name }}" {% if cls.claimedByAnyTeacher %}disabled{% endif %}>{{ cls.name }}（{{ cls.studentCount }}人）{% if cls.claimedByAnyTeacher %} — 已认领{% endif %}</option>
                 {% endfor %}
                 {% endif %}
               </select>
@@ -722,9 +733,9 @@
             <p style="font-size: 14px; color: var(--muted-soft); margin: 0;">暂无班级，请先在右侧创建或导入</p>
           </div>
           {% else %}
-          <div class="class-grid">
+          <div class="class-grid" id="classGrid">
             {% for cls in classes %}
-            <div class="class-item{% if cls.isArchived %} archived{% endif %}" data-class-id="{{ cls.id }}" data-class-name="{{ cls.name }}">
+            <div class="class-item{% if cls.isArchived %} archived{% endif %}" data-class-id="{{ cls.id }}" data-class-name="{{ cls.name }}" draggable="{% if not cls.isArchived %}true{% else %}false{% endif %}">
               <a href="/teacher/classes/{{ cls.id }}" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 12px; flex: 1;">
                 <div class="class-item-head">
                   <div>
@@ -819,6 +830,7 @@
     </div>
   </div>
 
+<script src="/public/confirm.js"></script>
 <script>
 function showToast(text, ok = true) {
   const t = document.getElementById('toast')
@@ -1027,7 +1039,7 @@ poolClaimBtn.addEventListener('click', async () => {
   if (!classId) return
   const selectedOption = poolSelect.options[poolSelect.selectedIndex]
   const className = selectedOption ? selectedOption.dataset.name : ''
-  if (!confirm(`确认认领班级「${className}」？认领后将加入你的班级列表。`)) return
+  if (!await showConfirmDialog('认领班级', `确认认领班级「${className}」？认领后将加入你的班级列表。`, '确认认领', 'info')) return
   poolClaimBtn.disabled = true; poolClaimBtn.textContent = '认领中...'
   const res = await fetch(`/api/pool/classes/${classId}/claim`, { method: 'POST' })
   const data = await res.json()
@@ -1038,6 +1050,78 @@ poolClaimBtn.addEventListener('click', async () => {
     showToast(data.message || '认领失败', false)
   }
 })
+
+// === Drag and Drop Reorder ===
+const classGrid = document.getElementById('classGrid')
+let draggedItem = null
+
+if (classGrid) {
+  classGrid.addEventListener('dragstart', (e) => {
+    const item = e.target.closest('.class-item')
+    if (!item || item.classList.contains('archived')) return
+    draggedItem = item
+    item.style.opacity = '0.4'
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', item.dataset.classId)
+  })
+
+  classGrid.addEventListener('dragend', (e) => {
+    const item = e.target.closest('.class-item')
+    if (item) item.style.opacity = ''
+    draggedItem = null
+    // Remove all drag-over indicators
+    classGrid.querySelectorAll('.class-item').forEach(i => i.classList.remove('drag-over'))
+  })
+
+  classGrid.addEventListener('dragover', (e) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    const target = e.target.closest('.class-item')
+    if (!target || target === draggedItem || target.classList.contains('archived')) return
+    // Remove previous indicators
+    classGrid.querySelectorAll('.class-item').forEach(i => i.classList.remove('drag-over'))
+    target.classList.add('drag-over')
+  })
+
+  classGrid.addEventListener('dragleave', (e) => {
+    const target = e.target.closest('.class-item')
+    if (target) target.classList.remove('drag-over')
+  })
+
+  classGrid.addEventListener('drop', async (e) => {
+    e.preventDefault()
+    const target = e.target.closest('.class-item')
+    if (!target || target === draggedItem || !draggedItem) return
+    target.classList.remove('drag-over')
+
+    // Determine position
+    const items = [...classGrid.querySelectorAll('.class-item:not(.archived)')]
+    const draggedIndex = items.indexOf(draggedItem)
+    const targetIndex = items.indexOf(target)
+
+    if (draggedIndex === -1 || targetIndex === -1) return
+
+    // Move the DOM element
+    if (draggedIndex < targetIndex) {
+      target.after(draggedItem)
+    } else {
+      target.before(draggedItem)
+    }
+
+    // Collect new order and save
+    const newOrder = [...classGrid.querySelectorAll('.class-item')].map(i => parseInt(i.dataset.classId))
+    const res = await fetch('/api/classes/reorder', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ classIds: newOrder }),
+    })
+    const data = await res.json()
+    if (!data.ok) {
+      showToast('排序保存失败', false)
+      window.location.reload()
+    }
+  })
+}
 </script>
 </body>
 </html>

@@ -277,35 +277,65 @@ select.input-field:disabled {
   display: none;
   align-items: center;
   justify-content: center;
-  background: rgba(20,20,19,.4);
+  background: rgba(20,20,19,.45);
+  backdrop-filter: blur(2px);
+  animation: modalFadeIn .2s ease;
 }
 
 .modal-overlay.active { display: flex; }
 
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalSlideUp {
+  from { opacity: 0; transform: translateY(12px) scale(.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 .modal-card {
   background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0,0,0,.2);
+  border-radius: 14px;
+  box-shadow: 0 24px 64px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.06);
   width: 100%;
   max-width: 480px;
   margin: 0 16px;
   padding: 28px;
   border: 1px solid var(--hairline);
+  animation: modalSlideUp .25s cubic-bezier(.22,1,.36,1);
 }
 
 .modal-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 16px;
 }
 
-.modal-icon.error {
+.modal-icon.error,
+.modal-icon.danger {
   background: #fef2f2;
   color: var(--error);
+}
+
+.modal-icon.warning,
+.modal-icon.warn {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.modal-icon.info {
+  background: #eff6ff;
+  color: var(--info);
+}
+
+.modal-icon.success {
+  background: #f0fdf4;
+  color: var(--success);
 }
 
 .modal-title {
@@ -321,13 +351,169 @@ select.input-field:disabled {
   font-size: 14px;
   color: var(--body);
   margin: 0 0 24px;
-  line-height: 1.55;
+  line-height: 1.6;
 }
 
 .modal-actions {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.modal-btn-cancel {
+  padding: 9px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--hairline);
+  background: #fff;
+  color: var(--body);
+  transition: all .15s;
+}
+
+.modal-btn-cancel:hover {
+  background: var(--canvas);
+  border-color: #d5cec5;
+}
+
+.modal-field {
+  margin-bottom: 16px;
+}
+
+.modal-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+/* ── Confirm Dialog ── */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(20,20,19,.45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: modalFadeIn .15s ease;
+}
+
+.confirm-card {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 24px 64px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.06);
+  width: min(90vw, 420px);
+  padding: 32px 28px 24px;
+  text-align: center;
+  border: 1px solid var(--hairline);
+  animation: modalSlideUp .2s cubic-bezier(.22,1,.36,1);
+}
+
+.confirm-icon-wrap {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.confirm-icon-wrap.danger {
+  background: #fef2f2;
+  color: var(--error);
+}
+
+.confirm-icon-wrap.warn {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.confirm-icon-wrap.info {
+  background: #eff6ff;
+  color: var(--info);
+}
+
+.confirm-icon-wrap.primary {
+  background: #fdf2f0;
+  color: var(--primary);
+}
+
+.confirm-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 8px;
+}
+
+.confirm-message {
+  font-size: 13px;
+  color: var(--body);
+  margin: 0 0 28px;
+  line-height: 1.65;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.confirm-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--hairline);
+  background: #fff;
+  color: var(--body);
+  transition: all .15s;
+}
+
+.confirm-btn:hover {
+  background: var(--canvas);
+  border-color: #d5cec5;
+}
+
+.confirm-btn.danger,
+.confirm-btn.primary {
+  background: var(--error);
+  color: #fff;
+  border-color: var(--error);
+}
+
+.confirm-btn.danger:hover,
+.confirm-btn.primary:hover {
+  background: #b53d3d;
+  border-color: #b53d3d;
+}
+
+.confirm-btn.warn {
+  background: #c2410c;
+  color: #fff;
+  border-color: #c2410c;
+}
+
+.confirm-btn.warn:hover {
+  background: #a3370a;
+  border-color: #a3370a;
+}
+
+.confirm-btn.info {
+  background: var(--info);
+  color: #fff;
+  border-color: var(--info);
+}
+
+.confirm-btn.info:hover {
+  background: #3a7fc8;
+  border-color: #3a7fc8;
 }
 
 /* ── Toast ── */
@@ -978,6 +1164,13 @@ select.input-field:disabled {
 }
 .pool-action-btn:hover {
   background: var(--surface-card);
+}
+
+.pool-class-claimed {
+  opacity: 0.65;
+}
+.pool-class-claimed .pool-class-head {
+  cursor: pointer;
 }
 
 .pool-student-list {

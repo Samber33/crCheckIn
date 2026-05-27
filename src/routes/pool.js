@@ -2,6 +2,12 @@ import { adminRequired, teacherRequired } from '../utils/auth.js'
 import { prisma } from '../plugins/db.js'
 import {
   getPoolClasses,
+  getPoolSemesters,
+  archivePoolSemester,
+  getRecycleBinClasses,
+  softDeletePoolClass,
+  restorePoolClass,
+  hardDeletePoolClass,
   createPoolClass,
   claimPoolClass,
   importPoolStudentsFromExcel,
@@ -10,14 +16,20 @@ import {
   deleteStudentPhoto,
   batchImportPoolStudentsFromExcel,
   batchUploadPoolPhotos,
+  getStudentsWithoutPhotos,
 } from '../services/pool.js'
 
 export default async function poolRoutes(app) {
   // === 页面 ===
 
   app.get('/admin/pool', { preHandler: adminRequired }, async (request, reply) => {
-    const classes = await getPoolClasses()
-    return reply.view('admin/pool.html', { classes })
+    const semester = request.query.semester
+    const view = request.query.view
+    const isRecycleView = view === 'recycle'
+    const classes = isRecycleView ? [] : await getPoolClasses(semester !== undefined ? { semester } : {})
+    const semesters = await getPoolSemesters()
+    const recycleBin = await getRecycleBinClasses()
+    return reply.view('admin/pool.html', { classes, semesters, currentSemester: semester || '', recycleBin, isRecycleView })
   })
 
   // === API: 班级池 ===
@@ -35,17 +47,35 @@ export default async function poolRoutes(app) {
     }
   })
 
+  // === API: 学期归档 ===
+
+  app.get('/admin/api/pool/semesters', { preHandler: adminRequired }, async (request, reply) => {
+    const semesters = await getPoolSemesters()
+    return reply.send({ ok: true, semesters })
+  })
+
+  app.post('/admin/api/pool/archive-semester', { preHandler: adminRequired }, async (request, reply) => {
+    const { semester } = request.body ?? {}
+    const result = await archivePoolSemester(semester)
+    return reply.send(result)
+  })
+
   app.delete('/admin/api/pool/classes/:id', { preHandler: adminRequired }, async (request, reply) => {
     const classId = parseInt(request.params.id, 10)
-    const cls = await prisma.class.findUnique({ where: { id: classId } })
-    if (!cls || cls.teacherId !== null) {
-      return reply.send({ ok: false, message: '班级不存在或不属于班级池' })
-    }
-    const { deleteClassesCascadeWithTx } = await import('../services/class.js')
-    await prisma.$transaction(async (tx) => {
-      await deleteClassesCascadeWithTx(tx, [classId])
-    })
-    return reply.send({ ok: true })
+    const result = await softDeletePoolClass(classId)
+    return reply.send(result)
+  })
+
+  app.post('/admin/api/pool/classes/:id/restore', { preHandler: adminRequired }, async (request, reply) => {
+    const classId = parseInt(request.params.id, 10)
+    const result = await restorePoolClass(classId)
+    return reply.send(result)
+  })
+
+  app.delete('/admin/api/pool/classes/:id/hard-delete', { preHandler: adminRequired }, async (request, reply) => {
+    const classId = parseInt(request.params.id, 10)
+    const result = await hardDeletePoolClass(classId)
+    return reply.send(result)
   })
 
   app.post('/admin/api/pool/classes/:id/claim', { preHandler: adminRequired }, async (request, reply) => {
@@ -160,6 +190,13 @@ export default async function poolRoutes(app) {
     }
   })
 
+  // === API: 获取班级池中没有照片的学生 ===
+
+  app.get('/admin/api/pool/students-without-photos', { preHandler: adminRequired }, async (request, reply) => {
+    const students = await getStudentsWithoutPhotos()
+    return reply.send({ ok: true, students })
+  })
+
   // === API: 删除学生照片 ===
 
   app.delete('/admin/api/pool/classes/:classId/students/:studentId/photo', { preHandler: adminRequired }, async (request, reply) => {
@@ -195,7 +232,7 @@ export default async function poolRoutes(app) {
   // === API: 获取可认领的班级池列表（教师端调用） ===
 
   app.get('/api/pool/classes', { preHandler: teacherRequired }, async (request, reply) => {
-    const classes = await getPoolClasses()
+    const classes = await getPoolClasses({ teacherId: request.session.teacherId })
     return reply.send({ ok: true, classes })
   })
 }
