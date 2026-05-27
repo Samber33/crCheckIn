@@ -54,6 +54,10 @@
       min-width: 5px; position: relative; transition: opacity .15s; cursor: pointer; opacity: .85;
     }
     .bchart .bar:hover { opacity: 1; }
+    .bchart .bar .bar-rate {
+      position: absolute; top: -16px; left: 50%; transform: translateX(-50%);
+      font-size: 10px; font-weight: 600; color: var(--ink); white-space: nowrap;
+    }
     .bchart .bar .tp {
       display: none; position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%);
       background: var(--surface-dark); color: var(--on-dark); padding: 4px 8px;
@@ -256,7 +260,7 @@ function renderStatsGrid(stats, trends) {
     ).join('')
     const rate = parseFloat(s.rate)
     const c = rate >= 80 ? 'hi' : rate >= 60 ? 'md' : 'lo'
-    const rateHtml = s.rate ? `<span class="rbadge ${c}">${s.rate}%</span>` : ''
+    const rateHtml = s.rate ? `<span class="rbadge ${c}">${rate.toFixed(1)}%</span>` : ''
     const cntHtml = s.signedCount ? `<span class="cnt">${s.signedCount}/${s.signedCount + s.absentCount}</span>` : ''
     return `<div>
       <div class="nrow">
@@ -283,12 +287,13 @@ function renderTrendChart(sessions) {
     const h = Math.max((s.count / max) * 120, 4)
     const year = extractYear(s.label)
     const color = getYearColor(year)
-    return `<div class="bar" style="height:${h}px;background:${color};"><span class="tp">${escHtml(stripYear(s.label))}<br>${s.count}人 · ${s.rate}%</span></div>`
+    const r = parseFloat(s.rate).toFixed(1)
+    return `<div class="bar" style="height:${h}px;background:${color};"><span class="bar-rate">${r}%</span><span class="tp">${escHtml(stripYear(s.label))}<br>${s.count}人 · ${r}%</span></div>`
   }).join('')
   const labels = sessions.map(s => {
     const short = stripYear(s.label.split(' · ')[0])
     const disp = short.length > 8 ? short.slice(0,8)+'…' : short
-    return `<span title="${escHtml(stripYear(s.label))}">${escHtml(disp)}<br><small style="opacity:.6;">${s.rate}%</small></span>`
+    return `<span title="${escHtml(stripYear(s.label))}">${escHtml(disp)}</span>`
   }).join('')
   el.innerHTML = `<div class="bchart">${bars}</div><div class="bx">${labels}</div>`
 
