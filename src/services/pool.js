@@ -625,9 +625,10 @@ export async function deleteStudentPhoto(studentId, classId) {
     data: { photoUrl: '' },
   })
 
-  // 同步删除：教师班级 → 班级池
+  // 同步删除
   const cls = await prisma.class.findUnique({ where: { id: classId } })
   if (cls && cls.teacherId !== null) {
+    // 教师班级 → 班级池
     const poolClass = await prisma.class.findFirst({
       where: { name: cls.name, teacherId: null, deletedAt: null },
       select: { id: true },
@@ -639,6 +640,21 @@ export async function deleteStudentPhoto(studentId, classId) {
       })
       if (poolStudent) {
         await prisma.student.update({ where: { id: poolStudent.id }, data: { photoUrl: '' } })
+      }
+    }
+  } else if (cls && cls.teacherId === null) {
+    // 班级池 → 所有同名教师班级
+    const teacherClasses = await prisma.class.findMany({
+      where: { name: cls.name, teacherId: { not: null }, deletedAt: null },
+      select: { id: true },
+    })
+    for (const tc of teacherClasses) {
+      const ts = await prisma.student.findFirst({
+        where: { classId: tc.id, name: student.name },
+        select: { id: true },
+      })
+      if (ts) {
+        await prisma.student.update({ where: { id: ts.id }, data: { photoUrl: '' } })
       }
     }
   }
