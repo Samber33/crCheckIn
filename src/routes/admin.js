@@ -5,8 +5,6 @@ import {
   getAllClassesDetail,
   transferClass,
   archiveAllClasses,
-  getCrossClassAnalytics,
-  getTeacherLoginStats,
   editClass,
   deleteClassByAdmin,
   getAuditLogs,
@@ -47,12 +45,8 @@ export default async function adminRoutes(app) {
     })
   })
 
-  app.get('/admin/analytics', { preHandler: adminRequired }, async (request, reply) => {
-    return reply.view('admin/analytics.html', {})
-  })
-
   app.get('/admin/audit', { preHandler: adminRequired }, async (request, reply) => {
-    return reply.redirect('/admin/analytics?tab=audit')
+    return reply.view('admin/audit.html', {})
   })
 
   // === API: Preset Tag Management ===
@@ -170,20 +164,6 @@ export default async function adminRoutes(app) {
     const ip = getClientIp(request)
     const result = await archiveAllClasses(request.session.teacherId, ip)
     return reply.send(result)
-  })
-
-  // === API: Cross-Class Analytics ===
-
-  app.get('/admin/api/analytics', { preHandler: adminRequired }, async (request, reply) => {
-    const data = await getCrossClassAnalytics()
-    return reply.send(data)
-  })
-
-  // === API: Teacher Stats ===
-
-  app.get('/admin/api/teacher-stats', { preHandler: adminRequired }, async (request, reply) => {
-    const data = await getTeacherLoginStats()
-    return reply.send({ ok: true, teachers: data })
   })
 
   // === API: Batch Password Reset ===

@@ -16,23 +16,7 @@
   <header class="header-bar">
     <div class="header-inner">
       <div class="header-left">
-        <a href="/admin" class="nav-link">
-          <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-          </svg>
-          管理面板
-        </a>
-        <span style="color: var(--hairline);">|</span>
-        <span class="page-title text-lg">管理员面板</span>
-      </div>
-      <div class="header-right">
-        <button id="presetTagBtn" class="nav-link">预设标签</button>
-        <a href="/admin/pool" class="nav-link">班级池</a>
-        <a href="/admin/analytics" class="nav-link">数据分析</a>
-        <a href="/admin/analytics?tab=audit" class="nav-link">审计日志</a>
-        <form method="post" action="/teacher/logout" style="display: inline;">
-          <button class="nav-link" type="submit">退出</button>
-        </form>
+        <a href="/admin" class="page-title text-lg" style="text-decoration:none;">管理员面板</a>
       </div>
     </div>
   </header>
@@ -44,15 +28,26 @@
 
     <!-- Compact Banner -->
     <div class="compact-banner">
-      <div>
+      <div class="banner-left">
         <h1 class="banner-title">管理员面板</h1>
         <p class="banner-sub">管理教师账号，创建新账号或重置密码</p>
       </div>
-      <div class="banner-stats">
-        <div class="banner-stat">
-          <p class="banner-stat-value">{{ teachers | length }}</p>
-          <p class="banner-stat-label">个教师账号</p>
+      <nav class="banner-nav">
+        <a href="/admin" class="banner-nav-link active">管理员面板</a>
+        <a href="/admin/pool" class="banner-nav-link">班级池</a>
+        <a href="/admin/audit" class="banner-nav-link">操作日志</a>
+      </nav>
+      <div class="banner-right">
+        <button id="presetTagBtn" class="banner-nav-link">预设标签</button>
+        <div class="banner-stats">
+          <div class="banner-stat">
+            <p class="banner-stat-value">{{ teachers | length }}</p>
+            <p class="banner-stat-label">个教师账号</p>
+          </div>
         </div>
+        <form method="post" action="/teacher/logout" style="display:inline;">
+          <button class="banner-nav-link" type="submit">退出</button>
+        </form>
       </div>
     </div>
 
@@ -89,12 +84,14 @@
             <label for="newPassword">密码</label>
             <input type="password" id="newPassword" class="input-field" placeholder="输入密码" />
           </div>
-          <div class="form-check">
-            <input type="checkbox" id="isAdminCheck"
-              style="width: 16px; height: 16px; border-radius: 4px; accent-color: var(--primary);" />
-            <label for="isAdminCheck">设为管理员</label>
+          <div style="display:flex;align-items:center;gap:12px;margin-top:4px;">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--ink);white-space:nowrap;">
+              <input type="checkbox" id="isAdminCheck"
+                style="width:16px;height:16px;border-radius:4px;accent-color:var(--primary);" />
+              设为管理员
+            </label>
+            <button id="createTeacherBtn" class="btn btn-primary" style="margin-left:auto;">创建账号</button>
           </div>
-          <button id="createTeacherBtn" class="btn btn-primary">创建账号</button>
         </div>
       </div>
 

@@ -9,27 +9,11 @@
 </head>
 <body>
 
-  <!-- Header — 复用 admin/index.html 风格 -->
+  <!-- Header -->
   <header class="header-bar">
     <div class="header-inner">
       <div class="header-left">
-        <a href="/admin" class="nav-link">
-          <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-          </svg>
-          管理面板
-        </a>
-        <span style="color: var(--hairline);">|</span>
-        <span class="page-title text-lg">班级池管理</span>
-      </div>
-      <div class="header-right">
-        <button id="presetTagBtn" class="nav-link">预设标签</button>
-        <a href="/admin/pool" class="nav-link" style="color: var(--ink); background: var(--surface-card);">班级池</a>
-        <a href="/admin/analytics" class="nav-link">数据分析</a>
-        <a href="/admin/analytics?tab=audit" class="nav-link">审计日志</a>
-        <form method="post" action="/teacher/logout" style="display: inline;">
-          <button class="nav-link" type="submit">退出</button>
-        </form>
+        <a href="/admin" class="page-title text-lg" style="text-decoration:none;">班级池管理</a>
       </div>
     </div>
   </header>
@@ -38,21 +22,32 @@
     <div id="toast" class="toast"></div>
 
     <div class="compact-banner">
-      <div>
+      <div class="banner-left">
         <h1 class="banner-title">班级池管理</h1>
         <p class="banner-sub">导入学生名单和照片，教师可认领班级池中的班级</p>
       </div>
-      <div class="banner-stats">
-        <div class="banner-stat">
-          <p class="banner-stat-value">{{ classes | length }}</p>
-          <p class="banner-stat-label">个班级</p>
+      <nav class="banner-nav">
+        <a href="/admin" class="banner-nav-link">管理员面板</a>
+        <a href="/admin/pool" class="banner-nav-link active">班级池</a>
+        <a href="/admin/audit" class="banner-nav-link">操作日志</a>
+      </nav>
+      <div class="banner-right">
+        <button id="presetTagBtn" class="banner-nav-link">预设标签</button>
+        <div class="banner-stats">
+          <div class="banner-stat">
+            <p class="banner-stat-value">{{ classes | length }}</p>
+            <p class="banner-stat-label">个班级</p>
+          </div>
+          {% set totalStudents = 0 %}
+          {% for cls in classes %}{% set totalStudents = totalStudents + cls.studentCount %}{% endfor %}
+          <div class="banner-stat">
+            <p class="banner-stat-value">{{ totalStudents }}</p>
+            <p class="banner-stat-label">名学生</p>
+          </div>
         </div>
-        {% set totalStudents = 0 %}
-        {% for cls in classes %}{% set totalStudents = totalStudents + cls.studentCount %}{% endfor %}
-        <div class="banner-stat">
-          <p class="banner-stat-value">{{ totalStudents }}</p>
-          <p class="banner-stat-label">名学生</p>
-        </div>
+        <form method="post" action="/teacher/logout" style="display:inline;">
+          <button class="banner-nav-link" type="submit">退出</button>
+        </form>
       </div>
     </div>
 
