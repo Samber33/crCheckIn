@@ -20,6 +20,12 @@ node_modules/.prisma/
 # Kiro IDE
 .kiro/
 
+# Claude Code
+.claude/
+
+# 生成文档
+docs/superpowers/
+
 # 系统文件
 .DS_Store
 Thumbs.db
