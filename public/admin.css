@@ -120,26 +120,26 @@ body {
 
 .banner-nav {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   margin-left: auto;
 }
 
 .banner-nav-link {
-  padding: 8px 18px;
+  padding: 10px 22px;
   border-radius: 8px;
   font-size: 14px;
-  font-weight: 500;
-  color: #a09d96;
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.06);
+  font-weight: 600;
+  color: #cccac4;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.1);
   cursor: pointer;
   text-decoration: none;
   transition: all .15s;
   white-space: nowrap;
 }
 
-.banner-nav-link:hover { background: rgba(255,255,255,.1); color: var(--on-dark); border-color: rgba(255,255,255,.12); }
-.banner-nav-link.active { background: rgba(255,255,255,.14); color: #fff; border-color: rgba(255,255,255,.18); font-weight: 600; }
+.banner-nav-link:hover { background: rgba(255,255,255,.16); color: #fff; border-color: rgba(255,255,255,.2); }
+.banner-nav-link.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
 .banner-right {
   display: flex;
