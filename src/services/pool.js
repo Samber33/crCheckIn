@@ -260,18 +260,12 @@ export async function bulkUploadPhotos(classId, files) {
     }
   }
 
-  // 批量更新数据库（每批 20 个）
-  const BATCH_SIZE = 20
-  for (let i = 0; i < dbUpdates.length; i += BATCH_SIZE) {
-    const batch = dbUpdates.slice(i, i + BATCH_SIZE)
-    await Promise.all(
-      batch.map(u =>
-        prisma.student.update({
-          where: { id: u.studentId },
-          data: { photoUrl: u.photoUrl },
-        })
-      )
-    )
+  // 批量更新数据库（单条 SQL，避免 SQLite 写锁竞争）
+  if (dbUpdates.length > 0) {
+    const sql = `UPDATE student SET photoUrl = CASE id ${
+      dbUpdates.map(u => `WHEN ${u.studentId} THEN '${u.photoUrl.replace(/'/g, "''")}'`).join(' ')
+    } END WHERE id IN (${dbUpdates.map(u => u.studentId).join(',')})`
+    await prisma.$executeRawUnsafe(sql)
   }
 
   return { ok: true, matched: matched.length, unmatched }
@@ -464,19 +458,12 @@ export async function batchUploadPoolPhotos(files) {
     }
   }
 
-  // 第 3 步：分批更新数据库
+  // 第 3 步：批量更新数据库（单条 SQL，避免 SQLite 写锁竞争）
   if (dbUpdates.length > 0) {
-    for (let i = 0; i < dbUpdates.length; i += BATCH_SIZE) {
-      const batch = dbUpdates.slice(i, i + BATCH_SIZE)
-      await Promise.all(
-        batch.map(u =>
-          prisma.student.update({
-            where: { id: u.studentId },
-            data: { photoUrl: u.photoUrl },
-          })
-        )
-      )
-    }
+    const sql = `UPDATE student SET photoUrl = CASE id ${
+      dbUpdates.map(u => `WHEN ${u.studentId} THEN '${u.photoUrl.replace(/'/g, "''")}'`).join(' ')
+    } END WHERE id IN (${dbUpdates.map(u => u.studentId).join(',')})`
+    await prisma.$executeRawUnsafe(sql)
   }
 
   return { ok: true, matched: matched.length, unmatched }
