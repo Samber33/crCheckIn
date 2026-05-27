@@ -143,14 +143,24 @@ export async function syncPoolPhotosToTeacherClasses(poolClassId) {
   })
   if (teacherClasses.length === 0) return { ok: true, synced: 0 }
 
-  // 获取班级池中有照片的学生
+  // 获取班级池中所有学生（含照片和无照片）
   const poolStudents = await prisma.student.findMany({
-    where: { classId: poolClassId, photoUrl: { not: '' } },
+    where: { classId: poolClassId },
     select: { name: true, photoUrl: true, homeClass: true },
   })
-  if (poolStudents.length === 0) return { ok: true, synced: 0 }
+  // 班级池中有照片的学生
+  const poolPhotoMap = new Map(
+    poolStudents
+      .filter(s => s.photoUrl)
+      .map(s => [normalizeName(s.name), s])
+  )
+  // 班级池中无照片的学生姓名集合
+  const poolNoPhotoSet = new Set(
+    poolStudents
+      .filter(s => !s.photoUrl)
+      .map(s => normalizeName(s.name))
+  )
 
-  const poolPhotoMap = new Map(poolStudents.map(s => [normalizeName(s.name), s]))
   let totalSynced = 0
 
   for (const tc of teacherClasses) {
@@ -159,18 +169,32 @@ export async function syncPoolPhotosToTeacherClasses(poolClassId) {
       select: { id: true, name: true, photoUrl: true },
     })
 
-    const teacherMap = new Map(teacherStudents.map(s => [normalizeName(s.name), s]))
-    const updateIds = []
+    const updatePhotoIds = []
+    const clearPhotoIds = []
     const insertData = []
 
-    for (const [normName, ps] of poolPhotoMap) {
-      const ts = teacherMap.get(normName)
-      if (ts) {
+    for (const ts of teacherStudents) {
+      const normName = normalizeName(ts.name)
+      const poolPhoto = poolPhotoMap.get(normName)
+      if (poolPhoto) {
+        // 班级池有照片，教师没有 → 更新
         if (!ts.photoUrl) {
-          updateIds.push({ id: ts.id, photoUrl: ps.photoUrl })
+          updatePhotoIds.push({ id: ts.id, photoUrl: poolPhoto.photoUrl })
           totalSynced++
         }
-      } else {
+      } else if (ts.photoUrl && poolNoPhotoSet.has(normName)) {
+        // 班级池无照片，教师有 → 清除
+        clearPhotoIds.push(ts.id)
+        totalSynced++
+      } else if (ts.photoUrl && !poolPhotoMap.has(normName) && !poolNoPhotoSet.has(normName)) {
+        // 班级池中不存在该学生，但教师有照片 → 保留（不做处理）
+      }
+    }
+
+    // 班级池有但教师没有的学生：复制过去
+    const teacherNameSet = new Set(teacherStudents.map(s => normalizeName(s.name)))
+    for (const [normName, ps] of poolPhotoMap) {
+      if (!teacherNameSet.has(normName)) {
         insertData.push({
           name: ps.name,
           homeClass: ps.homeClass,
@@ -181,10 +205,15 @@ export async function syncPoolPhotosToTeacherClasses(poolClassId) {
       }
     }
 
-    // 批量更新（单条 SQL，避免 SQLite 锁超时）
-    if (updateIds.length > 0) {
-      const sql = `UPDATE student SET photoUrl = CASE id ${updateIds.map(u => `WHEN ${u.id} THEN '${u.photoUrl.replace(/'/g, "''")}'`).join(' ')} END WHERE id IN (${updateIds.map(u => u.id).join(',')})`
+    // 批量更新照片
+    if (updatePhotoIds.length > 0) {
+      const sql = `UPDATE student SET photoUrl = CASE id ${updatePhotoIds.map(u => `WHEN ${u.id} THEN '${u.photoUrl.replace(/'/g, "''")}'`).join(' ')} END WHERE id IN (${updatePhotoIds.map(u => u.id).join(',')})`
       await prisma.$executeRawUnsafe(sql)
+    }
+
+    // 批量清除照片
+    if (clearPhotoIds.length > 0) {
+      await prisma.$executeRawUnsafe(`UPDATE student SET photoUrl = '' WHERE id IN (${clearPhotoIds.join(',')})`)
     }
 
     // 批量插入
