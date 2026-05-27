@@ -118,10 +118,17 @@ body {
 
 .banner-left { flex-shrink: 0; }
 
+.banner-right-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .banner-nav {
   display: flex;
   gap: 6px;
-  margin-left: auto;
 }
 
 .banner-nav-link {
@@ -145,7 +152,6 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-left: auto;
   flex-shrink: 0;
 }
 
@@ -1137,14 +1143,13 @@ select.input-field:disabled {
   .page-layout, .two-col { grid-template-columns: 1fr; }
   .chart-grid { grid-template-columns: 1fr; }
   .compact-banner { flex-direction: column; gap: 12px; align-items: flex-start; }
+  .banner-right-group { margin-left: 0; width: 100%; flex-wrap: wrap; }
   .banner-nav { margin-left: 0; }
-  .banner-right { margin-left: 0; width: 100%; justify-content: space-between; }
-  .banner-stats { margin-left: 0; width: 100%; justify-content: center; }
+  .banner-right { width: 100%; justify-content: space-between; }
 }
 
 @media (max-width: 640px) {
   .compact-banner { flex-direction: column; gap: 12px; align-items: flex-start; }
-  .banner-stats { margin-left: 0; width: 100%; justify-content: center; flex-wrap: wrap; }
   .class-grid { grid-template-columns: 1fr; }
 }
 

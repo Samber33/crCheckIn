@@ -25,36 +25,53 @@
         <h1 class="banner-title">操作日志</h1>
         <p class="banner-sub">查看系统操作记录</p>
       </div>
-      <nav class="banner-nav">
-        <a href="/admin" class="banner-nav-link">管理主页</a>
-        <a href="/admin/pool" class="banner-nav-link">班级池</a>
-        <a href="/admin/audit" class="banner-nav-link active">操作日志</a>
-      </nav>
-      <div class="banner-right">
-        <button id="presetTagBtn" class="banner-nav-link">预设标签</button>
-        <form method="post" action="/teacher/logout" style="display:inline;">
-          <button class="banner-nav-link" type="submit">退出</button>
-        </form>
+      <div class="banner-right-group">
+        <nav class="banner-nav">
+          <a href="/admin" class="banner-nav-link">管理主页</a>
+          <a href="/admin/pool" class="banner-nav-link">班级池</a>
+          <a href="/admin/audit" class="banner-nav-link active">操作日志</a>
+        </nav>
+        <div class="banner-right">
+          <button id="presetTagBtn" class="banner-nav-link">预设标签</button>
+          <form method="post" action="/teacher/logout" style="display:inline;">
+            <button class="banner-nav-link" type="submit">退出</button>
+          </form>
+        </div>
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-header">
-        <p class="card-title">操作日志</p>
+    <div class="page-layout">
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div class="sidebar-card">
+          <div class="sidebar-header">
+            <p class="sidebar-title">概览</p>
+          </div>
+          <div class="sidebar-body">
+            <div style="display: flex; gap: 16px;">
+              <div style="flex:1; text-align:center; padding:12px; background:var(--surface-soft); border-radius:8px;">
+                <p style="font-family:Georgia,serif; font-size:28px; font-weight:400; color:var(--primary); margin:0;" id="logCount">-</p>
+                <p style="font-size:12px; color:var(--muted-soft); margin:4px 0 0;">条操作记录</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <table class="admin-table" id="logTable">
-        <thead><tr>
-          <th style="width:140px;">时间</th>
-          <th style="width:120px;">操作类型</th>
-          <th>操作目标</th>
-          <th style="width:100px;">IP</th>
-        </tr></thead>
-        <tbody id="logBody"></tbody>
-      </table>
-      <div class="pagination" id="pagination" style="display: none;">
-        <button id="prevBtn" disabled>上一页</button>
-        <span class="page-info" id="pageInfo"></span>
-        <button id="nextBtn" disabled>下一页</button>
+
+      <div class="card">
+        <table class="admin-table" id="logTable">
+          <thead><tr>
+            <th style="width:140px;">时间</th>
+            <th style="width:120px;">操作类型</th>
+            <th>操作目标</th>
+            <th style="width:100px;">IP</th>
+          </tr></thead>
+          <tbody id="logBody"></tbody>
+        </table>
+        <div class="pagination" id="pagination" style="display: none;">
+          <button id="prevBtn" disabled>上一页</button>
+          <span class="page-info" id="pageInfo"></span>
+          <button id="nextBtn" disabled>下一页</button>
+        </div>
       </div>
     </div>
 
@@ -120,6 +137,7 @@ async function loadAuditPage(page) {
 
 function renderAudit(data) {
   document.getElementById('pagination').style.display = ''
+  document.getElementById('logCount').textContent = data.total
 
   const rows = data.logs.map(log => {
     const label = ACTION_LABELS[log.action] || log.action

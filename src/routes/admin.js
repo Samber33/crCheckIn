@@ -352,9 +352,6 @@ export default async function adminRoutes(app) {
   app.get('/admin/api/health', { preHandler: adminRequired }, async (request, reply) => {
     const uptime = process.uptime()
     const memUsage = process.memoryUsage()
-    const nodeVersion = process.version
-    const platform = process.platform
-    const arch = process.arch
 
     let dbSize = 0
     let dbOk = false
@@ -384,9 +381,6 @@ export default async function adminRoutes(app) {
       ok: true,
       server: {
         uptime: Math.floor(uptime),
-        nodeVersion,
-        platform,
-        arch,
         memory: {
           rss: (memUsage.rss / 1024 / 1024).toFixed(1) + ' MB',
           heapUsed: (memUsage.heapUsed / 1024 / 1024).toFixed(1) + ' MB',

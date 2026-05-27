@@ -32,22 +32,18 @@
         <h1 class="banner-title">管理主页</h1>
         <p class="banner-sub">管理教师账号，创建新账号或重置密码</p>
       </div>
-      <nav class="banner-nav">
-        <a href="/admin" class="banner-nav-link active">管理主页</a>
-        <a href="/admin/pool" class="banner-nav-link">班级池</a>
-        <a href="/admin/audit" class="banner-nav-link">操作日志</a>
-      </nav>
-      <div class="banner-right">
-        <button id="presetTagBtn" class="banner-nav-link">预设标签</button>
-        <div class="banner-stats">
-          <div class="banner-stat">
-            <p class="banner-stat-value">{{ teachers | length }}</p>
-            <p class="banner-stat-label">个教师账号</p>
-          </div>
+      <div class="banner-right-group">
+        <nav class="banner-nav">
+          <a href="/admin" class="banner-nav-link active">管理主页</a>
+          <a href="/admin/pool" class="banner-nav-link">班级池</a>
+          <a href="/admin/audit" class="banner-nav-link">操作日志</a>
+        </nav>
+        <div class="banner-right">
+          <button id="presetTagBtn" class="banner-nav-link">预设标签</button>
+          <form method="post" action="/teacher/logout" style="display:inline;">
+            <button class="banner-nav-link" type="submit">退出</button>
+          </form>
         </div>
-        <form method="post" action="/teacher/logout" style="display:inline;">
-          <button class="banner-nav-link" type="submit">退出</button>
-        </form>
       </div>
     </div>
 
@@ -59,6 +55,21 @@
 
       <!-- Left Sidebar -->
       <div style="display: flex; flex-direction: column; gap: 16px;">
+
+      <!-- Stats -->
+      <div class="sidebar-card">
+        <div class="sidebar-header">
+          <p class="sidebar-title">概览</p>
+        </div>
+        <div class="sidebar-body">
+          <div style="display: flex; gap: 16px;">
+            <div style="flex:1; text-align:center; padding:12px; background:var(--surface-soft); border-radius:8px;">
+              <p style="font-family:Georgia,serif; font-size:28px; font-weight:400; color:var(--primary); margin:0;">{{ teachers | length }}</p>
+              <p style="font-size:12px; color:var(--muted-soft); margin:4px 0 0;">教师账号</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- System Health -->
       <div class="sidebar-card">
@@ -366,10 +377,6 @@ async function loadHealth() {
         <div style="display: flex; justify-content: space-between;">
           <span style="color: var(--muted);">运行时间</span>
           <span style="color: var(--ink); font-weight: 500;">${formatUptime(s.uptime)}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between;">
-          <span style="color: var(--muted);">Node 版本</span>
-          <span style="color: var(--ink); font-weight: 500;">${s.nodeVersion}</span>
         </div>
         <div style="display: flex; justify-content: space-between;">
           <span style="color: var(--muted);">内存使用</span>
