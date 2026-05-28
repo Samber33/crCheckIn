@@ -24,6 +24,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DB_PATH = path.resolve(__dirname, '../../prisma/attendance.db')
 const SYSTEM_BACKUP_PATH = path.resolve(__dirname, '../../prisma/attendance.system.db')
 
+// Prevent concurrent database restores
+let isRestoring = false
+
 function getClientIp(request) {
   return request.headers['x-forwarded-for']?.split(',')[0]?.trim()
     || request.headers['x-real-ip']
@@ -276,6 +279,19 @@ export default async function adminRoutes(app) {
   // === API: Database Restore ===
 
   app.post('/admin/api/restore', { preHandler: adminRequired }, async (request, reply) => {
+    if (isRestoring) {
+      return reply.code(409).send({ ok: false, message: '数据库恢复正在进行中，请稍后再试' })
+    }
+    isRestoring = true
+
+    try {
+      await doRestore(request, reply)
+    } finally {
+      isRestoring = false
+    }
+  })
+
+  async function doRestore(request, reply) {
     const data = await request.file()
     if (!data) {
       return reply.code(400).send({ ok: false, message: '请上传备份文件' })
@@ -345,7 +361,7 @@ export default async function adminRoutes(app) {
     })
 
     return reply.send({ ok: true, message: '数据库已恢复，完整性校验通过' })
-  })
+  }
 
   // === API: System Health ===
 

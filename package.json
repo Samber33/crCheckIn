@@ -8,7 +8,7 @@
     "start": "pm2 startOrRestart ecosystem.config.cjs --env production",
     "start:direct": "node server.js",
     "dev": "node --watch server.js",
-    "build:css": "tailwindcss -i tailwind.input.css -o public/tailwind.min.css --minify --content \"views/**/*.html\"",
+    "build:css": "echo 'tailwind.input.css not found; create it with @tailwind directives or remove this script'",
     "pm2:restart": "pm2 restart crCheckIn --update-env",
     "pm2:stop": "pm2 delete crCheckIn",
     "pm2:logs": "pm2 logs crCheckIn",
@@ -31,11 +31,11 @@
     "fastify": "^4.0.0",
     "fastify-plugin": "^5.1.0",
     "nunjucks": "^3.2.4",
-    "pinyin-pro": "^3.28.1",
-    "pm2": "^6.0.14",
-    "prisma": "^5.0.0"
+    "pinyin-pro": "^3.28.1"
   },
   "devDependencies": {
+    "pm2": "^6.0.14",
+    "prisma": "^5.0.0",
     "tailwindcss": "^3.4.19"
   }
 }

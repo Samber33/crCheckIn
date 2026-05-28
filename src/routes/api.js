@@ -27,7 +27,7 @@ import {
 } from '../services/roster.js'
 import { createClass, deleteClass, archiveClass, unarchiveClass, reorderClasses } from '../services/class.js'
 import { changePassword, verifyTeacherByPassword, recordLogin } from '../services/auth.js'
-import { getSeatGrid, getSeatGridTeacher, getSeatGrids, getSeatGridsFromArchivedRecords } from '../services/seat.js'
+import { getSeatGrids, getSeatGridsFromArchivedRecords } from '../services/seat.js'
 import { createStudent, updateStudent, deleteStudent, transferStudent } from '../services/student.js'
 import {
   getInfoCollection,

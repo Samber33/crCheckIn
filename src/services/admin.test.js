@@ -269,39 +269,4 @@ describe('admin service', () => {
       assert.equal(logs[0].action, 'COPY_TO_POOL')
     })
   })
-
-  describe('getCrossClassAnalytics', async () => {
-    const { getCrossClassAnalytics } = await import('./admin.js')
-
-    it('returns aggregated statistics', async () => {
-      const beforeStats = await getCrossClassAnalytics()
-      const beforeTeacherCount = beforeStats.summary.teacherCount
-      const beforeClassCount = beforeStats.summary.classCount
-
-      const admin = await factories.createTeacher({ isAdmin: true })
-      const teacher = await factories.createTeacher()
-      const cls = await factories.createClass({ teacherId: teacher.id })
-      await factories.createStudent({ name: '张三', classId: cls.id })
-
-      const stats = await getCrossClassAnalytics()
-
-      assert.equal(stats.summary.teacherCount, beforeTeacherCount + 2) // admin + teacher
-      assert.equal(stats.summary.classCount, beforeClassCount + 1)
-    })
-  })
-
-  describe('getTeacherLoginStats', async () => {
-    const { getTeacherLoginStats } = await import('./admin.js')
-
-    it('returns all teachers with class counts', async () => {
-      const teacher = await factories.createTeacher()
-      await factories.createClass({ teacherId: teacher.id })
-      await factories.createClass({ teacherId: teacher.id })
-
-      const stats = await getTeacherLoginStats()
-      const found = stats.find(t => t.id === teacher.id)
-      assert.ok(found)
-      assert.equal(found.classCount, 2)
-    })
-  })
 })

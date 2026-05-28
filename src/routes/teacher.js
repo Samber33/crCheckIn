@@ -15,8 +15,10 @@ function noCache(reply) {
 
 export default async function teacherRoutes(app) {
   app.post('/teacher/logout', async (request, reply) => {
-    request.session = null
-    return reply.redirect('/student')
+    request.session.destroy((err) => {
+      if (err) request.log.error({ err }, 'Failed to destroy session')
+      reply.redirect('/student')
+    })
   })
 
   app.get('/teacher', async (request, reply) => {
@@ -38,8 +40,8 @@ export default async function teacherRoutes(app) {
     const archivedCount = allClasses.filter(c => c.isArchived).length
     const teacher = await prisma.teacher.findUnique({ where: { id: teacherId } })
     if (!teacher) {
-      request.session = null
-      return reply.redirect('/student')
+      request.session.destroy(() => reply.redirect('/student'))
+      return
     }
     const maxStudentCount = Math.max(...classes.map(c => c.studentCount), 1)
 
