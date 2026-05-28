@@ -2,6 +2,9 @@
  * SSE 事件管理 — 按教师维护 WebSocket-like 长连接，签到时推送实时更新。
  */
 
+// 最大 SSE 连接数（防止资源耗尽）
+const MAX_CONNECTIONS = 500
+
 // Map<teacherId, Set<Socket>>
 const teacherSockets = new Map()
 
@@ -12,8 +15,17 @@ const classTeacherCache = new Map()
  * 为教师注册 SSE 连接。
  * @param {number} teacherId
  * @param {object} socket - The raw TCP socket
+ * @returns {boolean} 是否注册成功
  */
 export function registerSSE(teacherId, socket) {
+  // 全局连接数上限保护
+  const totalConnections = [...teacherSockets.values()].reduce((sum, s) => sum + s.size, 0)
+  if (totalConnections >= MAX_CONNECTIONS) {
+    socket.write(`event: error\ndata: {"message":"连接数已达上限"}\n\n`)
+    socket.destroy()
+    return false
+  }
+
   if (!teacherSockets.has(teacherId)) {
     teacherSockets.set(teacherId, new Set())
   }
@@ -26,6 +38,7 @@ export function registerSSE(teacherId, socket) {
       if (sockets.size === 0) teacherSockets.delete(teacherId)
     }
   })
+  return true
 }
 
 /**

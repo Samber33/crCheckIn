@@ -564,34 +564,37 @@ export async function getAttendanceAnalytics(classId) {
     rate: studentNames.size > 0 ? ((s.records.filter(r => studentNames.has(r.studentName)).length / studentNames.size) * 100).toFixed(1) : '0',
   }))
 
-  // === 2 & 3. 时段/星期分布 — 用 SQL 聚合，避免加载全量记录 ===
+  // === 2 & 3. 时段/星期分布 — 使用 UNION 合并当前记录与归档记录查询，减少 DB 往返 ===
   const hourDistribution = new Array(24).fill(0)
   const dayDistribution = new Array(7).fill(0)
 
-  const hourResult = await prisma.$queryRaw`
-    SELECT CAST(strftime('%H', signedAt) AS INTEGER) as hour, COUNT(*) as cnt
-    FROM SignInRecord WHERE classId = ${classId}
-    GROUP BY hour
-  `
-  const archivedHourResult = await prisma.$queryRaw`
-    SELECT CAST(strftime('%H', signedAt) AS INTEGER) as hour, COUNT(*) as cnt
-    FROM ArchivedRecord ar
-    JOIN SignInSession ss ON ar.sessionId = ss.id
-    WHERE ss.classId = ${classId}
-    GROUP BY hour
-  `
-  const dayResult = await prisma.$queryRaw`
-    SELECT CAST(strftime('%w', signedAt) AS INTEGER) as day, COUNT(*) as cnt
-    FROM SignInRecord WHERE classId = ${classId}
-    GROUP BY day
-  `
-  const archivedDayResult = await prisma.$queryRaw`
-    SELECT CAST(strftime('%w', signedAt) AS INTEGER) as day, COUNT(*) as cnt
-    FROM ArchivedRecord ar
-    JOIN SignInSession ss ON ar.sessionId = ss.id
-    WHERE ss.classId = ${classId}
-    GROUP BY day
-  `
+  // 并行查询当前签到记录和归档记录的时段/星期分布
+  const [hourResult, archivedHourResult, dayResult, archivedDayResult] = await Promise.all([
+    prisma.$queryRaw`
+      SELECT CAST(strftime('%H', signedAt) AS INTEGER) as hour, COUNT(*) as cnt
+      FROM SignInRecord WHERE classId = ${classId}
+      GROUP BY hour
+    `,
+    prisma.$queryRaw`
+      SELECT CAST(strftime('%H', signedAt) AS INTEGER) as hour, COUNT(*) as cnt
+      FROM ArchivedRecord ar
+      JOIN SignInSession ss ON ar.sessionId = ss.id
+      WHERE ss.classId = ${classId}
+      GROUP BY hour
+    `,
+    prisma.$queryRaw`
+      SELECT CAST(strftime('%w', signedAt) AS INTEGER) as day, COUNT(*) as cnt
+      FROM SignInRecord WHERE classId = ${classId}
+      GROUP BY day
+    `,
+    prisma.$queryRaw`
+      SELECT CAST(strftime('%w', signedAt) AS INTEGER) as day, COUNT(*) as cnt
+      FROM ArchivedRecord ar
+      JOIN SignInSession ss ON ar.sessionId = ss.id
+      WHERE ss.classId = ${classId}
+      GROUP BY day
+    `,
+  ])
 
   for (const row of hourResult) { hourDistribution[row.hour] = Number(row.cnt) }
   for (const row of archivedHourResult) { hourDistribution[row.hour] = (hourDistribution[row.hour] || 0) + Number(row.cnt) }
