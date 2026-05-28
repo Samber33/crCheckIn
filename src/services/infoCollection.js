@@ -3,6 +3,7 @@ import path from 'node:path'
 import fs from 'node:fs/promises'
 import { randomBytes } from 'node:crypto'
 import ExcelJS from 'exceljs'
+import { styleHeaderRow, setTitleRow, setStatRow, FONT_MS_YAHEI, COLOR_TEXT_DARK, COLOR_BG_ALT_ROW, COLOR_BORDER } from './roster.js'
 
 const UPLOAD_DIR = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../../uploads')
 
@@ -355,35 +356,13 @@ export async function exportInfoSubmissionsToExcel(classId) {
   })
   ws.columns = columns
 
-  // 标题行
-  ws.mergeCells(1, 1, 1, columns.length)
-  const titleCell = ws.getCell(1, 1)
-  titleCell.value = `信息收集数据导出`
-  titleCell.font = { name: '微软雅黑', bold: true, size: 14, color: { argb: 'FFFFFFFF' } }
-  titleCell.alignment = { horizontal: 'center', vertical: 'middle' }
-  titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF334155' } }
-  ws.getRow(1).height = 36
+  const COL_SPAN = columns.length
+  setTitleRow(ws, 1, COL_SPAN, '信息收集数据导出', true)
+  setStatRow(ws, 2, COL_SPAN, `共 ${submissions.length} 条提交记录    导出时间：${new Date().toLocaleString('zh-CN')}`)
 
-  // 统计行
-  ws.mergeCells(2, 1, 2, columns.length)
-  const statCell = ws.getCell(2, 1)
-  statCell.value = `共 ${submissions.length} 条提交记录    导出时间：${new Date().toLocaleString('zh-CN')}`
-  statCell.font = { name: '微软雅黑', size: 9, color: { argb: 'FF64748B' } }
-  statCell.alignment = { horizontal: 'center', vertical: 'middle' }
-  statCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFAFAFA' } }
-  ws.getRow(2).height = 20
-
-  // 表头
   const headerRow = ws.addRow(['学生姓名', '提交时间', ...fields.map(f => f.name)])
-  headerRow.height = 24
-  headerRow.eachCell((cell) => {
-    cell.font = { name: '微软雅黑', bold: true, size: 10, color: { argb: 'FFFFFFFF' } }
-    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF334155' } }
-    cell.alignment = { horizontal: 'center', vertical: 'middle' }
-    cell.border = { bottom: { style: 'thin', color: { argb: 'FF475569' } } }
-  })
+  styleHeaderRow(headerRow)
 
-  // 数据行
   submissions.forEach((s, idx) => {
     const isEven = idx % 2 === 0
     const row = ws.addRow([
@@ -400,10 +379,10 @@ export async function exportInfoSubmissionsToExcel(classId) {
     ])
     row.height = 20
     row.eachCell((cell, colNumber) => {
-      cell.font = { name: '微软雅黑', size: 10, color: { argb: 'FF1E293B' } }
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isEven ? 'FFFFFFFF' : 'FFF8FAFC' } }
+      cell.font = { ...FONT_MS_YAHEI, size: 10, color: { argb: COLOR_TEXT_DARK } }
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isEven ? 'FFFFFFFF' : COLOR_BG_ALT_ROW } }
       cell.alignment = { horizontal: colNumber <= 2 ? 'left' : 'center', vertical: 'middle' }
-      cell.border = { bottom: { style: 'hair', color: { argb: 'FFE2E8F0' } } }
+      cell.border = { bottom: { style: 'hair', color: { argb: COLOR_BORDER } } }
     })
   })
 

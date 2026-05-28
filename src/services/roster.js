@@ -21,6 +21,76 @@ function fmtHomeClass(hc) {
   return sanitizeExcelValue(hc.endsWith('班') ? hc : hc + '班')
 }
 
+// ── 共享 Excel 样式常量 ──
+const FONT_MS_YAHEI = { name: '微软雅黑' }
+const COLOR_TEXT_DARK = 'FF1E293B'
+const COLOR_TEXT_MUTED = 'FF64748B'
+const COLOR_TEXT_WHITE = 'FFFFFFFF'
+const COLOR_BG_HEADER = 'FF334155'
+const COLOR_BG_ALT_ROW = 'FFF8FAFC'
+const COLOR_BG_LIGHT = 'FFFAFAFA'
+const COLOR_BORDER = 'FFE2E8F0'
+const COLOR_BORDER_HEADER = 'FF475569'
+const COLOR_GREEN_TEXT = 'FF059669'
+const COLOR_GRAY_TEXT = 'FF94A3B8'
+
+/**
+ * 设置 Excel 表头行样式
+ */
+function styleHeaderRow(headerRow) {
+  headerRow.height = 24
+  headerRow.eachCell((cell) => {
+    cell.font = { ...FONT_MS_YAHEI, bold: true, size: 10, color: { argb: COLOR_TEXT_WHITE } }
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_BG_HEADER } }
+    cell.alignment = { horizontal: 'center', vertical: 'middle' }
+    cell.border = { bottom: { style: 'thin', color: { argb: COLOR_BORDER_HEADER } } }
+  })
+}
+
+/**
+ * 设置 Excel 数据行样式
+ */
+function styleDataRow(dataRow, rowIdx, isSigned, leftAlignCols = 2) {
+  dataRow.height = 20
+  const isEven = rowIdx % 2 === 0
+  dataRow.eachCell((cell, colNumber) => {
+    cell.font = { ...FONT_MS_YAHEI, size: 10, color: { argb: isSigned ? COLOR_TEXT_DARK : COLOR_GRAY_TEXT } }
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isEven ? 'FFFFFFFF' : COLOR_BG_ALT_ROW } }
+    cell.alignment = { horizontal: colNumber <= leftAlignCols ? 'left' : 'center', vertical: 'middle' }
+    cell.border = { bottom: { style: 'hair', color: { argb: COLOR_BORDER } } }
+  })
+  if (isSigned) {
+    dataRow.getCell(2).font = { ...FONT_MS_YAHEI, size: 10, bold: true, color: { argb: COLOR_GREEN_TEXT } }
+  }
+}
+
+/**
+ * 设置 Excel 标题行
+ */
+function setTitleRow(ws, row, colSpan, title, isDark = false) {
+  if (colSpan > 1) ws.mergeCells(row, 1, row, colSpan)
+  const cell = ws.getCell(row, 1)
+  cell.value = title
+  cell.font = { ...FONT_MS_YAHEI, bold: true, size: 14, color: { argb: isDark ? COLOR_TEXT_WHITE : COLOR_TEXT_DARK } }
+  cell.alignment = { horizontal: 'center', vertical: 'middle' }
+  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isDark ? COLOR_BG_HEADER : 'FFF1F5F9' } }
+  ws.getRow(row).height = 36
+}
+
+/**
+ * 设置 Excel 统计行
+ */
+function setStatRow(ws, row, colSpan, text) {
+  if (colSpan > 1) ws.mergeCells(row, 1, row, colSpan)
+  const cell = ws.getCell(row, 1)
+  cell.value = text
+  cell.font = { ...FONT_MS_YAHEI, size: 9, color: { argb: COLOR_TEXT_MUTED } }
+  cell.alignment = { horizontal: 'center', vertical: 'middle' }
+  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_BG_LIGHT } }
+  ws.getRow(row).height = 20
+}
+
+
 /**
  * 从 Excel buffer 导入学生名单
  * Excel 格式（无表头）：A列=教学班名，B列=行政班级，C列=学生姓名
@@ -131,35 +201,13 @@ export async function exportRecordsToExcel(classId) {
     { key: 'time', width: 22 },
   ]
 
-  // 标题行
-  ws.mergeCells('A1:F1')
-  const titleCell = ws.getCell('A1')
-  titleCell.value = `${cls.name}  签到记录`
-  titleCell.font = { name: '微软雅黑', bold: true, size: 14, color: { argb: 'FF1E293B' } }
-  titleCell.alignment = { horizontal: 'center', vertical: 'middle' }
-  titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } }
-  ws.getRow(1).height = 36
+  const COL_SPAN = 6
+  setTitleRow(ws, 1, COL_SPAN, `${cls.name}  签到记录`)
+  setStatRow(ws, 2, COL_SPAN, `共 ${totalCount} 人 · 已签到 ${signedCount} 人 · 未签到 ${totalCount - signedCount} 人    导出时间：${formatSecond(new Date())}`)
 
-  // 统计行
-  ws.mergeCells('A2:F2')
-  const statCell = ws.getCell('A2')
-  statCell.value = `共 ${totalCount} 人 · 已签到 ${signedCount} 人 · 未签到 ${totalCount - signedCount} 人    导出时间：${formatSecond(new Date())}`
-  statCell.font = { name: '微软雅黑', size: 9, color: { argb: 'FF64748B' } }
-  statCell.alignment = { horizontal: 'center', vertical: 'middle' }
-  statCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFAFAFA' } }
-  ws.getRow(2).height = 20
-
-  // 表头
   const headerRow = ws.addRow(['行政班级', '姓名', '备注', '签到状态', '计算机 IP', '签到时间'])
-  headerRow.height = 24
-  headerRow.eachCell((cell) => {
-    cell.font = { name: '微软雅黑', bold: true, size: 10, color: { argb: 'FFFFFFFF' } }
-    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF334155' } }
-    cell.alignment = { horizontal: 'center', vertical: 'middle' }
-    cell.border = { bottom: { style: 'thin', color: { argb: 'FF475569' } } }
-  })
+  styleHeaderRow(headerRow)
 
-  // 数据行
   let rowIdx = 0
   for (const student of students) {
     const rec = recordMap.get(student.name)
@@ -172,17 +220,7 @@ export async function exportRecordsToExcel(classId) {
       rec ? sanitizeExcelValue(rec.computerName) : '',
       rec ? formatSecond(new Date(rec.signedAt)) : '',
     ])
-    dataRow.height = 20
-    const isEven = rowIdx % 2 === 0
-    dataRow.eachCell((cell, colNumber) => {
-      cell.font = { name: '微软雅黑', size: 10, color: { argb: signed ? 'FF1E293B' : 'FF94A3B8' } }
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isEven ? 'FFFFFFFF' : 'FFF8FAFC' } }
-      cell.alignment = { horizontal: colNumber <= 3 ? 'left' : 'center', vertical: 'middle' }
-      cell.border = { bottom: { style: 'hair', color: { argb: 'FFE2E8F0' } } }
-    })
-    if (signed) {
-      dataRow.getCell(2).font = { name: '微软雅黑', size: 10, bold: true, color: { argb: 'FF059669' } }
-    }
+    styleDataRow(dataRow, rowIdx, signed, 3)
     rowIdx++
   }
 
@@ -543,38 +581,15 @@ export async function exportSessionToExcel(session, roster = null) {
     { key: 'computerName', width: 22 },
   ]
 
-  // 第1行：标题行，合并 A1:E1
-  ws.mergeCells('A1:E1')
-  const titleCell = ws.getCell('A1')
-  titleCell.value = `${className}  ${session.label}`
-  titleCell.font = { name: '微软雅黑', bold: true, size: 14, color: { argb: 'FFFFFFFF' } }
-  titleCell.alignment = { horizontal: 'center', vertical: 'middle' }
-  titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF334155' } }
-  ws.getRow(1).height = 36
-
-  // 第2行：统计行，合并 A2:E2
-  ws.mergeCells('A2:E2')
-  const statCell = ws.getCell('A2')
+  const COL_SPAN = 5
+  setTitleRow(ws, 1, COL_SPAN, `${className}  ${session.label}`, true)
   const signedCount = rows.filter(r => r.status === '已签到').length
-  statCell.value = `共 ${rows.length} 人 · 已签到 ${signedCount} 人 · 未签到 ${rows.length - signedCount} 人    归档时间：${formatSecond(new Date(session.archivedAt))}`
-  statCell.font = { name: '微软雅黑', size: 9, color: { argb: 'FF64748B' } }
-  statCell.alignment = { horizontal: 'center', vertical: 'middle' }
-  statCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFAFAFA' } }
-  ws.getRow(2).height = 20
+  setStatRow(ws, 2, COL_SPAN, `共 ${rows.length} 人 · 已签到 ${signedCount} 人 · 未签到 ${rows.length - signedCount} 人    归档时间：${formatSecond(new Date(session.archivedAt))}`)
 
-  // 第3行：表头
   const headerRow = ws.addRow(['行政班级', '姓名', '签到状态', '签到时间', '计算机 IP'])
-  headerRow.height = 24
-  headerRow.eachCell((cell) => {
-    cell.font = { name: '微软雅黑', bold: true, size: 10, color: { argb: 'FFFFFFFF' } }
-    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF334155' } }
-    cell.alignment = { horizontal: 'center', vertical: 'middle' }
-    cell.border = { bottom: { style: 'thin', color: { argb: 'FF475569' } } }
-  })
+  styleHeaderRow(headerRow)
 
-  // 第4行起：数据行
   rows.forEach((rec, idx) => {
-    const isEven = idx % 2 === 0
     const isSigned = rec.status === '已签到'
     const dataRow = ws.addRow([
       fmtHomeClass(rec.homeClass),
@@ -583,16 +598,7 @@ export async function exportSessionToExcel(session, roster = null) {
       isSigned ? (rec.signedAt || '-') : '-',
       isSigned ? (sanitizeExcelValue(rec.computerName) ?? '-') : '-',
     ])
-    dataRow.height = 20
-    dataRow.eachCell((cell, colNumber) => {
-      cell.font = { name: '微软雅黑', size: 10, color: { argb: isSigned ? 'FF1E293B' : 'FF94A3B8' } }
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isEven ? 'FFFFFFFF' : 'FFF8FAFC' } }
-      cell.alignment = { horizontal: colNumber <= 2 ? 'left' : 'center', vertical: 'middle' }
-      cell.border = { bottom: { style: 'hair', color: { argb: 'FFE2E8F0' } } }
-    })
-    if (isSigned) {
-      dataRow.getCell(2).font = { name: '微软雅黑', size: 10, bold: true, color: { argb: 'FF059669' } }
-    }
+    styleDataRow(dataRow, idx, isSigned, 2)
   })
 
   return workbook.xlsx.writeBuffer()
@@ -734,46 +740,24 @@ export async function exportStatsToExcel(stats, cls) {
     { key: 'rate', width: 14 },
   ]
 
-  // 标题行
-  ws.mergeCells('A1:E1')
-  const titleCell = ws.getCell('A1')
-  titleCell.value = `${cls.name}  出勤统计（共 ${totalSessions} 个批次）`
-  titleCell.font = { name: '微软雅黑', bold: true, size: 14, color: { argb: 'FFFFFFFF' } }
-  titleCell.alignment = { horizontal: 'center', vertical: 'middle' }
-  titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF334155' } }
-  ws.getRow(1).height = 36
+  const COL_SPAN = 5
+  setTitleRow(ws, 1, COL_SPAN, `${cls.name}  出勤统计（共 ${totalSessions} 个批次）`, true)
+  setStatRow(ws, 2, COL_SPAN, `共 ${students.length} 名学生    导出时间：${formatSecond(new Date())}`)
 
-  // 统计行
-  ws.mergeCells('A2:E2')
-  const statCell = ws.getCell('A2')
-  statCell.value = `共 ${students.length} 名学生    导出时间：${formatSecond(new Date())}`
-  statCell.font = { name: '微软雅黑', size: 9, color: { argb: 'FF64748B' } }
-  statCell.alignment = { horizontal: 'center', vertical: 'middle' }
-  statCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFAFAFA' } }
-  ws.getRow(2).height = 20
-
-  // 表头
   const headerRow = ws.addRow(['姓名', '行政班级', '签到次数', '缺勤次数', '出勤率 (%)'])
-  headerRow.height = 24
-  headerRow.eachCell((cell) => {
-    cell.font = { name: '微软雅黑', bold: true, size: 10, color: { argb: 'FFFFFFFF' } }
-    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF334155' } }
-    cell.alignment = { horizontal: 'center', vertical: 'middle' }
-    cell.border = { bottom: { style: 'thin', color: { argb: 'FF475569' } } }
-  })
+  styleHeaderRow(headerRow)
 
-  // 数据行
   students.forEach((s, idx) => {
-    const isEven = idx % 2 === 0
     const rate = parseFloat(s.rate)
     const rateColor = rate >= 80 ? 'FF059669' : rate >= 60 ? 'FFD97706' : 'FFDC2626'
     const dataRow = ws.addRow([sanitizeExcelValue(s.name), fmtHomeClass(s.homeClass), s.signedCount, s.absentCount, `${s.rate}%`])
     dataRow.height = 20
+    const isEven = idx % 2 === 0
     dataRow.eachCell((cell, colNumber) => {
-      cell.font = { name: '微软雅黑', size: 10, bold: colNumber === 5, color: { argb: colNumber === 5 ? rateColor : 'FF1E293B' } }
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isEven ? 'FFFFFFFF' : 'FFF8FAFC' } }
+      cell.font = { ...FONT_MS_YAHEI, size: 10, bold: colNumber === 5, color: { argb: colNumber === 5 ? rateColor : COLOR_TEXT_DARK } }
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isEven ? 'FFFFFFFF' : COLOR_BG_ALT_ROW } }
       cell.alignment = { horizontal: colNumber <= 2 ? 'left' : 'center', vertical: 'middle' }
-      cell.border = { bottom: { style: 'hair', color: { argb: 'FFE2E8F0' } } }
+      cell.border = { bottom: { style: 'hair', color: { argb: COLOR_BORDER } } }
     })
   })
 
