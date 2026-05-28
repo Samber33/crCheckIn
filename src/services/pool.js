@@ -886,14 +886,15 @@ export async function batchUploadPoolPhotos(files) {
     include: { students: true },
   })
 
-  // 构建 studentName -> { classId, student } 映射（标准化姓名用于匹配）
-  const studentMap = new Map()
+  // 构建 studentName -> [{ classId, student, className }] 多值映射（检测同名冲突）
+  const studentMultiMap = new Map()
   for (const cls of poolClasses) {
     for (const s of cls.students) {
       const key = normalizeName(s.name)
-      if (!studentMap.has(key)) {
-        studentMap.set(key, { classId: cls.id, student: s })
+      if (!studentMultiMap.has(key)) {
+        studentMultiMap.set(key, [])
       }
+      studentMultiMap.get(key).push({ classId: cls.id, student: s, className: cls.name })
     }
   }
 
@@ -911,19 +912,38 @@ export async function batchUploadPoolPhotos(files) {
     for (const entry of entries) existingFiles.add(entry)
   } catch { /* 目录不存在或为空 */ }
 
-  // 第 1 步：匹配 + 确定文件名
+  // 第 1 步：匹配 + 分类（自动匹配 / 冲突 / 未匹配）
   const matched = []
   const unmatched = []
+  const conflicts = []
   const writeTasks = [] // { buffer, filePath }
   const dbUpdates = []  // { studentId, photoUrl }
 
   for (const file of files) {
     const nameKey = path.basename(file.filename, path.extname(file.filename))
-    const match = studentMap.get(normalizeName(nameKey))
-    if (!match) {
+    const candidates = studentMultiMap.get(normalizeName(nameKey))
+    if (!candidates || candidates.length === 0) {
       unmatched.push(file.filename)
       continue
     }
+
+    if (candidates.length > 1) {
+      // 同名多学生，需要管理员手动匹配
+      conflicts.push({
+        filename: file.filename,
+        buffer: file.buffer,
+        candidates: candidates.map(c => ({
+          studentId: c.student.id,
+          studentName: c.student.name,
+          className: c.className,
+          classId: c.classId,
+        })),
+      })
+      continue
+    }
+
+    // 唯一匹配，正常流程
+    const match = candidates[0]
 
     // 确定不冲突的文件名
     const ext = path.extname(file.filename).toLowerCase()
@@ -975,9 +995,11 @@ export async function batchUploadPoolPhotos(files) {
   // 同步照片到同名教师班级（按受影响的班级去重）
   if (matched.length > 0) {
     const affectedClassIds = [...new Set(dbUpdates.map(u => {
-      // 从 studentMap 反查 classId
-      for (const [, v] of studentMap) {
-        if (v.student.id === u.studentId) return v.classId
+      // 从 studentMultiMap 反查 classId
+      for (const [key, vals] of studentMultiMap) {
+        for (const v of vals) {
+          if (v.student.id === u.studentId) return v.classId
+        }
       }
       return null
     }).filter(Boolean))]
@@ -986,5 +1008,80 @@ export async function batchUploadPoolPhotos(files) {
     }
   }
 
-  return { ok: true, matched: matched.length, unmatched, unmatchedStudents }
+  return { ok: true, matched: matched.length, unmatched, conflicts, unmatchedStudents }
+}
+
+/**
+ * 解决照片冲突：将照片匹配到指定的学生
+ * @param {object} params
+ * @param {number} params.studentId - 目标学生ID
+ * @param {number} params.classId - 学生所在班级ID
+ * @param {Buffer} params.buffer - 照片文件缓冲
+ * @param {string} params.filename - 原始文件名
+ */
+export async function resolvePhotoConflict({ studentId, classId, buffer, filename }) {
+  const student = await prisma.student.findFirst({
+    where: { id: studentId, classId },
+    include: { class: true },
+  })
+  if (!student) {
+    return { ok: false, message: '学生不存在或不属于该班级' }
+  }
+
+  // 验证学生属于班级池
+  if (student.class.teacherId !== null) {
+    return { ok: false, message: '只能匹配班级池中的学生' }
+  }
+
+  // 验证文件
+  const ext = path.extname(filename).toLowerCase()
+  const allowed = ['.jpg', '.jpeg', '.png', '.webp']
+  if (!allowed.includes(ext)) {
+    return { ok: false, message: '不支持的图片格式' }
+  }
+
+  const now = new Date()
+  const year = String(now.getFullYear())
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const monthDir = path.join(UPLOAD_DIR, year, month)
+  await fs.mkdir(monthDir, { recursive: true })
+
+  // 处理文件名冲突
+  const baseName = path.basename(filename, ext)
+  let safeFilename = `${baseName}${ext}`
+  let counter = 1
+  const existingFiles = new Set()
+  try {
+    const entries = await fs.readdir(monthDir)
+    for (const entry of entries) existingFiles.add(entry)
+  } catch { /* 目录不存在 */ }
+  while (existingFiles.has(safeFilename)) {
+    safeFilename = `${baseName}_${counter}${ext}`
+    counter++
+  }
+
+  const filePath = path.join(monthDir, safeFilename)
+  const url = `/uploads/photos/${year}/${month}/${safeFilename}`
+
+  // 删除旧照片文件
+  if (student.photoUrl) {
+    const oldPath = path.resolve(__dirname, '../../' + student.photoUrl.replace(/^\//, ''))
+    try { await fs.unlink(oldPath) } catch { /* 旧文件可能已被删除 */ }
+  }
+
+  // 写文件
+  await fs.writeFile(filePath, buffer)
+
+  // 更新数据库
+  await _enqueueWrite(async () => {
+    return prisma.student.update({
+      where: { id: studentId },
+      data: { photoUrl: url },
+    })
+  })
+
+  // 同步照片到教师班级
+  _schedulePoolSync(classId)
+
+  return { ok: true, studentName: student.name, className: student.class.name, url }
 }
