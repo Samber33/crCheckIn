@@ -237,7 +237,13 @@ export default async function apiRoutes(fastify) {
 
   // POST /api/change-password — 需要 teacherRequired
   fastify.post('/api/change-password', { preHandler: teacherRequired }, async (request, reply) => {
-    const { old_password, new_password } = request.body
+    const { old_password, new_password } = request.body ?? {}
+    if (!old_password || !new_password) {
+      return reply.code(400).send({ ok: false, message: '请输入旧密码和新密码。' })
+    }
+    if (typeof old_password !== 'string' || typeof new_password !== 'string') {
+      return reply.code(400).send({ ok: false, message: '密码格式无效。' })
+    }
     const teacherId = request.session.teacherId
     const result = await changePassword(teacherId, old_password, new_password)
     if (!result.ok) {
@@ -251,6 +257,9 @@ export default async function apiRoutes(fastify) {
     config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
   }, async (request, reply) => {
     const { password } = request.body ?? {}
+    if (!password || typeof password !== 'string') {
+      return reply.code(400).send({ ok: false, message: '请输入密码。' })
+    }
     const ip = request.headers['x-forwarded-for']?.split(',')[0]?.trim() || request.ip || 'unknown'
     const result = await verifyTeacherByPassword(password)
     if (!result.ok) {
@@ -269,9 +278,15 @@ export default async function apiRoutes(fastify) {
 
   // POST /api/classes — 需要 teacherRequired
   fastify.post('/api/classes', { preHandler: teacherRequired }, async (request, reply) => {
-    const { name } = request.body
+    const { name } = request.body ?? {}
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return reply.code(400).send({ ok: false, message: '班级名称不能为空' })
+    }
+    if (name.trim().length > 100) {
+      return reply.code(400).send({ ok: false, message: '班级名称不能超过 100 个字符' })
+    }
     const teacherId = request.session.teacherId
-    const cls = await createClass(teacherId, name)
+    const cls = await createClass(teacherId, name.trim())
     return reply.code(201).send({ ok: true, class: cls })
   })
 
@@ -338,7 +353,13 @@ export default async function apiRoutes(fastify) {
   fastify.post('/api/signin', {
     config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
   }, async (request, reply) => {
-    const { classId: rawClassId, studentName } = request.body
+    const { classId: rawClassId, studentName } = request.body ?? {}
+    if (!rawClassId || !studentName) {
+      return reply.code(400).send({ ok: false, message: '缺少必要参数。' })
+    }
+    if (typeof studentName !== 'string' || studentName.trim().length > 50) {
+      return reply.code(400).send({ ok: false, message: '姓名格式无效。' })
+    }
     const classId = parseInt(rawClassId, 10)
     const computerName = request.headers['x-forwarded-for']?.split(',')[0]?.trim() || request.ip || 'unknown'
     const studentIp = request.headers['x-real-ip'] || request.ip || 'unknown'
