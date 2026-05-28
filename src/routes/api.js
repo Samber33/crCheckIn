@@ -364,11 +364,16 @@ export default async function apiRoutes(fastify) {
     // 先 hijack 接管响应，再用 reply.raw 写入
     reply.hijack()
 
+    // 注册 socket 到 SSE 管理器（含连接数上限检查）
+    const registered = registerSSE(teacherId, reply.raw.socket)
+    if (!registered) {
+      reply.raw.write(`event: error\ndata: {"message":"连接数已达上限，请关闭多余标签页后重试"}\n\n`)
+      reply.raw.socket.end()
+      return
+    }
+
     // 发送初始连接确认
     reply.raw.write(`event: connected\ndata: {}\n\n`)
-
-    // 注册 socket 到 SSE 管理器
-    registerSSE(teacherId, reply.raw.socket)
 
     // 心跳保活
     const heartbeat = setInterval(() => {

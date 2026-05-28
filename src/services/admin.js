@@ -210,7 +210,7 @@ export async function getCrossClassAnalytics() {
 
   const totalSignIns = signInRecordCount + archivedRecordCount
 
-  // 批量查询：所有班级及其聚合计数（一次查询）
+  // 批量查询：所有班级及其聚合计数（一次查询，含学生数/签到数/批次数）
   const classes = await prisma.class.findMany({
     where: { teacherId: { in: teachers.map(t => t.id) } },
     include: {
@@ -219,70 +219,45 @@ export async function getCrossClassAnalytics() {
     orderBy: [{ teacherId: 'asc' }, { name: 'asc' }],
   })
 
-  // 批量查询：每个教师的历史批次总数（一次查询）
-  const sessionsByTeacher = await prisma.signInSession.groupBy({
-    by: ['classId'],
-    _count: true,
-  })
+  // 构建 classId → teacherId 索引
   const classIdToTeacherId = new Map(classes.map(c => [c.id, c.teacherId]))
-  const sessionCountByTeacher = new Map()
-  for (const item of sessionsByTeacher) {
-    const tid = classIdToTeacherId.get(item.classId)
-    if (tid) {
-      sessionCountByTeacher.set(tid, (sessionCountByTeacher.get(tid) || 0) + item._count)
+
+  // 并行执行所有分组聚合查询
+  const [sessionsByClass, archivedBySession, sessionClassMap] = await Promise.all([
+    prisma.signInSession.groupBy({ by: ['classId'], _count: true }),
+    prisma.archivedRecord.groupBy({ by: ['sessionId'], _count: true }),
+    prisma.signInSession.findMany({ select: { id: true, classId: true } }),
+  ])
+
+  // 辅助函数：按 classId 聚合到 teacherId
+  function aggregateByTeacher(items, classIdKey = 'classId') {
+    const map = new Map()
+    for (const item of items) {
+      const tid = classIdToTeacherId.get(item[classIdKey])
+      if (tid) map.set(tid, (map.get(tid) || 0) + item._count)
     }
+    return map
   }
 
-  // 批量查询：每个教师的签到记录总数（一次查询）
-  const signInByTeacher = await prisma.signInRecord.groupBy({
-    by: ['classId'],
-    _count: true,
-  })
-  const signInCountByTeacher = new Map()
-  for (const item of signInByTeacher) {
-    const tid = classIdToTeacherId.get(item.classId)
-    if (tid) {
-      signInCountByTeacher.set(tid, (signInCountByTeacher.get(tid) || 0) + item._count)
-    }
-  }
+  const sessionCountByTeacher = aggregateByTeacher(sessionsByClass)
+  // SignInRecord 也按 classId 聚合（已在 classes._count.signInRecords 中，直接使用）
 
-  // 批量查询：每个教师的归档记录总数（一次查询）
-  const archivedByTeacher = await prisma.archivedRecord.groupBy({
-    by: ['sessionId'],
-    _count: true,
-  })
-  // Need to map sessionId -> classId -> teacherId
-  const sessionIdToClassId = new Map()
-  for (const c of classes) {
-    // We need sessions for each class to map sessionId -> teacherId
-  }
-  // Simpler: just query the session->class relationship once
-  const sessionClassMap = await prisma.signInSession.findMany({
-    select: { id: true, classId: true },
-  })
+  // 归档记录按 sessionId，需先映射 sessionId → teacherId
+  const sessionIdToTeacherId = new Map()
   for (const s of sessionClassMap) {
     const tid = classIdToTeacherId.get(s.classId)
-    if (tid) sessionIdToClassId.set(s.id, tid)
+    if (tid) sessionIdToTeacherId.set(s.id, tid)
   }
   const archivedCountByTeacher = new Map()
-  for (const item of archivedByTeacher) {
-    const tid = sessionIdToClassId.get(item.sessionId)
-    if (tid) {
-      archivedCountByTeacher.set(tid, (archivedCountByTeacher.get(tid) || 0) + item._count)
-    }
+  for (const item of archivedBySession) {
+    const tid = sessionIdToTeacherId.get(item.sessionId)
+    if (tid) archivedCountByTeacher.set(tid, (archivedCountByTeacher.get(tid) || 0) + item._count)
   }
 
-  // 批量查询：每个教师的学生总数（一次查询）
-  const studentsByTeacher = await prisma.student.groupBy({
-    by: ['classId'],
-    _count: true,
-  })
+  // 学生数已在 classes._count.students 中，直接聚合
   const studentCountByTeacher = new Map()
-  for (const item of studentsByTeacher) {
-    const tid = classIdToTeacherId.get(item.classId)
-    if (tid) {
-      studentCountByTeacher.set(tid, (studentCountByTeacher.get(tid) || 0) + item._count)
-    }
+  for (const c of classes) {
+    studentCountByTeacher.set(c.teacherId, (studentCountByTeacher.get(c.teacherId) || 0) + c._count.students)
   }
 
   // 按教师分组班级
@@ -305,7 +280,7 @@ export async function getCrossClassAnalytics() {
     isAdmin: t.isAdmin,
     classCount: t._count.classes,
     sessionsCount: sessionCountByTeacher.get(t.id) || 0,
-    recordsCount: (signInCountByTeacher.get(t.id) || 0) + (archivedCountByTeacher.get(t.id) || 0),
+    recordsCount: (classes.filter(c => c.teacherId === t.id).reduce((sum, c) => sum + c._count.signInRecords, 0)) + (archivedCountByTeacher.get(t.id) || 0),
     studentsCount: studentCountByTeacher.get(t.id) || 0,
     classes: classesByTeacher.get(t.id) || [],
   }))
