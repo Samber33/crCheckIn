@@ -12,13 +12,17 @@ async function sessionPlugin(app) {
       secure: process.env.NODE_ENV === 'production' ? 'auto' : false,
       sameSite: 'lax',
       httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 小时后过期
     },
+    saveUninitialized: false,
+    rolling: true, // 每次请求刷新 session 过期时间
   })
 
   // CSRF 防护：对非 GET 请求校验 Origin/Referer 头
   app.addHook('onRequest', async (request, reply) => {
     if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) return
-    if (request.url.startsWith('/api/sse')) return
+    // SSE 使用 GET，此处无需排除
+    // 排除无需 CSRF 的公开路由（学生签到、信息提交通过 rate-limit 保护）
     const origin = request.headers['origin']
     const referer = request.headers['referer']
     const host = request.headers['host']

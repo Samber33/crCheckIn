@@ -42,3 +42,7 @@ build/
 claude/DESIGN.md
 
 uploads/
+# 环境变量（包含敏感信息，不应入库）
+.env
+.env.*
+!.env.example
