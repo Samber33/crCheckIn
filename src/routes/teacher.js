@@ -13,6 +13,77 @@ function noCache(reply) {
   reply.header('Expires', '0')
 }
 
+function safeJson(value) {
+  return JSON.stringify(value).replace(/[<>&\u2028\u2029]/g, (char) => ({
+    '<': '\\u003c',
+    '>': '\\u003e',
+    '&': '\\u0026',
+    '\u2028': '\\u2028',
+    '\u2029': '\\u2029',
+  }[char]))
+}
+
+async function getPhotoMemoryClasses(teacherId, isAdmin, selectedClassId = null) {
+  const where = {
+    deletedAt: null,
+    ...(isAdmin ? {} : { teacherId }),
+    OR: selectedClassId
+      ? [{ isArchived: false }, { id: selectedClassId }]
+      : [{ isArchived: false }],
+  }
+
+  const classes = await prisma.class.findMany({
+    where,
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    include: {
+      students: {
+        orderBy: [{ homeClass: 'asc' }, { name: 'asc' }],
+        select: {
+          id: true,
+          name: true,
+          homeClass: true,
+          photoUrl: true,
+        },
+      },
+    },
+  })
+
+  return classes.map((cls) => {
+    const students = cls.students.map((student) => ({
+      id: String(student.id),
+      name: student.name,
+      homeClass: student.homeClass || '',
+      photoUrl: student.photoUrl || '',
+    }))
+    const playableCount = students.filter((student) => student.photoUrl).length
+
+    return {
+      id: cls.id,
+      name: cls.name,
+      isArchived: cls.isArchived,
+      students,
+      playableCount,
+      missingCount: students.length - playableCount,
+    }
+  })
+}
+
+async function renderPhotoMemoryPage(request, reply, selectedClassId = null) {
+  const teacherId = request.session.teacherId
+  const isAdmin = request.session.isAdmin === true
+  const classes = await getPhotoMemoryClasses(teacherId, isAdmin, selectedClassId)
+  const requestedClass = classes.find((cls) => cls.id === selectedClassId)
+  const initialClassId = requestedClass?.id ?? classes[0]?.id ?? null
+  const backHref = initialClassId ? `/teacher/classes/${initialClassId}` : '/teacher/classes'
+
+  noCache(reply)
+  return reply.view('teacher/photo-memory.html', {
+    memoryClassesJson: safeJson(classes),
+    initialClassIdJson: safeJson(initialClassId),
+    backHref,
+  })
+}
+
 export default async function teacherRoutes(app) {
   app.post('/teacher/logout', async (request, reply) => {
     request.session.destroy((err) => {
@@ -57,6 +128,15 @@ export default async function teacherRoutes(app) {
       archivedCount,
       poolClasses,
     })
+  })
+
+  app.get('/teacher/memory', { preHandler: teacherRequired }, async (request, reply) => {
+    const selectedClassId = request.query.classId ? parseInt(request.query.classId, 10) : null
+    return renderPhotoMemoryPage(request, reply, Number.isNaN(selectedClassId) ? null : selectedClassId)
+  })
+
+  app.get('/teacher/classes/:classId/memory', { preHandler: classOwnerRequired }, async (request, reply) => {
+    return renderPhotoMemoryPage(request, reply, request.classId)
   })
 
   app.get('/teacher/classes/:classId', { preHandler: classOwnerRequired }, async (request, reply) => {

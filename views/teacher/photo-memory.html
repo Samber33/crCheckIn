@@ -1,0 +1,1109 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>学生照片记忆卡 - 机房签到</title>
+  <link rel="stylesheet" href="/public/tailwind.min.css">
+  <style>
+    :root {
+      --canvas: #faf9f5;
+      --surface-card: #efe9de;
+      --surface-dark: #181715;
+      --primary: #cc785c;
+      --primary-active: #a9583e;
+      --ink: #141413;
+      --body: #3d3d3a;
+      --muted: #6c6a64;
+      --muted-soft: #8e8b82;
+      --hairline: #e6dfd8;
+      --on-primary: #ffffff;
+      --on-dark: #faf9f5;
+      --success: #5db872;
+      --error: #c64545;
+      --warning: #d4a017;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body {
+      margin: 0;
+      background: var(--canvas);
+      color: var(--body);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    }
+    button, select { font: inherit; }
+    button { border: 0; }
+
+    .header-bar {
+      background: var(--canvas);
+      border-bottom: 1px solid var(--hairline);
+      height: 64px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .header-inner {
+      max-width: 1300px;
+      height: 100%;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .header-left {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .page-title {
+      margin: 0;
+      color: var(--ink);
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 22px;
+      font-weight: 400;
+      letter-spacing: -0.3px;
+      white-space: nowrap;
+    }
+    .nav-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 14px;
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      background: none;
+      transition: all .15s ease;
+    }
+    .nav-action:hover { background: var(--surface-card); color: var(--ink); }
+
+    .memory-page {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 20px 24px 48px;
+    }
+    .memory-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 260px;
+      gap: 16px;
+      align-items: start;
+    }
+    .control-band {
+      margin-bottom: 16px;
+      padding: 18px 20px;
+      border: 1px solid var(--hairline);
+      border-radius: 12px;
+      background: #fff;
+    }
+    .control-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+    .control-title {
+      margin: 0;
+      color: var(--ink);
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .data-summary {
+      min-height: 20px;
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .control-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .field {
+      display: grid;
+      gap: 5px;
+      min-width: 170px;
+    }
+    .field span,
+    .metric-label {
+      color: var(--muted-soft);
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .field select {
+      width: 100%;
+      height: 38px;
+      padding: 0 34px 0 10px;
+      border: 1px solid var(--hairline);
+      border-radius: 8px;
+      color: var(--ink);
+      background: var(--canvas);
+      outline: none;
+    }
+    .field select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(204, 120, 92, .14);
+    }
+    .mode-tabs {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 4px;
+      border: 1px solid var(--hairline);
+      border-radius: 10px;
+      background: var(--canvas);
+    }
+    .mode-tab {
+      min-height: 32px;
+      padding: 0 12px;
+      border-radius: 7px;
+      color: var(--muted);
+      background: transparent;
+      cursor: pointer;
+      transition: all .14s ease;
+    }
+    .mode-tab:hover { color: var(--ink); background: var(--surface-card); }
+    .mode-tab.active {
+      color: var(--on-primary);
+      background: var(--primary);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 38px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all .15s ease;
+      white-space: nowrap;
+    }
+    .btn:hover:not(:disabled) { transform: translateY(-1px); }
+    .btn:disabled { cursor: not-allowed; opacity: .5; }
+    .btn-primary { background: var(--primary); color: var(--on-primary); }
+    .btn-primary:hover:not(:disabled) { background: var(--primary-active); }
+    .btn-secondary {
+      color: var(--ink);
+      background: var(--canvas);
+      border: 1px solid var(--hairline);
+    }
+    .btn-secondary:hover:not(:disabled) { background: var(--surface-card); }
+    .btn-warning { background: #8a6424; color: #fff; }
+    .btn-warning:hover:not(:disabled) { background: #76531a; }
+
+    .practice-card,
+    .status-panel,
+    .empty-state {
+      border: 1px solid var(--hairline);
+      border-radius: 12px;
+      background: #fff;
+    }
+    .practice-card {
+      min-height: 600px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+    .stage {
+      position: relative;
+      width: min(360px, 100%);
+      aspect-ratio: 4 / 5;
+      overflow: hidden;
+      border-radius: 10px;
+      background: var(--surface-card);
+      display: grid;
+      place-items: center;
+    }
+    body[data-mode="study"] .stage { cursor: pointer; }
+    .student-photo {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      object-position: center top;
+      background: var(--surface-card);
+    }
+    .name-prompt {
+      width: 100%;
+      padding: 24px;
+      color: var(--ink);
+      font-size: clamp(34px, 7vw, 64px);
+      font-weight: 800;
+      line-height: 1.1;
+      text-align: center;
+      word-break: break-word;
+    }
+    .name-reveal {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      padding: 16px;
+      background: rgba(250, 249, 245, .94);
+      color: var(--ink);
+      font-size: 28px;
+      font-weight: 800;
+      text-align: center;
+      backdrop-filter: blur(8px);
+    }
+    .options {
+      width: min(680px, 100%);
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .option-button {
+      min-height: 56px;
+      padding: 10px 12px;
+      border: 1px solid var(--hairline);
+      border-radius: 8px;
+      color: var(--ink);
+      background: var(--canvas);
+      cursor: pointer;
+      font-size: 17px;
+      font-weight: 700;
+      transition: border-color .15s, box-shadow .15s, transform .15s;
+    }
+    .option-button:hover {
+      border-color: var(--primary);
+      box-shadow: 0 4px 14px rgba(204, 120, 92, .12);
+      transform: translateY(-1px);
+    }
+    .option-button.correct {
+      border-color: #8bcf9b;
+      background: #f0fdf4;
+      color: #176b31;
+    }
+    .option-button.wrong {
+      border-color: #efb4b4;
+      background: #fef2f2;
+      color: var(--error);
+    }
+    .option-button img {
+      width: 100%;
+      aspect-ratio: 4 / 5;
+      display: block;
+      object-fit: cover;
+      object-position: center top;
+      border-radius: 7px;
+      background: var(--surface-card);
+    }
+    .option-name {
+      display: block;
+      margin-top: 8px;
+      color: var(--body);
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.25;
+      text-align: center;
+    }
+    .feedback {
+      min-height: 24px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+      text-align: center;
+    }
+    .feedback.good { color: #23824a; }
+    .feedback.bad { color: var(--error); }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+    .status-panel {
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+      position: sticky;
+      top: 80px;
+    }
+    .metric strong {
+      display: block;
+      margin-top: 4px;
+      color: var(--ink);
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 30px;
+      font-weight: 400;
+      line-height: 1;
+    }
+    .progress-track {
+      height: 7px;
+      border-radius: 999px;
+      background: var(--surface-card);
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: var(--primary);
+      transition: width .25s ease;
+    }
+    .mode-stats,
+    .missing-panel {
+      padding-top: 12px;
+      border-top: 1px solid var(--hairline);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+    .mode-stats p,
+    .missing-panel p {
+      margin: 0;
+    }
+    .mode-stats strong,
+    .missing-panel strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--ink);
+      font-size: 12px;
+    }
+    .empty-state {
+      padding: 54px 24px;
+      color: var(--muted);
+      text-align: center;
+    }
+    .empty-state strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--ink);
+      font-size: 17px;
+    }
+    .toast {
+      position: fixed;
+      top: 80px;
+      right: 24px;
+      z-index: 50;
+      padding: 10px 18px;
+      border: 1px solid #b7e4c7;
+      border-radius: 8px;
+      background: #f0fdf4;
+      color: #047857;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(20,20,19,.12);
+      transform: translateX(120%);
+      transition: transform .25s ease;
+    }
+    .toast.show { transform: translateX(0); }
+    .toast.err {
+      border-color: #f5c6cb;
+      background: #fef2f2;
+      color: var(--error);
+    }
+
+    body[data-mode="nameToPhoto"] .stage {
+      width: min(620px, 100%);
+      min-height: 120px;
+      aspect-ratio: auto;
+    }
+    body[data-mode="nameToPhoto"] .options {
+      width: min(820px, 100%);
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    body[data-mode="nameToPhoto"] .option-button {
+      min-height: 0;
+      padding: 8px;
+      font-size: 13px;
+    }
+
+    @media (max-width: 920px) {
+      .memory-shell { grid-template-columns: 1fr; }
+      .status-panel {
+        position: static;
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .mode-stats,
+      .missing-panel { grid-column: 1 / -1; }
+    }
+    @media (max-width: 640px) {
+      .header-inner { padding: 0 16px; }
+      .memory-page { padding: 14px 14px 36px; }
+      .control-top { flex-direction: column; }
+      .control-row,
+      .field,
+      .btn { width: 100%; }
+      .mode-tabs { width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .mode-tab { padding: 0 6px; font-size: 12px; }
+      .practice-card { min-height: 520px; padding: 14px; }
+      .options,
+      body[data-mode="nameToPhoto"] .options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .status-panel { grid-template-columns: 1fr; }
+      .mode-stats,
+      .missing-panel { grid-column: auto; }
+    }
+  </style>
+</head>
+<body data-mode="study">
+  <header class="header-bar">
+    <div class="header-inner">
+      <div class="header-left">
+        <h1 class="page-title">学生照片记忆卡</h1>
+      </div>
+      <a class="nav-action" href="{{ backHref }}">返回班级</a>
+    </div>
+  </header>
+
+  <main class="memory-page">
+    <div id="toast" class="toast"></div>
+
+    <section class="control-band">
+      <div class="control-top">
+        <div>
+          <h2 class="control-title">照片与姓名练习</h2>
+          <p id="dataSummary" class="data-summary"></p>
+        </div>
+        <div id="modeTabs" class="mode-tabs" role="tablist" aria-label="练习模式">
+          <button class="mode-tab active" type="button" data-mode="study">学习</button>
+          <button class="mode-tab" type="button" data-mode="photoToName">照片选姓名</button>
+          <button class="mode-tab" type="button" data-mode="nameToPhoto">姓名选照片</button>
+        </div>
+      </div>
+      <div class="control-row">
+        <label class="field">
+          <span>班级</span>
+          <select id="classSelect"></select>
+        </label>
+        <label class="field">
+          <span>干扰项</span>
+          <select id="scopeSelect">
+            <option value="class">当前班级</option>
+            <option value="all">全部班级</option>
+          </select>
+        </label>
+        <button id="resetButton" class="btn btn-secondary" type="button">重置本班进度</button>
+      </div>
+    </section>
+
+    <section id="emptyState" class="empty-state" hidden>
+      <strong>暂无可练习班级</strong>
+      <span>请先创建班级并上传学生照片。</span>
+    </section>
+
+    <div id="memoryShell" class="memory-shell">
+      <section class="practice-card" aria-live="polite">
+        <div id="stage" class="stage">
+          <img id="studentPhoto" class="student-photo" src="" alt="学生照片">
+          <div id="namePrompt" class="name-prompt" hidden></div>
+          <div id="nameReveal" class="name-reveal" hidden></div>
+        </div>
+
+        <div id="options" class="options" hidden></div>
+        <p id="feedback" class="feedback"></p>
+
+        <div class="actions">
+          <button id="primaryButton" class="btn btn-primary" type="button">显示姓名</button>
+          <button id="masteredButton" class="btn btn-warning" type="button">已背</button>
+          <button id="nextButton" class="btn btn-secondary" type="button" hidden>下一题</button>
+        </div>
+      </section>
+
+      <aside class="status-panel">
+        <div class="metric">
+          <span class="metric-label">当前班级</span>
+          <strong id="classCount">-</strong>
+        </div>
+        <div class="metric">
+          <span class="metric-label">可练习</span>
+          <strong id="playableCount">-</strong>
+        </div>
+        <div class="metric">
+          <span class="metric-label">本模式进度</span>
+          <strong id="modeProgress">-</strong>
+        </div>
+        <div class="progress-track" aria-hidden="true">
+          <div id="progressBar" class="progress-bar"></div>
+        </div>
+        <div id="modeStats" class="mode-stats"></div>
+        <div id="missingPanel" class="missing-panel" hidden></div>
+      </aside>
+    </div>
+  </main>
+
+  <script id="memory-data" type="application/json">{{ memoryClassesJson | safe }}</script>
+  <script id="initial-class-id" type="application/json">{{ initialClassIdJson | safe }}</script>
+  <script>
+const MEMORY_CLASSES = JSON.parse(document.getElementById('memory-data').textContent)
+const INITIAL_CLASS_ID = JSON.parse(document.getElementById('initial-class-id').textContent)
+const STORAGE_KEY = 'crcheckin:photo-memory:v1:progress'
+const MODES = {
+  study: 'study',
+  photoToName: 'photoToName',
+  nameToPhoto: 'nameToPhoto',
+}
+const QUIZ_MODES = [MODES.photoToName, MODES.nameToPhoto]
+const OPTION_COUNT = 4
+
+const state = {
+  classes: MEMORY_CLASSES,
+  currentClassId: INITIAL_CLASS_ID,
+  mode: MODES.study,
+  distractorScope: 'class',
+  progress: loadProgress(),
+  queues: {},
+  isStudyNameVisible: false,
+  currentQuestion: null,
+  answerResult: null,
+}
+
+const els = {
+  classSelect: document.getElementById('classSelect'),
+  scopeSelect: document.getElementById('scopeSelect'),
+  resetButton: document.getElementById('resetButton'),
+  modeTabs: document.getElementById('modeTabs'),
+  dataSummary: document.getElementById('dataSummary'),
+  emptyState: document.getElementById('emptyState'),
+  memoryShell: document.getElementById('memoryShell'),
+  stage: document.getElementById('stage'),
+  studentPhoto: document.getElementById('studentPhoto'),
+  namePrompt: document.getElementById('namePrompt'),
+  nameReveal: document.getElementById('nameReveal'),
+  options: document.getElementById('options'),
+  feedback: document.getElementById('feedback'),
+  primaryButton: document.getElementById('primaryButton'),
+  masteredButton: document.getElementById('masteredButton'),
+  nextButton: document.getElementById('nextButton'),
+  classCount: document.getElementById('classCount'),
+  playableCount: document.getElementById('playableCount'),
+  modeProgress: document.getElementById('modeProgress'),
+  progressBar: document.getElementById('progressBar'),
+  modeStats: document.getElementById('modeStats'),
+  missingPanel: document.getElementById('missingPanel'),
+  toast: document.getElementById('toast'),
+}
+
+init()
+
+function init() {
+  bindEvents()
+  renderClassSelect()
+  renderCurrent()
+}
+
+function bindEvents() {
+  els.classSelect.addEventListener('change', () => {
+    state.currentClassId = Number(els.classSelect.value)
+    resetSessionView()
+    renderCurrent()
+  })
+
+  els.scopeSelect.addEventListener('change', () => {
+    state.distractorScope = els.scopeSelect.value
+    state.currentQuestion = null
+    state.answerResult = null
+    renderCurrent()
+  })
+
+  els.modeTabs.addEventListener('click', (event) => {
+    const tab = event.target.closest('[data-mode]')
+    if (!tab) return
+    state.mode = tab.dataset.mode
+    resetSessionView()
+    renderCurrent()
+  })
+
+  els.stage.addEventListener('click', () => {
+    if (state.mode === MODES.study) handlePrimaryAction()
+  })
+  els.primaryButton.addEventListener('click', handlePrimaryAction)
+  els.masteredButton.addEventListener('click', handleMastered)
+  els.nextButton.addEventListener('click', () => {
+    state.currentQuestion = null
+    state.answerResult = null
+    renderCurrent()
+  })
+  els.options.addEventListener('click', handleOptionClick)
+  els.resetButton.addEventListener('click', () => {
+    const classInfo = getClassInfo()
+    if (!classInfo) return
+    if (!window.confirm(`重置「${classInfo.name}」的本机练习进度？`)) return
+    resetClassProgress(state.progress, classInfo.id)
+    clearQueuesForClass(classInfo.id)
+    resetSessionView()
+    showToast('进度已重置')
+    renderCurrent()
+  })
+  els.studentPhoto.addEventListener('error', () => {
+    els.studentPhoto.src = createPlaceholder('照片不可用', '请重新上传')
+  })
+}
+
+function renderCurrent() {
+  if (!state.classes.length) {
+    els.emptyState.hidden = false
+    els.memoryShell.hidden = true
+    els.dataSummary.textContent = '暂无班级数据'
+    return
+  }
+
+  const classInfo = getClassInfo()
+  if (!classInfo) return
+
+  document.body.dataset.mode = state.mode
+  els.emptyState.hidden = true
+  els.memoryShell.hidden = false
+  els.scopeSelect.disabled = state.mode === MODES.study
+
+  renderModeTabs()
+  renderSummary()
+  renderStats(classInfo)
+
+  const playableStudents = getPlayableStudents(classInfo)
+  if (!playableStudents.length) {
+    renderDone('当前班级没有可练习照片', '请在学生管理中上传照片')
+    return
+  }
+
+  const queue = ensureQueue(classInfo)
+  if (state.mode !== MODES.study && state.answerResult && state.currentQuestion) {
+    renderQuestion(state.currentQuestion, state.answerResult)
+    return
+  }
+
+  if (!queue.length) {
+    renderDone('当前模式已完成', '可重置进度后重新练习')
+    return
+  }
+
+  if (state.mode === MODES.study) {
+    renderStudy(queue[0], state.isStudyNameVisible)
+    return
+  }
+
+  if (!state.answerResult && (!state.currentQuestion || state.currentQuestion.answer.id !== queue[0].id)) {
+    state.currentQuestion = createQuestion({
+      mode: state.mode,
+      answer: queue[0],
+      classInfo,
+      distractorScope: state.distractorScope,
+      optionCount: OPTION_COUNT,
+    })
+  }
+
+  renderQuestion(state.currentQuestion, state.answerResult)
+}
+
+function renderClassSelect() {
+  els.classSelect.innerHTML = ''
+  for (const classInfo of state.classes) {
+    const option = document.createElement('option')
+    option.value = classInfo.id
+    option.textContent = `${classInfo.name}（${classInfo.students.length}人）`
+    els.classSelect.appendChild(option)
+  }
+  if (state.currentClassId) els.classSelect.value = String(state.currentClassId)
+}
+
+function renderModeTabs() {
+  for (const tab of els.modeTabs.querySelectorAll('.mode-tab')) {
+    tab.classList.toggle('active', tab.dataset.mode === state.mode)
+  }
+}
+
+function renderSummary() {
+  const totals = state.classes.reduce((acc, classInfo) => {
+    acc.students += classInfo.students.length
+    acc.playable += classInfo.playableCount
+    acc.missing += classInfo.missingCount
+    return acc
+  }, { students: 0, playable: 0, missing: 0 })
+  els.dataSummary.textContent = `共 ${state.classes.length} 个班级，${totals.students} 名学生；可练习 ${totals.playable} 名；缺照片 ${totals.missing} 名。`
+}
+
+function renderStats(classInfo) {
+  const playableStudents = getPlayableStudents(classInfo)
+  const modeProgress = getModeProgress(state.progress, classInfo.id, state.mode, playableStudents)
+  const stats = getStats(state.progress, classInfo.id, state.mode)
+  const ratio = modeProgress.total ? Math.round((modeProgress.done / modeProgress.total) * 100) : 0
+
+  els.classCount.textContent = classInfo.students.length
+  els.playableCount.textContent = playableStudents.length
+  els.modeProgress.textContent = `${modeProgress.done}/${modeProgress.total}`
+  els.progressBar.style.width = `${ratio}%`
+
+  if (state.mode === MODES.study) {
+    els.modeStats.innerHTML = `<strong>学习状态</strong><p>已背 ${modeProgress.done} 人，剩余 ${Math.max(0, modeProgress.total - modeProgress.done)} 人</p>`
+  } else {
+    const totalAnswers = stats.correct + stats.wrong
+    const accuracy = totalAnswers ? Math.round((stats.correct / totalAnswers) * 100) : 0
+    els.modeStats.innerHTML = `<strong>答题反馈</strong><p>答对 ${stats.correct} 次，答错 ${stats.wrong} 次</p><p>正确率 ${accuracy}%</p>`
+  }
+
+  const missing = classInfo.students.filter((student) => !student.photoUrl)
+  if (missing.length) {
+    const names = missing.slice(0, 18).map((student) => student.name).join('、')
+    const suffix = missing.length > 18 ? `等 ${missing.length} 人` : ''
+    els.missingPanel.hidden = false
+    els.missingPanel.innerHTML = `<strong>缺照片名单</strong><p>${escapeHtml(names)}${escapeHtml(suffix)}</p>`
+  } else {
+    els.missingPanel.hidden = true
+    els.missingPanel.innerHTML = ''
+  }
+}
+
+function renderStudy(student, isNameVisible) {
+  els.studentPhoto.hidden = false
+  els.studentPhoto.src = student.photoUrl
+  els.studentPhoto.alt = isNameVisible ? student.name : '学生照片'
+  els.namePrompt.hidden = true
+  els.nameReveal.hidden = !isNameVisible
+  els.nameReveal.textContent = isNameVisible ? student.name : ''
+  els.options.hidden = true
+  els.nextButton.hidden = true
+  els.primaryButton.hidden = false
+  els.masteredButton.hidden = false
+  els.primaryButton.disabled = false
+  els.masteredButton.disabled = false
+  els.primaryButton.textContent = isNameVisible ? '下一张' : '显示姓名'
+  setFeedback('')
+}
+
+function renderQuestion(question, result) {
+  const isAnswered = Boolean(result)
+  const isNameToPhoto = question.mode === MODES.nameToPhoto
+  els.studentPhoto.hidden = isNameToPhoto
+  els.namePrompt.hidden = !isNameToPhoto
+  els.nameReveal.hidden = !isAnswered || isNameToPhoto
+  els.options.hidden = false
+  els.primaryButton.hidden = true
+  els.masteredButton.hidden = true
+  els.nextButton.hidden = !isAnswered
+
+  if (isNameToPhoto) {
+    els.studentPhoto.removeAttribute('src')
+    els.namePrompt.textContent = question.answer.name
+  } else {
+    els.studentPhoto.src = question.answer.photoUrl
+    els.studentPhoto.alt = '学生照片'
+    els.nameReveal.textContent = question.answer.name
+  }
+
+  els.options.innerHTML = ''
+  question.options.forEach((student) => {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'option-button'
+    button.dataset.studentId = student.id
+
+    if (isAnswered && student.id === question.answer.id) button.classList.add('correct')
+    if (isAnswered && result.selectedId === student.id && !result.isCorrect) button.classList.add('wrong')
+
+    if (isNameToPhoto) {
+      const image = document.createElement('img')
+      image.src = student.photoUrl
+      image.alt = isAnswered ? student.name : '学生照片选项'
+      image.onerror = () => { image.src = createPlaceholder('照片不可用', '') }
+      button.appendChild(image)
+      if (isAnswered) {
+        const name = document.createElement('span')
+        name.className = 'option-name'
+        name.textContent = student.name
+        button.appendChild(name)
+      }
+    } else {
+      button.textContent = student.name
+    }
+
+    els.options.appendChild(button)
+  })
+
+  if (!isAnswered) {
+    setFeedback('')
+  } else if (result.isCorrect) {
+    setFeedback('答对了，再点任意选项进入下一题', 'good')
+  } else {
+    setFeedback(`答错了，正确答案是 ${question.answer.name}`, 'bad')
+  }
+}
+
+function renderDone(title, subtitle) {
+  els.options.hidden = true
+  els.primaryButton.hidden = false
+  els.masteredButton.hidden = false
+  els.nextButton.hidden = true
+  els.primaryButton.disabled = true
+  els.masteredButton.disabled = true
+  els.primaryButton.textContent = '已完成'
+  els.studentPhoto.hidden = false
+  els.studentPhoto.src = createPlaceholder(title, subtitle)
+  els.studentPhoto.alt = title
+  els.namePrompt.hidden = true
+  els.nameReveal.hidden = true
+  setFeedback('')
+}
+
+function handlePrimaryAction() {
+  if (state.mode !== MODES.study) return
+  if (!state.isStudyNameVisible) {
+    state.isStudyNameVisible = true
+    renderCurrent()
+    return
+  }
+  state.queues[getQueueKey()] = advanceQueue(getActiveQueue(), false)
+  state.isStudyNameVisible = false
+  renderCurrent()
+}
+
+function handleMastered() {
+  if (state.mode !== MODES.study) return
+  const queue = getActiveQueue()
+  const student = queue[0]
+  const classInfo = getClassInfo()
+  if (!student || !classInfo) return
+  markMastered(state.progress, classInfo.id, student.id)
+  state.queues[getQueueKey()] = advanceQueue(queue, true)
+  state.isStudyNameVisible = false
+  renderCurrent()
+}
+
+function handleOptionClick(event) {
+  const button = event.target.closest('[data-student-id]')
+  if (!button || state.mode === MODES.study || !state.currentQuestion) return
+
+  if (state.answerResult) {
+    state.currentQuestion = null
+    state.answerResult = null
+    renderCurrent()
+    return
+  }
+
+  const classInfo = getClassInfo()
+  const selectedId = button.dataset.studentId
+  const isCorrect = selectedId === state.currentQuestion.answer.id
+  recordQuizAnswer(state.progress, classInfo.id, state.mode, state.currentQuestion.answer.id, isCorrect)
+  state.queues[getQueueKey()] = advanceQueue(getActiveQueue(), isCorrect)
+  state.answerResult = { selectedId, isCorrect }
+  renderCurrent()
+}
+
+function createQuestion({ mode, answer, classInfo, distractorScope, optionCount }) {
+  const pool = distractorScope === 'all' ? getAllPlayableStudents() : getPlayableStudents(classInfo)
+  const distractors = shuffle(pool.filter((student) => student.id !== answer.id)).slice(0, optionCount - 1)
+  return {
+    mode,
+    answer,
+    options: shuffle([answer, ...distractors]),
+  }
+}
+
+function ensureQueue(classInfo) {
+  const key = getQueueKey()
+  const activeIds = new Set(getPlayableStudents(classInfo).map((student) => student.id))
+  const isDone = (studentId) => isStudentDone(state.progress, classInfo.id, state.mode, studentId)
+
+  if (!state.queues[key]) {
+    state.queues[key] = createDueQueue(getPlayableStudents(classInfo), isDone)
+  } else {
+    state.queues[key] = state.queues[key].filter((student) => activeIds.has(student.id) && !isDone(student.id))
+  }
+  return state.queues[key]
+}
+
+function getClassInfo() {
+  return state.classes.find((classInfo) => classInfo.id === Number(state.currentClassId)) || null
+}
+
+function getPlayableStudents(classInfo) {
+  return classInfo.students.filter((student) => student.photoUrl)
+}
+
+function getAllPlayableStudents() {
+  return state.classes.flatMap((classInfo) => getPlayableStudents(classInfo))
+}
+
+function getActiveQueue() {
+  return state.queues[getQueueKey()] || []
+}
+
+function getQueueKey() {
+  return `${state.currentClassId}:${state.mode}`
+}
+
+function clearQueuesForClass(classId) {
+  const prefix = `${classId}:`
+  for (const key of Object.keys(state.queues)) {
+    if (key.startsWith(prefix)) delete state.queues[key]
+  }
+}
+
+function resetSessionView() {
+  state.isStudyNameVisible = false
+  state.currentQuestion = null
+  state.answerResult = null
+}
+
+function createDueQueue(students, isDone) {
+  return shuffle(students.filter((student) => !isDone(student.id)))
+}
+
+function advanceQueue(queue, isCorrect) {
+  if (isCorrect) return queue.slice(1)
+  const [current, ...rest] = queue
+  if (!current) return []
+  const nextQueue = [...rest]
+  const insertAt = Math.min(3, nextQueue.length)
+  nextQueue.splice(insertAt, 0, current)
+  return nextQueue
+}
+
+function shuffle(input) {
+  const array = [...input]
+  for (let index = array.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1))
+    ;[array[index], array[swapIndex]] = [array[swapIndex], array[index]]
+  }
+  return array
+}
+
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return createProgress()
+    const parsed = JSON.parse(raw)
+    if (parsed.version !== 1 || !parsed.byClass) return createProgress()
+    return parsed
+  } catch {
+    return createProgress()
+  }
+}
+
+function saveProgress(progress) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(progress))
+}
+
+function createProgress() {
+  return { version: 1, byClass: {} }
+}
+
+function createClassProgress() {
+  return {
+    study: { masteredIds: [] },
+    quiz: Object.fromEntries(QUIZ_MODES.map((mode) => [mode, {
+      completedIds: [],
+      correct: {},
+      wrong: {},
+    }])),
+  }
+}
+
+function getClassProgress(progress, classId) {
+  const key = String(classId)
+  if (!progress.byClass[key]) progress.byClass[key] = createClassProgress()
+  return progress.byClass[key]
+}
+
+function markMastered(progress, classId, studentId) {
+  const classProgress = getClassProgress(progress, classId)
+  addUnique(classProgress.study.masteredIds, studentId)
+  saveProgress(progress)
+}
+
+function recordQuizAnswer(progress, classId, mode, studentId, isCorrect) {
+  const classProgress = getClassProgress(progress, classId)
+  const modeProgress = classProgress.quiz[mode]
+  if (!modeProgress) return
+  if (isCorrect) {
+    addUnique(modeProgress.completedIds, studentId)
+    modeProgress.correct[studentId] = (modeProgress.correct[studentId] || 0) + 1
+  } else {
+    modeProgress.wrong[studentId] = (modeProgress.wrong[studentId] || 0) + 1
+  }
+  saveProgress(progress)
+}
+
+function resetClassProgress(progress, classId) {
+  progress.byClass[String(classId)] = createClassProgress()
+  saveProgress(progress)
+}
+
+function getModeProgress(progress, classId, mode, playableStudents) {
+  const classProgress = getClassProgress(progress, classId)
+  if (mode === MODES.study) {
+    return { done: countExisting(classProgress.study.masteredIds, playableStudents), total: playableStudents.length }
+  }
+  const modeProgress = classProgress.quiz[mode]
+  return { done: countExisting(modeProgress.completedIds, playableStudents), total: playableStudents.length }
+}
+
+function getStats(progress, classId, mode) {
+  const classProgress = getClassProgress(progress, classId)
+  if (mode === MODES.study) return { correct: 0, wrong: 0 }
+  const modeProgress = classProgress.quiz[mode]
+  return {
+    correct: sumValues(modeProgress.correct),
+    wrong: sumValues(modeProgress.wrong),
+  }
+}
+
+function isStudentDone(progress, classId, mode, studentId) {
+  const classProgress = getClassProgress(progress, classId)
+  if (mode === MODES.study) return classProgress.study.masteredIds.includes(studentId)
+  return classProgress.quiz[mode].completedIds.includes(studentId)
+}
+
+function addUnique(list, value) {
+  if (!list.includes(value)) list.push(value)
+}
+
+function countExisting(ids, students) {
+  const availableIds = new Set(students.map((student) => student.id))
+  return ids.filter((id) => availableIds.has(id)).length
+}
+
+function sumValues(record) {
+  return Object.values(record).reduce((sum, value) => sum + value, 0)
+}
+
+function setFeedback(message, type = '') {
+  els.feedback.textContent = message
+  els.feedback.className = `feedback ${type}`.trim()
+}
+
+function showToast(text, ok = true) {
+  els.toast.textContent = text
+  els.toast.className = `toast ${ok ? '' : 'err'} show`
+  setTimeout(() => els.toast.classList.remove('show'), 2200)
+}
+
+function createPlaceholder(title, subtitle) {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="460" height="575" viewBox="0 0 460 575">
+      <rect width="460" height="575" fill="#efe9de"/>
+      <text x="230" y="278" text-anchor="middle" font-size="26" font-family="Arial, sans-serif" font-weight="700" fill="#141413">${escapeXml(title)}</text>
+      <text x="230" y="318" text-anchor="middle" font-size="18" font-family="Arial, sans-serif" fill="#6c6a64">${escapeXml(subtitle)}</text>
+    </svg>`
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+}
+
+function escapeXml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+}
+
+function escapeHtml(value) {
+  const div = document.createElement('div')
+  div.textContent = value
+  return div.innerHTML
+}
+  </script>
+</body>
+</html>
