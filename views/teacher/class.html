@@ -810,14 +810,14 @@
               </span>
               座位表
             </a>
-            <button id="memoryStudentBtn" class="sidebar-link" style="opacity: 0.55; cursor: pointer;">
+            <a id="memoryStudentBtn" href="/teacher/classes/{{ cls.id }}/memory" class="sidebar-link sidebar-link--primary">
               <span class="sidebar-link-icon" style="background: #fef3ec; color: var(--primary);">
                 <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
                 </svg>
               </span>
               记忆学生
-            </button>
+            </a>
             <a href="/teacher/classes/{{ cls.id }}/students" class="sidebar-link">
               <span class="sidebar-link-icon" style="background: #e8f4fd; color: var(--info);">
                 <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1434,10 +1434,6 @@ document.getElementById('sessionsToggle').addEventListener('click', async () => 
   sessionsPage = 1
   openModal('历史批次', '<div style="padding:24px;text-align:center;font-size:13px;color:var(--muted-soft);">加载中...</div>')
   await refreshSessions(1)
-})
-
-document.getElementById('memoryStudentBtn').addEventListener('click', () => {
-  showToast('功能即将上线', true)
 })
 
 async function revokeRecord(recordId) {
