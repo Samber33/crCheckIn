@@ -196,6 +196,14 @@
                   <span style="font-size: 11px; padding: 2px 8px; background: var(--surface-soft); border-radius: 10px; color: var(--muted-soft);">已认领</span>
                   {% endif %}
                 </div>
+                {% if cls.homeClassGroups %}
+                <div style="font-size: 11px; color: var(--muted-soft); margin-top: 4px; line-height: 1.5;">
+                  行政班：
+                  {%- for g in cls.homeClassGroups %}
+                  <span style="padding: 1px 6px; background: var(--surface-soft); border-radius: 4px; margin-right: 4px;">{{ g.name }}:{{ g.count }}人</span>
+                  {%- endfor %}
+                </div>
+                {% endif %}
                 {% if not currentSemester and not cls.claimedByAnyTeacher %}
                 <button data-action="delete-class" data-class-id="{{ cls.id }}" class="pool-action-btn" style="color: var(--error);">删除</button>
                 {% endif %}

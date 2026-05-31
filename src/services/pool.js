@@ -100,6 +100,9 @@ export async function getPoolClasses(opts = {}) {
     orderBy: { name: 'asc' },
     include: {
       _count: { select: { students: true } },
+      students: {
+        select: { homeClass: true },
+      },
     },
   })
 
@@ -115,12 +118,24 @@ export async function getPoolClasses(opts = {}) {
   }
 
   return classes.map(c => {
+    // 计算行政班组成
+    const homeClassCount = new Map()
+    for (const s of c.students) {
+      const hc = s.homeClass || '未分组'
+      homeClassCount.set(hc, (homeClassCount.get(hc) || 0) + 1)
+    }
+    // 按人数降序排列
+    const homeClassGroups = [...homeClassCount.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => ({ name, count }))
+
     const teachers = nameToTeachers.get(c.name)
     return {
       id: c.id,
       name: c.name,
       school: c.school,
       studentCount: c._count.students,
+      homeClassGroups,
       semester: c.semester,
       isArchived: c.isArchived,
       createdAt: c.createdAt,
