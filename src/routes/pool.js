@@ -23,6 +23,7 @@ import {
   getZipMatchProgress,
   startZipMatching,
   cancelZipMatch,
+  resolveZipConflict,
 } from '../services/pool.js'
 
 export default async function poolRoutes(app) {
@@ -329,5 +330,37 @@ export default async function poolRoutes(app) {
     const jobId = request.params.jobId
     const result = await cancelZipMatch(jobId)
     return reply.send(result)
+  })
+
+  // 解决同名冲突
+  app.post('/admin/api/pool/photos/resolve-zip', {
+    preHandler: adminRequired,
+  }, async (request, reply) => {
+    try {
+      let fileBuffer = null
+      let filename = 'photo.jpg'
+      for await (const part of request.parts()) {
+        if (part.type === 'file') {
+          fileBuffer = await part.toBuffer()
+          filename = part.filename || 'photo.jpg'
+        }
+      }
+      if (!fileBuffer) return reply.code(400).send({ ok: false, message: '请上传图片' })
+
+      const { studentId, classId } = request.body ?? {}
+      if (!studentId || !classId) {
+        return reply.code(400).send({ ok: false, message: '请指定学生和班级' })
+      }
+
+      const result = await resolveZipConflict({
+        studentId: parseInt(studentId, 10),
+        classId: parseInt(classId, 10),
+        buffer: fileBuffer,
+        filename,
+      })
+      return reply.send(result)
+    } catch (err) {
+      return reply.code(500).send({ ok: false, message: '匹配失败：' + err.message })
+    }
   })
 }
