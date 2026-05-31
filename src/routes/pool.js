@@ -36,10 +36,21 @@ export default async function poolRoutes(app) {
     const semester = request.query.semester
     const view = request.query.view
     const isRecycleView = view === 'recycle'
-    const poolData = isRecycleView ? { classes: {}, totalUniqueStudents: 0 } : await getPoolClasses(semester !== undefined ? { semester } : {})
+    const poolData = isRecycleView
+      ? { classes: {}, totalUniqueStudents: 0, totalWithoutPhotos: 0, gradeWithoutPhotos: {} }
+      : await getPoolClasses(semester !== undefined ? { semester } : {})
     const semesters = await getPoolSemesters()
     const recycleBin = await getRecycleBinClasses()
-    return reply.view('admin/pool.html', { classes: poolData.classes, totalUniqueStudents: poolData.totalUniqueStudents, semesters, currentSemester: semester || '', recycleBin, isRecycleView })
+    return reply.view('admin/pool.html', {
+      classes: poolData.classes,
+      totalUniqueStudents: poolData.totalUniqueStudents,
+      totalWithoutPhotos: poolData.totalWithoutPhotos,
+      gradeWithoutPhotos: poolData.gradeWithoutPhotos,
+      semesters,
+      currentSemester: semester || '',
+      recycleBin,
+      isRecycleView,
+    })
   })
 
   // === API: 班级池 ===

@@ -118,7 +118,7 @@ export async function getPoolClasses(opts = {}) {
     include: {
       _count: { select: { students: true } },
       students: {
-        select: { name: true, homeClass: true },
+        select: { name: true, homeClass: true, photoUrl: true },
       },
     },
   })
@@ -164,20 +164,43 @@ export async function getPoolClasses(opts = {}) {
     }
   })
 
-  // 概览学生总数：跨教学班去重（同一学生在不同学科教学班只计一次）
+  // 概览学生总数 + 缺照片数：跨教学班去重
   const allStudents = classes.flatMap(c => c.students)
   const uniqueStudentMap = new Map()
   for (const s of allStudents) {
     const hc = s.homeClass || '未分组'
     const key = `${s.name}|||${hc}`
     if (!uniqueStudentMap.has(key)) {
-      uniqueStudentMap.set(key, true)
+      uniqueStudentMap.set(key, { hasPhoto: !!s.photoUrl })
     }
   }
   const totalUniqueStudents = uniqueStudentMap.size
+  let totalWithoutPhotos = 0
+  for (const [, v] of uniqueStudentMap) {
+    if (!v.hasPhoto) totalWithoutPhotos++
+  }
+
+  // 按年级统计缺照片数（在分组前用原始 classes 数据计算）
+  const gradeOrder = ['高一', '高二', '高三']
+  const gradeWithoutPhotos = {}
+  for (const grade of gradeOrder) {
+    const gradeClasses = classes.filter(c => {
+      const gradeChar = extractGradeFromClass(c.name)
+      return gradeCharToName(gradeChar) === grade
+    })
+    const gradeStudents = gradeClasses.flatMap(c => c.students)
+    const gradeUniqueMap = new Map()
+    for (const s of gradeStudents) {
+      const hc = s.homeClass || '未分组'
+      const key = `${s.name}|||${hc}`
+      if (!gradeUniqueMap.has(key)) {
+        gradeUniqueMap.set(key, { hasPhoto: !!s.photoUrl })
+      }
+    }
+    gradeWithoutPhotos[grade] = [...gradeUniqueMap.values()].filter(v => !v.hasPhoto).length
+  }
 
   // Group by grade
-  const gradeOrder = ['高一', '高二', '高三']
   const grouped = {}
   for (const grade of gradeOrder) {
     grouped[grade] = []
@@ -189,7 +212,7 @@ export async function getPoolClasses(opts = {}) {
     }
   }
 
-  return { classes: grouped, totalUniqueStudents }
+  return { classes: grouped, totalUniqueStudents, totalWithoutPhotos, gradeWithoutPhotos }
 }
 
 /**

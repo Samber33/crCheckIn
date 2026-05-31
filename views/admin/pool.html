@@ -65,7 +65,21 @@
                 <p style="font-family:Georgia,serif; font-size:28px; font-weight:400; color:var(--primary); margin:0;">{{ totalUniqueStudents }}</p>
                 <p style="font-size:12px; color:var(--muted-soft); margin:4px 0 0;">名学生</p>
               </div>
+              <div style="flex:1; text-align:center; padding:12px; background:var(--surface-soft); border-radius:8px;">
+                <p style="font-family:Georgia,serif; font-size:28px; font-weight:400; color:var(--error); margin:0;">{{ totalWithoutPhotos }}</p>
+                <p style="font-size:12px; color:var(--muted-soft); margin:4px 0 0;">缺照片</p>
+              </div>
             </div>
+            {% if totalWithoutPhotos > 0 %}
+            <div style="margin-top: 12px; padding: 10px 14px; background: var(--surface-soft); border-radius: 8px; font-size: 12px;">
+              <span style="color: var(--muted-soft);">各年级缺照片：</span>
+              {% for grade in ['高一', '高二', '高三'] %}
+                {% if gradeWithoutPhotos[grade] > 0 %}
+                <span style="margin-right: 12px;">{{ grade }} <strong style="color: var(--error);">{{ gradeWithoutPhotos[grade] }}</strong> 人</span>
+                {% endif %}
+              {% endfor %}
+            </div>
+            {% endif %}
           </div>
         </div>
 
