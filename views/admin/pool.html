@@ -198,7 +198,6 @@
               <div class="pool-class-card {% if cls.claimedByAnyTeacher %}pool-class-claimed{% endif %}" data-class-id="{{ cls.id }}">
                 <div class="pool-class-head" data-action="open-modal" data-class-id="{{ cls.id }}">
                   <div style="display: flex; align-items: center; gap: 6px;">
-                    {% if cls.school %}<span style="font-size: 10px; padding: 1px 6px; background: var(--surface-soft); border-radius: 8px; color: var(--muted-soft);">{{ cls.school }}</span>{% endif %}
                     <span class="pool-class-name">{{ cls.name }}</span>
                     <span class="pool-class-meta" style="font-size: 11px;">{{ cls.studentCount }} 名</span>
                     {% if cls.claimedByAnyTeacher %}
@@ -248,16 +247,6 @@
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
         <div class="modal-title" style="margin: 0;" id="classModalTitle">班级详情</div>
         <button id="classModalClose" class="preset-close-btn">&times;</button>
-      </div>
-
-      <!-- School Name -->
-      <div style="margin-bottom: 16px; padding: 16px; background: var(--surface-soft); border-radius: 8px;">
-        <p style="font-size: 13px; font-weight: 500; margin: 0 0 4px; color: var(--ink);">学校名称</p>
-        <p style="font-size: 12px; color: var(--muted); margin: 0 0 8px;">设置学校名称后，ZIP 照片匹配可按学校精确匹配。</p>
-        <div style="display: flex; gap: 8px; align-items: center;">
-          <input id="modalSchoolInput" class="input-field" type="text" placeholder="如：镇海中学、蛟川书院" style="flex: 1;" />
-          <button id="modalSchoolBtn" class="btn btn-primary" style="width: auto; padding: 6px 14px; font-size: 12px;">保存</button>
-        </div>
       </div>
 
       <!-- Import Excel -->
@@ -517,13 +506,6 @@ async function loadClassStudents(classId) {
   const data = await res.json()
   if (!data.ok) return
 
-  // Update school input
-  if (data.class.school) {
-    document.getElementById('modalSchoolInput').value = data.class.school
-  } else {
-    document.getElementById('modalSchoolInput').value = ''
-  }
-
   const container = document.getElementById('modalStudentList')
   if (!data.students.length) {
     container.innerHTML = '<div style="padding: 12px 16px; text-align: center; color: var(--muted-soft); font-size: 12px;">暂无学生</div>'
@@ -580,23 +562,6 @@ document.addEventListener('click', async (e) => {
     } else {
       showToast(data.message || '删除失败', false)
     }
-  }
-})
-
-// === Save School Name ===
-document.getElementById('modalSchoolBtn').addEventListener('click', async () => {
-  if (!currentClassId) return
-  const school = document.getElementById('modalSchoolInput').value.trim()
-  const res = await fetch(`/admin/api/pool/classes/${currentClassId}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ school }),
-  })
-  const data = await res.json()
-  if (data.ok) {
-    showToast('学校名称已保存')
-  } else {
-    showToast(data.message || '保存失败', false)
   }
 })
 

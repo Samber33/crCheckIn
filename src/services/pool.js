@@ -83,11 +83,11 @@ function normalizeName(name) {
 }
 
 /**
- * 从班级名提取年级标识
- * "一职B4" → "一", "二劳A3" → "二"
+ * 从班级名提取年级标识（任意位置匹配）
+ * "一职B4" → "一", "二劳A3" → "二", "二信B7" → "二"
  */
 function extractGradeFromClass(className) {
-  const match = className.match(/^([一二三四五六七八九十])/)
+  const match = className.match(/([一二三四五六七八九十])/)
   return match ? match[1] : null
 }
 
@@ -152,7 +152,6 @@ export async function getPoolClasses(opts = {}) {
     return {
       id: c.id,
       name: c.name,
-      school: c.school,
       grade,
       studentCount: c._count.students,
       homeClassGroups,

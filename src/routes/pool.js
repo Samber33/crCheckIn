@@ -78,23 +78,6 @@ export default async function poolRoutes(app) {
     return reply.send(result)
   })
 
-  app.patch('/admin/api/pool/classes/:id', { preHandler: adminRequired }, async (request, reply) => {
-    const classId = parseInt(request.params.id, 10)
-    const { school } = request.body ?? {}
-    if (school === undefined) {
-      return reply.code(400).send({ ok: false, message: '请提供要更新的字段' })
-    }
-    const cls = await prisma.class.findUnique({ where: { id: classId } })
-    if (!cls || cls.teacherId !== null) {
-      return reply.code(404).send({ ok: false, message: '班级不存在或不属于班级池' })
-    }
-    await prisma.class.update({
-      where: { id: classId },
-      data: { school: school.trim() },
-    })
-    return reply.send({ ok: true, message: '学校已更新' })
-  })
-
   app.post('/admin/api/pool/classes/:id/restore', { preHandler: adminRequired }, async (request, reply) => {
     const classId = parseInt(request.params.id, 10)
     const result = await restorePoolClass(classId)
@@ -286,7 +269,7 @@ export default async function poolRoutes(app) {
       where: { classId },
       orderBy: [{ homeClass: 'asc' }, { name: 'asc' }],
     })
-    return reply.send({ ok: true, class: { id: cls.id, name: cls.name, school: cls.school }, students })
+    return reply.send({ ok: true, class: { id: cls.id, name: cls.name }, students })
   })
 
   // === API: 教师认领班级（教师端调用） ===
