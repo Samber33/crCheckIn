@@ -134,21 +134,21 @@ export async function getPoolClasses(opts = {}) {
     nameToTeachers.get(tc.name).add(tc.teacherId)
   }
 
-  return classes.map(c => {
+  // Enrich classes with computed fields
+  const enriched = classes.map(c => {
     // 计算行政班组成
     const homeClassCount = new Map()
     for (const s of c.students) {
       const hc = s.homeClass || '未分组'
       homeClassCount.set(hc, (homeClassCount.get(hc) || 0) + 1)
     }
-    // 按人数降序排列
     const homeClassGroups = [...homeClassCount.entries()]
       .sort((a, b) => b[1] - a[1])
       .map(([name, count]) => ({ name, count }))
 
     const teachers = nameToTeachers.get(c.name)
     const gradeChar = extractGradeFromClass(c.name)
-    const grade = gradeCharToName(gradeChar) || '未知年级'
+    const grade = gradeCharToName(gradeChar)
     return {
       id: c.id,
       name: c.name,
@@ -162,6 +162,21 @@ export async function getPoolClasses(opts = {}) {
       claimedByCurrentTeacher: !!teachers && opts.teacherId != null && teachers.has(opts.teacherId),
     }
   })
+
+  // Group by grade
+  const gradeOrder = ['高一', '高二', '高三']
+  const grouped = {}
+  for (const grade of gradeOrder) {
+    grouped[grade] = []
+  }
+
+  for (const c of enriched) {
+    if (c.grade && grouped[c.grade]) {
+      grouped[c.grade].push(c)
+    }
+  }
+
+  return grouped
 }
 
 /**

@@ -181,13 +181,13 @@
           {% endif %}
         {% else %}
           <!-- Normal Pool View -->
-          {% if classes.length === 0 %}
+          {% if not classes or classes|length === 0 or (classes['高一']|length === 0 and classes['高二']|length === 0 and classes['高三']|length === 0) %}
           <div class="empty-state" style="background: #fff; border-radius: 12px; border: 1px solid var(--hairline); padding: 48px;">{% if currentSemester %}该学期暂无班级{% else %}暂无班级池班级{% endif %}</div>
           {% else %}
-          {% set grades = ['高一', '高二', '高三', '未知年级'] %}
+          {% set grades = ['高一', '高二', '高三'] %}
           {% for grade in grades %}
-          {% set gradeClasses = classes | selectattr("grade", "equalto", grade) | list %}
-          {% if gradeClasses | length > 0 %}
+          {% set gradeClasses = classes[grade] %}
+          {% if gradeClasses and gradeClasses|length > 0 %}
           <div class="grade-section" data-grade="{{ grade }}" style="margin-bottom: 12px;">
             <button class="grade-toggle-btn" style="width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border: 1px solid var(--hairline); border-radius: 10px; background: #fff; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--ink);">
               <span>{{ grade }}（{{ gradeClasses | length }} 个班级）</span>
