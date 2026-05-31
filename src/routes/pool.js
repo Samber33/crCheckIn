@@ -45,7 +45,7 @@ export default async function poolRoutes(app) {
       const cls = await createPoolClass(name.trim())
       return reply.send({ ok: true, class: { id: cls.id, name: cls.name } })
     } catch (err) {
-      return reply.code(500).send({ ok: false, message: '创建失败' })
+      return reply.code(err.statusCode || 500).send({ ok: false, message: err.message || '创建失败' })
     }
   })
 
@@ -212,15 +212,20 @@ export default async function poolRoutes(app) {
     try {
       let fileBuffer = null
       let filename = 'photo.jpg'
+      let studentId = null
+      let classId = null
       for await (const part of request.parts()) {
         if (part.type === 'file') {
           fileBuffer = await part.toBuffer()
           filename = part.filename || 'photo.jpg'
+        } else if (part.fieldname === 'studentId') {
+          studentId = part.value
+        } else if (part.fieldname === 'classId') {
+          classId = part.value
         }
       }
       if (!fileBuffer) return reply.code(400).send({ ok: false, message: '请上传图片' })
 
-      const { studentId, classId } = request.body ?? {}
       if (!studentId || !classId) {
         return reply.code(400).send({ ok: false, message: '请指定学生和班级' })
       }

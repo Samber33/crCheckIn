@@ -22,14 +22,14 @@ function fmtHomeClass(hc) {
 }
 
 // ── 共享 Excel 样式常量 ──
-const FONT_MS_YAHEI = { name: '微软雅黑' }
-const COLOR_TEXT_DARK = 'FF1E293B'
+export const FONT_MS_YAHEI = { name: '微软雅黑' }
+export const COLOR_TEXT_DARK = 'FF1E293B'
 const COLOR_TEXT_MUTED = 'FF64748B'
 const COLOR_TEXT_WHITE = 'FFFFFFFF'
 const COLOR_BG_HEADER = 'FF334155'
-const COLOR_BG_ALT_ROW = 'FFF8FAFC'
+export const COLOR_BG_ALT_ROW = 'FFF8FAFC'
 const COLOR_BG_LIGHT = 'FFFAFAFA'
-const COLOR_BORDER = 'FFE2E8F0'
+export const COLOR_BORDER = 'FFE2E8F0'
 const COLOR_BORDER_HEADER = 'FF475569'
 const COLOR_GREEN_TEXT = 'FF059669'
 const COLOR_GRAY_TEXT = 'FF94A3B8'
@@ -37,7 +37,7 @@ const COLOR_GRAY_TEXT = 'FF94A3B8'
 /**
  * 设置 Excel 表头行样式
  */
-function styleHeaderRow(headerRow) {
+export function styleHeaderRow(headerRow) {
   headerRow.height = 24
   headerRow.eachCell((cell) => {
     cell.font = { ...FONT_MS_YAHEI, bold: true, size: 10, color: { argb: COLOR_TEXT_WHITE } }
@@ -67,7 +67,7 @@ function styleDataRow(dataRow, rowIdx, isSigned, leftAlignCols = 2) {
 /**
  * 设置 Excel 标题行
  */
-function setTitleRow(ws, row, colSpan, title, isDark = false) {
+export function setTitleRow(ws, row, colSpan, title, isDark = false) {
   if (colSpan > 1) ws.mergeCells(row, 1, row, colSpan)
   const cell = ws.getCell(row, 1)
   cell.value = title
@@ -80,7 +80,7 @@ function setTitleRow(ws, row, colSpan, title, isDark = false) {
 /**
  * 设置 Excel 统计行
  */
-function setStatRow(ws, row, colSpan, text) {
+export function setStatRow(ws, row, colSpan, text) {
   if (colSpan > 1) ws.mergeCells(row, 1, row, colSpan)
   const cell = ws.getCell(row, 1)
   cell.value = text
