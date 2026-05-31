@@ -1,10 +1,10 @@
 import { prisma } from '../plugins/db.js'
 import ExcelJS from 'exceljs'
-import unzipper from 'unzipper'
-import { randomUUID } from 'node:crypto'
 import path from 'path'
 import fs from 'fs/promises'
 import fsSync from 'fs'
+import { randomUUID } from 'node:crypto'
+import { exec } from 'node:child_process'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -1130,12 +1130,12 @@ export async function uploadZipForMatching(zipBuffer) {
     // 写入 ZIP 到临时文件
     await fs.writeFile(zipPath, zipBuffer)
 
-    // 解压到临时目录
+    // 使用系统 unzip 命令解压（正确处理 GBK 编码文件名）
     await new Promise((resolve, reject) => {
-      fsSync.createReadStream(zipPath)
-        .pipe(unzipper.Extract({ path: tempDir }))
-        .on('close', resolve)
-        .on('error', reject)
+      exec(`unzip -o '${zipPath}' -d '${tempDir}'`, (err) => {
+        if (err) reject(err)
+        else resolve()
+      })
     })
 
     // 删除 ZIP 文件
@@ -1145,7 +1145,7 @@ export async function uploadZipForMatching(zipBuffer) {
     const folderStructure = await parseZipFolderStructure(tempDir)
 
     // 创建任务
-    const totalPhotos = folderStructure.reduce((sum, school) =>
+    const totalPhotos = folderStructure.schools.reduce((sum, school) =>
       sum + school.classes.reduce((s, c) => s + c.photoCount, 0), 0
     )
 
@@ -1276,6 +1276,44 @@ export function getZipMatchProgress(jobId) {
 }
 
 /**
+ * 从班级名提取年级标识
+ * "一职B4" → "一", "二劳A3" → "二"
+ */
+function extractGradeFromClass(className) {
+  const match = className.match(/^([一二三四五六七八九十])/)
+  return match ? match[1] : null
+}
+
+/**
+ * 年级中文数字 → 文件夹名
+ */
+function gradeCharToFolder(gradeChar) {
+  const map = { '一': '高一', '二': '高二', '三': '高三', '四': '高四' }
+  return map[gradeChar] || null
+}
+
+/**
+ * 从行政班提取学校名和班级号
+ * "蛟4" → { school: "蛟川书院", classNum: "4" }
+ * "3" → { school: "镇海中学", classNum: "3" }
+ * "强基" → { school: "镇海中学", classNum: "强基班" }
+ * "科中" → { school: "镇海中学", classNum: "科中" }
+ */
+function parseHomeClass(homeClass) {
+  if (!homeClass) return null
+  const trimmed = homeClass.trim()
+  // 蛟川书院：行政班含"蛟"
+  if (trimmed.includes('蛟')) {
+    const numMatch = trimmed.match(/(\d+)/)
+    return { school: '蛟川书院', classNum: numMatch ? numMatch[1] : trimmed.replace(/[蛟]/g, '').trim() }
+  }
+  // 特殊班级名归一化
+  if (trimmed === '强基') return { school: '镇海中学', classNum: '强基班' }
+  // 镇海中学：纯数字或"科中"等
+  return { school: '镇海中学', classNum: trimmed }
+}
+
+/**
  * 启动 ZIP 照片匹配
  * @param {string} jobId - 匹配任务 ID
  */
@@ -1290,21 +1328,47 @@ export async function startZipMatching(jobId) {
   job.missingClasses = []
   job.conflicts = []
 
-  // 加载所有池班级（含 school 字段）
+  // 加载所有池班级
   const poolClasses = await prisma.class.findMany({
     where: { teacherId: null, deletedAt: null },
     include: { students: true },
   })
 
-  // 构建 school + className -> { classId, students: Map<nameKey, student> }
-  const classMap = new Map()
+  // 构建索引：grade → school → classNum → { classId, className, students: Map<nameKey, student> }
+  const gradeMap = new Map()
+
   for (const cls of poolClasses) {
-    const key = `${cls.school}|||${cls.name}`
-    const studentMap = new Map()
+    const gradeChar = extractGradeFromClass(cls.name)
+    if (!gradeChar) continue
+    const gradeFolder = gradeCharToFolder(gradeChar)
+    if (!gradeFolder) continue
+
+    if (!gradeMap.has(gradeFolder)) gradeMap.set(gradeFolder, new Map())
+    const schoolMap = gradeMap.get(gradeFolder)
+
     for (const s of cls.students) {
-      studentMap.set(normalizeName(s.name), s)
+      const hc = parseHomeClass(s.homeClass)
+      if (!hc || !hc.classNum) continue
+
+      if (!schoolMap.has(hc.school)) schoolMap.set(hc.school, new Map())
+      const classMap = schoolMap.get(hc.school)
+
+      if (!classMap.has(hc.classNum)) classMap.set(hc.classNum, [])
+      classMap.get(hc.classNum).push({ classId: cls.id, className: cls.name, student: s })
     }
-    classMap.set(key, { classId: cls.id, className: cls.name, school: cls.school, students: studentMap })
+  }
+
+  // 同步学生索引中每班的姓名映射
+  const studentIndex = new Map() // grade/school/classNum/nameKey → student record
+  for (const [grade, schoolMap] of gradeMap) {
+    for (const [school, classMap] of schoolMap) {
+      for (const [classNum, entries] of classMap) {
+        for (const entry of entries) {
+          const key = `${grade}|||${school}|||${classNum}|||${normalizeName(entry.student.name)}`
+          studentIndex.set(key, entry)
+        }
+      }
+    }
   }
 
   const now = new Date()
@@ -1324,38 +1388,33 @@ export async function startZipMatching(jobId) {
   const writeTasks = []
   const dbUpdates = []
   const affectedClassIds = new Set()
+  const matchedStudentIds = new Set()
 
-  // 遍历学校 -> 班级 -> 照片
+  // ZIP 中的年级文件夹名 → 中文年级
+  const gradeMapFromZip = { '高一': '高一', '高二': '高二', '高三': '高三' }
+
+  // 遍历 ZIP 文件夹结构：grade → school → class → photos
+  const zipGrade = gradeMapFromZip[job.folderStructure.grade] || null
+
   for (const school of job.folderStructure.schools) {
     for (const cls of school.classes) {
-      // 匹配池班级：优先精确 school+name 匹配，其次仅 name 匹配
-      const exactKey = `${school.schoolName}|||${cls.className}`
-      let poolClass = classMap.get(exactKey)
-      if (!poolClass) {
-        // 回退：仅按班级名匹配
-        for (const [key, pc] of classMap) {
-          if (pc.className === cls.className) {
-            poolClass = pc
-            break
-          }
-        }
-      }
-
-      if (!poolClass) {
-        job.missingClasses.push({
-          school: school.schoolName,
-          className: cls.className,
-          photoCount: cls.photoCount,
-        })
-        job.progress += cls.photoCount
-        continue
-      }
+      let foundAny = false
 
       for (const photo of cls.photos) {
-        const student = poolClass.students.get(photo.nameKey)
-        if (!student) {
+        // 跳过 Thumbs.db 等
+        if (photo.filename.toLowerCase().startsWith('thumbs')) {
+          job.progress++
+          continue
+        }
+
+        // 查找匹配：grade/school/classNum/name
+        const key = `${zipGrade}|||${school.schoolName}|||${cls.className}|||${photo.nameKey}`
+        const entry = studentIndex.get(key)
+
+        if (!entry) {
           job.unmatched.push({
             filename: photo.filename,
+            grade: zipGrade || job.folderStructure.grade,
             school: school.schoolName,
             className: cls.className,
             studentName: photo.nameKey,
@@ -1363,6 +1422,14 @@ export async function startZipMatching(jobId) {
           job.progress++
           continue
         }
+
+        // 避免重复匹配同一学生
+        if (matchedStudentIds.has(entry.student.id)) {
+          job.progress++
+          continue
+        }
+
+        foundAny = true
 
         // 确定文件名
         const ext = path.extname(photo.filename).toLowerCase()
@@ -1379,10 +1446,20 @@ export async function startZipMatching(jobId) {
         const filePath = path.join(monthDir, safeFilename)
 
         writeTasks.push({ bufferPath: photo.filePath, filePath })
-        dbUpdates.push({ studentId: student.id, photoUrl, classId: poolClass.classId })
+        dbUpdates.push({ studentId: entry.student.id, photoUrl: url, classId: entry.classId })
+        matchedStudentIds.add(entry.student.id)
         job.matched++
         job.progress++
-        affectedClassIds.add(poolClass.classId)
+        affectedClassIds.add(entry.classId)
+      }
+
+      if (!foundAny) {
+        job.missingClasses.push({
+          grade: zipGrade || job.folderStructure.grade,
+          school: school.schoolName,
+          className: cls.className,
+          photoCount: cls.photoCount,
+        })
       }
     }
   }

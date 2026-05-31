@@ -1062,7 +1062,8 @@ document.getElementById('zipUploadBtn').addEventListener('click', async () => {
     document.getElementById('zipStepPreview').style.display = ''
     document.getElementById('zipStepProgress').style.display = 'none'
     document.getElementById('zipStepResults').style.display = 'none'
-    document.getElementById('zipMatchTitle').textContent = `ZIP 照片匹配（${data.totalPhotos} 张照片）`
+    const gradeLabel = data.folderStructure.grade || ''
+    document.getElementById('zipMatchTitle').textContent = `ZIP 照片匹配（${gradeLabel} / ${data.totalPhotos} 张照片）`
     document.getElementById('zipMatchModal').classList.add('active')
   } catch {
     btn.disabled = false
@@ -1161,7 +1162,7 @@ function showZipResults(data) {
   if (data.missingClasses && data.missingClasses.length > 0) {
     document.getElementById('zipMissingSection').style.display = ''
     document.getElementById('zipMissingList').innerHTML = data.missingClasses.map(c =>
-      `<div style="padding: 4px 0; border-bottom: 1px solid var(--hairline);">${escHtml(c.school)} / ${escHtml(c.className)} <span style="color: var(--muted-soft);">（${c.photoCount} 张照片未匹配）</span></div>`
+      `<div style="padding: 4px 0; border-bottom: 1px solid var(--hairline);">${escHtml(c.grade)} / ${escHtml(c.school)} / ${escHtml(c.className)} <span style="color: var(--muted-soft);">（${c.photoCount} 张照片）</span></div>`
     ).join('')
   } else {
     document.getElementById('zipMissingSection').style.display = 'none'
@@ -1171,7 +1172,7 @@ function showZipResults(data) {
   if (data.unmatched && data.unmatched.length > 0) {
     document.getElementById('zipUnmatchedSection').style.display = ''
     document.getElementById('zipUnmatchedList').innerHTML = data.unmatched.slice(0, 50).map(u =>
-      `<div style="padding: 4px 0; border-bottom: 1px solid var(--hairline);">${escHtml(u.filename)} <span style="color: var(--muted-soft);">→ ${escHtml(u.school)} / ${escHtml(u.className)}</span></div>`
+      `<div style="padding: 4px 0; border-bottom: 1px solid var(--hairline);">${escHtml(u.filename)} <span style="color: var(--muted-soft);">→ ${escHtml(u.grade)} / ${escHtml(u.school)} / ${escHtml(u.className)}</span></div>`
     ).join('') + (data.unmatched.length > 50 ? `<div style="padding: 4px 0; color: var(--muted-soft);">… 还有 ${data.unmatched.length - 50} 条</div>` : '')
   } else {
     document.getElementById('zipUnmatchedSection').style.display = 'none'
