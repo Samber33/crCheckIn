@@ -184,30 +184,42 @@
           {% if classes.length === 0 %}
           <div class="empty-state" style="background: #fff; border-radius: 12px; border: 1px solid var(--hairline); padding: 48px;">{% if currentSemester %}该学期暂无班级{% else %}暂无班级池班级{% endif %}</div>
           {% else %}
-          <div class="pool-grid">
-            {% for cls in classes %}
-            <div class="pool-class-card {% if cls.claimedByAnyTeacher %}pool-class-claimed{% endif %}" data-class-id="{{ cls.id }}">
-              <div class="pool-class-head" data-action="open-modal" data-class-id="{{ cls.id }}">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  {% if cls.school %}<span style="font-size: 11px; padding: 2px 8px; background: var(--surface-soft); border-radius: 10px; color: var(--muted-soft);">{{ cls.school }}</span>{% endif %}
-                  <span class="pool-class-name">{{ cls.name }}</span>
-                  <span class="pool-class-meta">{{ cls.studentCount }} 名学生</span>
-                  {% if cls.claimedByAnyTeacher %}
-                  <span style="font-size: 11px; padding: 2px 8px; background: var(--surface-soft); border-radius: 10px; color: var(--muted-soft);">已认领</span>
+          {% set grades = ['高一', '高二', '高三', '未知年级'] %}
+          {% for grade in grades %}
+          {% set gradeClasses = classes | selectattr("grade", "equalto", grade) | list %}
+          {% if gradeClasses | length > 0 %}
+          <div class="grade-section" data-grade="{{ grade }}" style="margin-bottom: 12px;">
+            <button class="grade-toggle-btn" style="width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border: 1px solid var(--hairline); border-radius: 10px; background: #fff; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--ink);">
+              <span>{{ grade }}（{{ gradeClasses | length }} 个班级）</span>
+              <svg class="grade-toggle-arrow" style="width: 16px; height: 16px; transition: transform .2s ease;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            <div class="grade-class-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px;">
+              {% for cls in gradeClasses %}
+              <div class="pool-class-card {% if cls.claimedByAnyTeacher %}pool-class-claimed{% endif %}" data-class-id="{{ cls.id }}">
+                <div class="pool-class-head" data-action="open-modal" data-class-id="{{ cls.id }}">
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    {% if cls.school %}<span style="font-size: 10px; padding: 1px 6px; background: var(--surface-soft); border-radius: 8px; color: var(--muted-soft);">{{ cls.school }}</span>{% endif %}
+                    <span class="pool-class-name">{{ cls.name }}</span>
+                    <span class="pool-class-meta" style="font-size: 11px;">{{ cls.studentCount }} 名</span>
+                    {% if cls.claimedByAnyTeacher %}
+                    <span style="font-size: 10px; padding: 1px 6px; background: var(--surface-soft); border-radius: 8px; color: var(--muted-soft);">已认领</span>
+                    {% endif %}
+                  </div>
+                  {% if cls.homeClassGroups %}
+                  <div style="font-size: 10px; color: var(--muted-soft); margin-top: 3px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    {% for g in cls.homeClassGroups %}{{ g.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+                  </div>
+                  {% endif %}
+                  {% if not currentSemester and not cls.claimedByAnyTeacher %}
+                  <button data-action="delete-class" data-class-id="{{ cls.id }}" class="pool-action-btn" style="color: var(--error); font-size: 10px;">删除</button>
                   {% endif %}
                 </div>
-                {% if cls.homeClassGroups %}
-                <div style="font-size: 11px; color: var(--muted-soft); margin-top: 4px; line-height: 1.5;">
-                  {% for g in cls.homeClassGroups %}{{ g.name }}{% if not loop.last %}, {% endif %}{% endfor %}
-                </div>
-                {% endif %}
-                {% if not currentSemester and not cls.claimedByAnyTeacher %}
-                <button data-action="delete-class" data-class-id="{{ cls.id }}" class="pool-action-btn" style="color: var(--error);">删除</button>
-                {% endif %}
               </div>
+              {% endfor %}
             </div>
-            {% endfor %}
           </div>
+          {% endif %}
+          {% endfor %}
           {% endif %}
         {% endif %}
       </div>
@@ -419,6 +431,22 @@ function showToast(text, ok = true) {
 }
 
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+// === Grade Section Toggle ===
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.grade-toggle-btn')
+  if (!btn) return
+  const section = btn.closest('.grade-section')
+  const grid = section.querySelector('.grade-class-grid')
+  const arrow = btn.querySelector('.grade-toggle-arrow')
+  if (grid.style.display === 'none') {
+    grid.style.display = 'grid'
+    arrow.style.transform = 'rotate(0deg)'
+  } else {
+    grid.style.display = 'none'
+    arrow.style.transform = 'rotate(-90deg)'
+  }
+})
 
 // === Batch Student Import ===
 document.getElementById('batchImportFile').addEventListener('change', (e) => {

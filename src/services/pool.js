@@ -83,6 +83,23 @@ function normalizeName(name) {
 }
 
 /**
+ * 从班级名提取年级标识
+ * "一职B4" → "一", "二劳A3" → "二"
+ */
+function extractGradeFromClass(className) {
+  const match = className.match(/^([一二三四五六七八九十])/)
+  return match ? match[1] : null
+}
+
+/**
+ * 年级中文数字 → 年级名称
+ */
+function gradeCharToName(gradeChar) {
+  const map = { '一': '高一', '二': '高二', '三': '高三', '四': '高四' }
+  return map[gradeChar] || null
+}
+
+/**
  * 获取班级池中的所有班级（teacherId IS NULL，未删除）
  * @param {object} [opts]
  * @param {string} [opts.semester] - 按学期筛选，空字符串=当前未归档
@@ -130,10 +147,13 @@ export async function getPoolClasses(opts = {}) {
       .map(([name, count]) => ({ name, count }))
 
     const teachers = nameToTeachers.get(c.name)
+    const gradeChar = extractGradeFromClass(c.name)
+    const grade = gradeCharToName(gradeChar) || '未知年级'
     return {
       id: c.id,
       name: c.name,
       school: c.school,
+      grade,
       studentCount: c._count.students,
       homeClassGroups,
       semester: c.semester,
@@ -1291,23 +1311,6 @@ export function getZipMatchProgress(jobId) {
 }
 
 /**
- * 从班级名提取年级标识
- * "一职B4" → "一", "二劳A3" → "二"
- */
-function extractGradeFromClass(className) {
-  const match = className.match(/^([一二三四五六七八九十])/)
-  return match ? match[1] : null
-}
-
-/**
- * 年级中文数字 → 文件夹名
- */
-function gradeCharToFolder(gradeChar) {
-  const map = { '一': '高一', '二': '高二', '三': '高三', '四': '高四' }
-  return map[gradeChar] || null
-}
-
-/**
  * 从行政班提取学校名和班级号
  * "蛟4" → { school: "蛟川书院", classNum: "4" }
  * "3" → { school: "镇海中学", classNum: "3" }
@@ -1355,11 +1358,11 @@ export async function startZipMatching(jobId) {
   for (const cls of poolClasses) {
     const gradeChar = extractGradeFromClass(cls.name)
     if (!gradeChar) continue
-    const gradeFolder = gradeCharToFolder(gradeChar)
-    if (!gradeFolder) continue
+    const gradeName = gradeCharToName(gradeChar)
+    if (!gradeName) continue
 
-    if (!gradeMap.has(gradeFolder)) gradeMap.set(gradeFolder, new Map())
-    const schoolMap = gradeMap.get(gradeFolder)
+    if (!gradeMap.has(gradeName)) gradeMap.set(gradeName, new Map())
+    const schoolMap = gradeMap.get(gradeName)
 
     for (const s of cls.students) {
       const hc = parseHomeClass(s.homeClass)
