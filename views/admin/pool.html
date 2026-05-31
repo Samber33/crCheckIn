@@ -198,10 +198,7 @@
                 </div>
                 {% if cls.homeClassGroups %}
                 <div style="font-size: 11px; color: var(--muted-soft); margin-top: 4px; line-height: 1.5;">
-                  行政班：
-                  {%- for g in cls.homeClassGroups %}
-                  <span style="padding: 1px 6px; background: var(--surface-soft); border-radius: 4px; margin-right: 4px;">{{ g.name }}:{{ g.count }}人</span>
-                  {%- endfor %}
+                  {% for g in cls.homeClassGroups %}{{ g.name }}{% if not loop.last %}, {% endif %}{% endfor %}
                 </div>
                 {% endif %}
                 {% if not currentSemester and not cls.claimedByAnyTeacher %}
