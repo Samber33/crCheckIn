@@ -120,9 +120,25 @@ export default async function teacherRoutes(app) {
     const poolData = await getPoolClasses({ teacherId })
     const poolClasses = Object.values(poolData.classes).flat()
 
+    // Group classes by grade
+    const gradeOrder = ['高一', '高二', '高三', '高四', '其他']
+    const classesByGrade = {}
+    for (const grade of gradeOrder) {
+      classesByGrade[grade] = []
+    }
+    for (const cls of classes) {
+      const grade = cls.grade || '其他'
+      if (classesByGrade[grade]) {
+        classesByGrade[grade].push(cls)
+      } else {
+        classesByGrade['其他'].push(cls)
+      }
+    }
+
     noCache(reply)
     return reply.view('teacher/classes.html', {
-      classes,
+      classes: classesByGrade,
+      gradeOrder,
       teacher: { id: teacher.id, username: teacher.username, isAdmin: teacher.isAdmin },
       maxStudentCount,
       showArchived,
