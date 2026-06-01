@@ -339,7 +339,9 @@ export default async function poolRoutes(app) {
   // === API: 获取可认领的班级池列表（教师端调用） ===
 
   app.get('/api/pool/classes', { preHandler: teacherRequired }, async (request, reply) => {
-    const classes = await getPoolClasses({ teacherId: request.session.teacherId })
+    const poolData = await getPoolClasses({ teacherId: request.session.teacherId })
+    // 将按年级分组的对象展平为数组
+    const classes = Object.values(poolData.classes).flat()
     return reply.send({ ok: true, classes })
   })
 
