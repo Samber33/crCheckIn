@@ -263,6 +263,47 @@ export default async function poolRoutes(app) {
     return reply.send({ ok: true, students })
   })
 
+  // === API: 按 name+homeClass 上传照片（跨所有教学班）===
+
+  app.post('/admin/api/pool/students/by-name/photo', { preHandler: adminRequired }, async (request, reply) => {
+    try {
+      let fileBuffer = null
+      let filename = 'photo.jpg'
+      for await (const part of request.parts()) {
+        if (part.type === 'file') {
+          fileBuffer = await part.toBuffer()
+          filename = part.filename || 'photo.jpg'
+        }
+      }
+      if (!fileBuffer) return reply.code(400).send({ ok: false, message: '请上传图片' })
+
+      const { name, homeClass } = request.query ?? {}
+      if (!name || !homeClass) return reply.code(400).send({ ok: false, message: '请提供学生姓名和行政班' })
+
+      // 找到该学生在所有教学班的记录
+      const poolClasses = await prisma.class.findMany({
+        where: { teacherId: null, deletedAt: null },
+        include: { students: { where: { name, homeClass } } },
+      })
+
+      let matchedCount = 0
+      for (const cls of poolClasses) {
+        for (const student of cls.students) {
+          const result = await uploadStudentPhoto(cls.id, student.id, fileBuffer, filename)
+          if (result.ok) matchedCount++
+        }
+      }
+
+      if (matchedCount === 0) {
+        return reply.code(404).send({ ok: false, message: '未找到对应学生' })
+      }
+
+      return reply.send({ ok: true, matchedClasses: matchedCount })
+    } catch (err) {
+      return reply.code(500).send({ ok: false, message: '上传失败：' + err.message })
+    }
+  })
+
   // === API: 删除学生照片 ===
 
   app.delete('/admin/api/pool/classes/:classId/students/:studentId/photo', { preHandler: adminRequired }, async (request, reply) => {

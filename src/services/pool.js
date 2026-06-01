@@ -957,17 +957,56 @@ export async function batchImportPoolStudentsFromExcel(buffer) {
 }
 
 /**
- * 获取班级池中所有没有照片的学生
+ * 获取班级池中所有没有照片的学生（按 name+homeClass 去重）
+ * 返回每个唯一学生（跨教学班），附带教学班信息
  */
 export async function getStudentsWithoutPhotos() {
-  const students = await prisma.$queryRawUnsafe(`
-    SELECT s.id, s.name, s.classId, c.name AS className
-    FROM student s
-    JOIN class c ON s.classId = c.id
-    WHERE c.teacherId IS NULL AND (s.photoUrl IS NULL OR s.photoUrl = '')
-    ORDER BY c.name, s.name
-  `)
-  return students.map(s => ({ id: Number(s.id), name: s.name, classId: Number(s.classId), className: s.className }))
+  const poolClasses = await prisma.class.findMany({
+    where: { teacherId: null, deletedAt: null },
+    include: { students: { select: { name: true, homeClass: true, photoUrl: true } } },
+  })
+
+  // 按 name+homeClass 分组，收集所有教学班信息
+  const studentGroups = new Map()
+  for (const cls of poolClasses) {
+    for (const s of cls.students) {
+      const hc = s.homeClass || '未分组'
+      const key = `${s.name}|||${hc}`
+      if (!studentGroups.has(key)) {
+        studentGroups.set(key, {
+          name: s.name,
+          homeClass: hc,
+          hasPhoto: false,
+          classes: [], // { classId, className }
+        })
+      }
+      studentGroups.get(key).classes.push({ classId: cls.id, className: cls.name })
+      if (s.photoUrl) {
+        studentGroups.get(key).hasPhoto = true
+      }
+    }
+  }
+
+  // 过滤出没有照片的学生
+  const result = []
+  for (const [, group] of studentGroups) {
+    if (!group.hasPhoto) {
+      // 年级从第一个教学班名提取
+      const gradeChar = group.classes[0]?.className.match(/([一二三四五六七八九十])/)?.[1]
+      const grade = gradeChar ? { '一': '高一', '二': '高二', '三': '高三' }[gradeChar] : '未知年级'
+      result.push({
+        name: group.name,
+        homeClass: group.homeClass,
+        classes: group.classes,
+        grade,
+      })
+    }
+  }
+
+  // 按年级排序，再按 name 排序
+  const gradeOrder = { '高一': 1, '高二': 2, '高三': 3, '未知年级': 4 }
+  result.sort((a, b) => (gradeOrder[a.grade] || 4) - (gradeOrder[b.grade] || 4) || a.name.localeCompare(b.name, 'zh'))
+  return result
 }
 
 /**

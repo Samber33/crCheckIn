@@ -312,29 +312,60 @@
 
   <!-- Unmatched Students Modal -->
   <div id="unmatchedStudentsModal" class="modal-overlay">
-    <div class="modal-card" style="max-width: 520px;">
+    <div class="modal-card" style="max-width: 720px;">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
         <div class="modal-title" style="margin: 0;" id="unmatchedModalTitle">缺照片学生</div>
         <button class="preset-close-btn" onclick="closeUnmatchedModal()">&times;</button>
       </div>
 
-      <!-- Unmatched files -->
+      <!-- Grade Stats -->
+      <div id="noPhotoGradeStats" style="display: none; margin-bottom: 16px;">
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+          <div style="padding: 10px; background: #f0fdf4; border-radius: 8px; text-align: center;">
+            <p style="font-size: 22px; font-weight: 700; color: #176b31; margin: 0;" id="noPhotoGrade1">0</p>
+            <p style="font-size: 11px; color: #23824a; margin: 2px 0 0;">高一</p>
+          </div>
+          <div style="padding: 10px; background: #fef2f2; border-radius: 8px; text-align: center;">
+            <p style="font-size: 22px; font-weight: 700; color: var(--error); margin: 0;" id="noPhotoGrade2">0</p>
+            <p style="font-size: 11px; color: var(--error); margin: 2px 0 0;">高二</p>
+          </div>
+          <div style="padding: 10px; background: var(--surface-soft); border-radius: 8px; text-align: center;">
+            <p style="font-size: 22px; font-weight: 700; color: var(--muted); margin: 0;" id="noPhotoGrade3">0</p>
+            <p style="font-size: 11px; color: var(--muted-soft); margin: 2px 0 0;">高三</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Batch Actions -->
+      <div id="noPhotoBatchActions" style="display: none; margin-bottom: 12px; padding: 10px; background: var(--surface-soft); border-radius: 8px;">
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <span style="font-size: 12px; color: var(--muted);">已选 <strong id="noPhotoSelectedCount">0</strong> 人</span>
+          <button class="btn btn-primary" id="noPhotoBatchUploadBtn" style="width: auto; padding: 4px 12px; font-size: 11px; display: none;">批量上传照片</button>
+          <button class="btn btn-secondary" id="noPhotoBatchIgnoreBtn" style="width: auto; padding: 4px 12px; font-size: 11px; display: none;">批量忽略</button>
+          <label class="file-label" id="noPhotoBatchFileLabel" style="display: none; padding: 4px 10px; font-size: 11px;">
+            选择照片
+            <input type="file" accept="image/*" multiple id="noPhotoBatchFileInput" style="display: none;" />
+          </label>
+        </div>
+      </div>
+
+      <!-- Unmatched files (from batch upload) -->
       <div id="unmatchedFilesSection" style="display: none; margin-bottom: 16px;">
-        <p style="font-size: 12px; color: var(--muted-soft); margin: 0 0 8px;">以下照片文件名未匹配到学生，可忽略或检查文件名是否正确</p>
+        <p style="font-size: 12px; color: var(--muted-soft); margin: 0 0 8px;">以下照片文件名未匹配到学生：</p>
         <div id="unmatchedFilesList" style="max-height: 120px; overflow-y: auto; border: 1px solid var(--hairline); border-radius: 8px; padding: 8px;"></div>
       </div>
 
-      <!-- Students without photos -->
-      <div>
-        <p style="font-size: 12px; color: var(--muted-soft); margin: 0 0 8px;">以下学生还没有照片，可以上传或忽略</p>
-        <div id="unmatchedStudentsList" style="max-height: 360px; overflow-y: auto; border: 1px solid var(--hairline); border-radius: 8px; background: #fff;"></div>
-      </div>
+      <!-- Students without photos - grouped by grade -->
+      <div id="noPhotoStudentList" style="max-height: 50vh; overflow-y: auto;"></div>
 
       <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
         <button class="btn btn-secondary" onclick="closeUnmatchedModal()">完成</button>
       </div>
     </div>
   </div>
+
+  <!-- Hidden file input for single student upload -->
+  <input type="file" accept="image/*" id="noPhotoSingleFileInput" style="display: none;" />
 
   <!-- Photo Conflict Resolution Modal -->
   <div id="conflictModal" class="modal-overlay">
@@ -835,28 +866,111 @@ document.getElementById('presetTagAddInput').addEventListener('keydown', (e) => 
 
 // === Unmatched Students Modal ===
 
-function renderUnmatchedStudentsList(students) {
-  const studentsList = document.getElementById('unmatchedStudentsList')
-  if (students && students.length > 0) {
-    studentsList.innerHTML = students.map(s =>
-      `<div class="unmatched-student-item" data-student-id="${s.id}" data-class-id="${s.classId}" style="padding: 8px 12px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--hairline);">
-        <div style="flex: 1; min-width: 0;">
-          <div style="font-size: 13px; font-weight: 500; color: var(--ink);">${escHtml(s.name)}</div>
-          ${s.className ? `<div style="font-size: 11px; color: var(--muted-soft);">${escHtml(s.className)}</div>` : ''}
-        </div>
-        <label class="file-label" style="padding: 4px 12px; font-size: 11px; flex-shrink: 0;">
-          上传照片
-          <input type="file" accept="image/*" class="unmatched-photo-input" data-student-id="${s.id}" data-class-id="${s.classId}" style="display:none;" />
-        </label>
-        <button class="btn btn-secondary skip-btn" style="padding: 4px 12px; font-size: 11px; flex-shrink: 0;" onclick="this.closest('.unmatched-student-item').remove(); checkUnmatchedModalEmpty();">忽略</button>
-      </div>`
-    ).join('')
+// 全局状态
+let noPhotoStudents = []
+let noPhotoSelected = new Set()
+let noPhotoBatchFiles = []
+
+function renderNoPhotoStudents(students) {
+  noPhotoStudents = students
+  noPhotoSelected.clear()
+  updateNoPhotoSelection()
+
+  const container = document.getElementById('noPhotoStudentList')
+  if (!students || students.length === 0) {
+    container.innerHTML = '<div style="padding: 32px; text-align: center; color: var(--muted-soft); font-size: 13px;">所有学生已有照片</div>'
+    return
+  }
+
+  // 按年级分组
+  const byGrade = { '高一': [], '高二': [], '高三': [], '未知年级': [] }
+  students.forEach(s => {
+    const grade = s.grade || '未知年级'
+    if (byGrade[grade]) byGrade[grade].push(s)
+    else byGrade['未知年级'].push(s)
+  })
+
+  // 年级统计
+  const statsEl = document.getElementById('noPhotoGradeStats')
+  if (Object.values(byGrade).some(g => g.length > 0)) {
+    statsEl.style.display = ''
+    document.getElementById('noPhotoGrade1').textContent = byGrade['高一'].length
+    document.getElementById('noPhotoGrade2').textContent = byGrade['高二'].length
+    document.getElementById('noPhotoGrade3').textContent = byGrade['高三'].length
   } else {
-    studentsList.innerHTML = '<div style="padding: 16px; text-align: center; color: var(--muted-soft); font-size: 12px;">所有学生已有照片</div>'
+    statsEl.style.display = 'none'
+  }
+
+  let html = ''
+  for (const [grade, gradeStudents] of Object.entries(byGrade)) {
+    if (gradeStudents.length === 0) continue
+    html += `<div style="margin-bottom: 12px;">
+      <div style="font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 6px; padding: 6px 10px; background: var(--surface-soft); border-radius: 6px;">
+        ${grade}（${gradeStudents.length} 人）
+      </div>
+      ${gradeStudents.map(s => {
+        const key = `${s.name}|||${s.homeClass}`
+        const checked = noPhotoSelected.has(key) ? 'checked' : ''
+        return `<div class="no-photo-item" data-key="${escHtml(key)}" style="padding: 8px 12px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--hairline); background: #fff;">
+          <input type="checkbox" class="no-photo-checkbox" data-key="${escHtml(key)}" ${checked} style="width: 16px; height: 16px; cursor: pointer;" />
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 13px; font-weight: 500; color: var(--ink);">${escHtml(s.name)}</div>
+            <div style="font-size: 11px; color: var(--muted-soft);">
+              行政班：${escHtml(s.homeClass)}
+              ${s.classes && s.classes.length > 0 ? ' | 教学班：' + s.classes.map(c => escHtml(c.className)).join(', ') : ''}
+            </div>
+          </div>
+          <label class="file-label" style="padding: 4px 10px; font-size: 11px; flex-shrink: 0;">
+            上传
+            <input type="file" accept="image/*" class="no-photo-upload-input" data-key="${escHtml(key)}" style="display:none;" />
+          </label>
+        </div>`
+      }).join('')}
+    </div>`
+  }
+
+  container.innerHTML = html
+}
+
+function updateNoPhotoSelection() {
+  const countEl = document.getElementById('noPhotoSelectedCount')
+  const batchActionsEl = document.getElementById('noPhotoBatchActions')
+  const uploadBtn = document.getElementById('noPhotoBatchUploadBtn')
+  const ignoreBtn = document.getElementById('noPhotoBatchIgnoreBtn')
+  const fileLabel = document.getElementById('noPhotoBatchFileLabel')
+
+  const count = noPhotoSelected.size
+  countEl.textContent = count
+  batchActionsEl.style.display = count > 0 ? '' : 'none'
+  uploadBtn.style.display = count > 0 && noPhotoBatchFiles.length === 0 ? '' : 'none'
+  ignoreBtn.style.display = count > 0 ? '' : 'none'
+  fileLabel.style.display = count > 0 && noPhotoBatchFiles.length > 0 ? '' : 'none'
+}
+
+// 打开缺照片学生弹窗
+async function openNoPhotoModal() {
+  document.getElementById('unmatchedModalTitle').textContent = '缺照片学生'
+  document.getElementById('unmatchedFilesSection').style.display = 'none'
+  document.getElementById('noPhotoStudentList').innerHTML = '<div style="padding: 32px; text-align: center; color: var(--muted-soft); font-size: 13px;">加载中...</div>'
+  document.getElementById('noPhotoGradeStats').style.display = 'none'
+  document.getElementById('noPhotoBatchActions').style.display = 'none'
+  document.getElementById('unmatchedStudentsModal').classList.add('active')
+  noPhotoBatchFiles = []
+
+  try {
+    const res = await fetch('/admin/api/pool/students-without-photos')
+    const data = await res.json()
+    if (data.ok) {
+      renderNoPhotoStudents(data.students)
+    } else {
+      document.getElementById('noPhotoStudentList').innerHTML = '<div style="padding: 16px; text-align: center; color: var(--error); font-size: 12px;">加载失败</div>'
+    }
+  } catch {
+    document.getElementById('noPhotoStudentList').innerHTML = '<div style="padding: 16px; text-align: center; color: var(--error); font-size: 12px;">网络错误</div>'
   }
 }
 
-// 上传后弹窗：显示未匹配文件 + 缺照片学生
+// 批量上传后弹窗：显示未匹配文件 + 缺照片学生
 function openUnmatchedModal(unmatchedFiles, unmatchedStudents) {
   document.getElementById('unmatchedModalTitle').textContent = '上传结果'
   const filesSection = document.getElementById('unmatchedFilesSection')
@@ -874,65 +988,52 @@ function openUnmatchedModal(unmatchedFiles, unmatchedStudents) {
     filesSection.style.display = 'none'
   }
 
-  renderUnmatchedStudentsList(unmatchedStudents)
+  renderNoPhotoStudents(unmatchedStudents || [])
   document.getElementById('unmatchedStudentsModal').classList.add('active')
 }
 
-// 手动查看：仅显示缺照片学生
-async function openNoPhotoModal() {
-  document.getElementById('unmatchedModalTitle').textContent = '缺照片学生'
-  document.getElementById('unmatchedFilesSection').style.display = 'none'
-  document.getElementById('unmatchedStudentsList').innerHTML = '<div style="padding: 16px; text-align: center; color: var(--muted-soft); font-size: 12px;">加载中...</div>'
-  document.getElementById('unmatchedStudentsModal').classList.add('active')
-
-  try {
-    const res = await fetch('/admin/api/pool/students-without-photos')
-    const data = await res.json()
-    if (data.ok) {
-      renderUnmatchedStudentsList(data.students)
-    } else {
-      document.getElementById('unmatchedStudentsList').innerHTML = '<div style="padding: 16px; text-align: center; color: var(--error); font-size: 12px;">加载失败</div>'
-    }
-  } catch {
-    document.getElementById('unmatchedStudentsList').innerHTML = '<div style="padding: 16px; text-align: center; color: var(--error); font-size: 12px;">网络错误</div>'
-  }
-}
-
-document.getElementById('viewNoPhotoBtn').addEventListener('click', openNoPhotoModal)
-
+// 关闭弹窗
 function closeUnmatchedModal() {
   document.getElementById('unmatchedStudentsModal').classList.remove('active')
+  noPhotoStudents = []
+  noPhotoSelected.clear()
+  noPhotoBatchFiles = []
 }
 
 document.getElementById('unmatchedStudentsModal').addEventListener('click', (e) => {
   if (e.target === e.currentTarget) closeUnmatchedModal()
 })
 
-function checkUnmatchedModalEmpty() {
-  const list = document.getElementById('unmatchedStudentsList')
-  if (list.children.length === 0) {
-    list.innerHTML = '<div style="padding: 16px; text-align: center; color: var(--muted-soft); font-size: 12px;">所有学生已有照片</div>'
+// 复选框选择
+document.addEventListener('change', (e) => {
+  if (e.target.classList.contains('no-photo-checkbox')) {
+    const key = e.target.dataset.key
+    if (e.target.checked) noPhotoSelected.add(key)
+    else noPhotoSelected.delete(key)
+    updateNoPhotoSelection()
   }
-}
+})
 
-// Unmatched student photo upload
+// 单个上传
 document.addEventListener('change', async (e) => {
-  if (e.target.classList.contains('unmatched-photo-input')) {
+  if (e.target.classList.contains('no-photo-upload-input')) {
     const file = e.target.files[0]
     if (!file) return
-    const studentId = parseInt(e.target.dataset.studentId)
-    const classId = parseInt(e.target.dataset.classId)
+    const key = e.target.dataset.key
+    const student = noPhotoStudents.find(s => `${s.name}|||${s.homeClass}` === key)
+    if (!student) return
+
     const fd = new FormData()
     fd.append('file', file)
-    const res = await fetch(`/admin/api/pool/classes/${classId}/students/${studentId}/photo`, {
+    const res = await fetch(`/admin/api/pool/students/by-name/photo?name=${encodeURIComponent(student.name)}&homeClass=${encodeURIComponent(student.homeClass)}`, {
       method: 'POST', body: fd
     })
     const data = await res.json()
     if (data.ok) {
       showToast('照片已上传')
-      const item = e.target.closest('.unmatched-student-item')
-      if (item) item.remove()
-      checkUnmatchedModalEmpty()
+      noPhotoSelected.delete(key)
+      noPhotoStudents = noPhotoStudents.filter(s => `${s.name}|||${s.homeClass}` !== key)
+      renderNoPhotoStudents(noPhotoStudents)
       if (currentClassId) loadClassStudents(currentClassId)
     } else {
       showToast(data.message || '上传失败', false)
@@ -940,6 +1041,66 @@ document.addEventListener('change', async (e) => {
     e.target.value = ''
   }
 })
+
+// 批量忽略
+document.getElementById('noPhotoBatchIgnoreBtn').addEventListener('click', () => {
+  noPhotoStudents = noPhotoStudents.filter(s => !noPhotoSelected.has(`${s.name}|||${s.homeClass}`))
+  noPhotoSelected.clear()
+  renderNoPhotoStudents(noPhotoStudents)
+  showToast('已忽略')
+})
+
+// 批量上传按钮
+document.getElementById('noPhotoBatchUploadBtn').addEventListener('click', () => {
+  document.getElementById('noPhotoBatchFileInput').click()
+})
+
+// 批量上传文件选择
+document.getElementById('noPhotoBatchFileInput').addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files)
+  if (files.length === 0) return
+  noPhotoBatchFiles = files
+  updateNoPhotoSelection()
+
+  const selectedStudents = noPhotoStudents.filter(s => noPhotoSelected.has(`${s.name}|||${s.homeClass}`))
+  if (files.length !== selectedStudents.length) {
+    showToast(`请选择 ${selectedStudents.length} 张照片（当前选中 ${selectedStudents.length} 名学生）`, false)
+    return
+  }
+
+  // 逐一上传
+  let successCount = 0
+  for (let i = 0; i < selectedStudents.length; i++) {
+    const student = selectedStudents[i]
+    const file = files[i]
+
+    const fd = new FormData()
+    fd.append('file', file)
+    try {
+      const res = await fetch(`/admin/api/pool/students/by-name/photo?name=${encodeURIComponent(student.name)}&homeClass=${encodeURIComponent(student.homeClass)}`, {
+        method: 'POST', body: fd
+      })
+      const data = await res.json()
+      if (data.ok) successCount++
+    } catch { /* skip */ }
+  }
+
+  showToast(`批量上传完成：${successCount}/${selectedStudents.length} 成功`)
+  // 移除成功的学生
+  noPhotoStudents = noPhotoStudents.filter(s => {
+    const key = `${s.name}|||${s.homeClass}`
+    const idx = selectedStudents.findIndex(ss => `${ss.name}|||${ss.homeClass}` === key)
+    if (idx >= 0) return false
+    return true
+  })
+  noPhotoSelected.clear()
+  noPhotoBatchFiles = []
+  renderNoPhotoStudents(noPhotoStudents)
+  if (currentClassId) loadClassStudents(currentClassId)
+  e.target.value = ''
+})
+
+// === ZIP Match Modal - Same-name conflict resolution ===
 
 // === Photo Conflict Resolution Modal ===
 
