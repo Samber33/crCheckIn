@@ -970,6 +970,9 @@ async function openNoPhotoModal() {
   }
 }
 
+// 绑定按钮事件
+document.getElementById('viewNoPhotoBtn').addEventListener('click', openNoPhotoModal)
+
 // 批量上传后弹窗：显示未匹配文件 + 缺照片学生
 function openUnmatchedModal(unmatchedFiles, unmatchedStudents) {
   document.getElementById('unmatchedModalTitle').textContent = '上传结果'
