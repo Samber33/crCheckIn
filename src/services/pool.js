@@ -172,6 +172,9 @@ export async function getPoolClasses(opts = {}) {
     const key = `${s.name}|||${hc}`
     if (!uniqueStudentMap.has(key)) {
       uniqueStudentMap.set(key, { hasPhoto: !!s.photoUrl })
+    } else if (s.photoUrl) {
+      // 如果已有记录但没有照片，而当前记录有照片，则更新
+      uniqueStudentMap.get(key).hasPhoto = true
     }
   }
   const totalUniqueStudents = uniqueStudentMap.size
@@ -195,6 +198,9 @@ export async function getPoolClasses(opts = {}) {
       const key = `${s.name}|||${hc}`
       if (!gradeUniqueMap.has(key)) {
         gradeUniqueMap.set(key, { hasPhoto: !!s.photoUrl })
+      } else if (s.photoUrl) {
+        // 如果已有记录但没有照片，而当前记录有照片，则更新
+        gradeUniqueMap.get(key).hasPhoto = true
       }
     }
     gradeWithoutPhotos[grade] = [...gradeUniqueMap.values()].filter(v => !v.hasPhoto).length
