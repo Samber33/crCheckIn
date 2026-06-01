@@ -117,7 +117,8 @@ export default async function teacherRoutes(app) {
     const maxStudentCount = Math.max(...classes.map(c => c.studentCount), 1)
 
     // Fetch pool classes for claim UI
-    const poolClasses = await getPoolClasses({ teacherId })
+    const poolData = await getPoolClasses({ teacherId })
+    const poolClasses = Object.values(poolData.classes).flat()
 
     noCache(reply)
     return reply.view('teacher/classes.html', {
