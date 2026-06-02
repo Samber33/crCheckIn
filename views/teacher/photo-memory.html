@@ -331,14 +331,23 @@
       font-weight: 800;
     }
     .annotated-name ruby {
+      position: relative;
+      display: inline-block;
       ruby-align: center;
       ruby-position: over;
     }
     .annotated-name rt {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      width: max-content;
       color: var(--primary, #cc785c);
       font-size: .5em;
       font-weight: 600;
+      line-height: 1;
       letter-spacing: 1px;
+      transform: translate(-50%, -.12em);
+      white-space: nowrap;
     }
     .swipe-cue {
       position: absolute;
