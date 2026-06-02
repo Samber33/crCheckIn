@@ -1,6 +1,7 @@
 import { getClasses } from '../services/class.js'
 import { teacherRequired, classOwnerRequired } from '../utils/auth.js'
 import { prisma } from '../plugins/db.js'
+import { nameToPinyin } from '../utils/pinyin.js'
 import { getSessionDetailForTeacher, getSessionRosterForTeacher } from '../services/attendance.js'
 import { getPoolClasses, uploadStudentPhoto, deleteStudentPhoto } from '../services/pool.js'
 import { getSeatGrids, getSeatGridsFromArchivedRecords, getSeatGridsWithTags } from '../services/seat.js'
@@ -49,12 +50,16 @@ async function getPhotoMemoryClasses(teacherId, isAdmin, selectedClassId = null)
   })
 
   return classes.map((cls) => {
-    const students = cls.students.map((student) => ({
-      id: String(student.id),
-      name: student.name,
-      homeClass: student.homeClass || '',
-      photoUrl: student.photoUrl || '',
-    }))
+    const students = cls.students.map((student) => {
+      const pinyinData = nameToPinyin(student.name)
+      return {
+        id: String(student.id),
+        name: student.name,
+        pinyin: pinyinData.toned,
+        homeClass: student.homeClass || '',
+        photoUrl: student.photoUrl || '',
+      }
+    })
     const playableCount = students.filter((student) => student.photoUrl).length
 
     return {
@@ -117,11 +122,28 @@ export default async function teacherRoutes(app) {
     const maxStudentCount = Math.max(...classes.map(c => c.studentCount), 1)
 
     // Fetch pool classes for claim UI
-    const poolClasses = await getPoolClasses({ teacherId })
+    const poolData = await getPoolClasses({ teacherId })
+    const poolClasses = Object.values(poolData.classes).flat()
+
+    // Group classes by grade and convert to array for template
+    const gradeOrder = ['高一', '高二', '高三', '高四', '其他']
+    const classesGrouped = []
+    for (const grade of gradeOrder) {
+      classesGrouped.push({ grade, classes: [] })
+    }
+    for (const cls of classes) {
+      const grade = cls.grade || '其他'
+      const group = classesGrouped.find(g => g.grade === grade)
+      if (group) {
+        group.classes.push(cls)
+      } else {
+        classesGrouped[classesGrouped.length - 1].classes.push(cls)
+      }
+    }
 
     noCache(reply)
     return reply.view('teacher/classes.html', {
-      classes,
+      classes: classesGrouped,
       teacher: { id: teacher.id, username: teacher.username, isAdmin: teacher.isAdmin },
       maxStudentCount,
       showArchived,
@@ -292,7 +314,7 @@ export default async function teacherRoutes(app) {
   })
 
   // Student photo upload (teacher-facing)
-  app.post('/api/classes/:classId/students/:studentId/photo', { preHandler: classOwnerRequired }, async (request, reply) => {
+  app.post('/api/classes/:classId/students/:studentId/photo', { preHandler: classOwnerRequired, config: { bodyLimit: 10 * 1024 * 1024 } }, async (request, reply) => {
     const classId = request.classId
     const studentId = parseInt(request.params.studentId, 10)
     try {

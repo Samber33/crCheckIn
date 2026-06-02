@@ -4,6 +4,7 @@ import { prisma } from './src/plugins/db.js'
 import { seed } from './prisma/seed.js'
 import { deployDatabase } from './src/utils/database.js'
 import { migrateTeacherClassesToPool } from './src/utils/migrate-classes-to-pool.js'
+import { isExpiredCheckPaused } from './src/services/expiredCheck.js'
 
 // 启动超时：30 秒
 const STARTUP_TIMEOUT_MS = 30_000
@@ -33,6 +34,7 @@ try {
 
   // 运行时每分钟检查一次过期倒计时
   expiredCheckInterval = setInterval(async () => {
+    if (isExpiredCheckPaused()) return
     try {
       await recoverExpiredCountdowns()
     } catch (err) {
@@ -68,10 +70,10 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'))
 // 未捕获异常兜底
 process.on('uncaughtException', (err) => {
   console.error('[fatal] uncaught exception:', err)
-  gracefulShutdown('uncaughtException')
+  gracefulShutdown('uncaughtException').then(() => process.exit(1))
 })
 
 process.on('unhandledRejection', (reason) => {
   console.error('[fatal] unhandled rejection:', reason)
-  gracefulShutdown('unhandledRejection')
+  gracefulShutdown('unhandledRejection').then(() => process.exit(1))
 })

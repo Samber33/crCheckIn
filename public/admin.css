@@ -522,17 +522,26 @@ select.input-field:disabled {
   border-color: #d5cec5;
 }
 
-.confirm-btn.danger,
-.confirm-btn.primary {
+.confirm-btn.danger {
   background: var(--error);
   color: #fff;
   border-color: var(--error);
 }
 
-.confirm-btn.danger:hover,
-.confirm-btn.primary:hover {
+.confirm-btn.danger:hover {
   background: #b53d3d;
   border-color: #b53d3d;
+}
+
+.confirm-btn.primary {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.confirm-btn.primary:hover {
+  background: var(--primary-active);
+  border-color: var(--primary-active);
 }
 
 .confirm-btn.warn {

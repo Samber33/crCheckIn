@@ -3,16 +3,18 @@ import { pinyin } from 'pinyin-pro'
 const cache = new Map()
 
 /**
- * 将中文姓名转换为拼音全拼和首字母。
+ * 将中文姓名转换为拼音全拼、首字母和带声调拼音。
  * @param {string} name - 中文姓名
- * @returns {{ full: string, initials: string }}  e.g. { full: "zhangsan", initials: "zs" }
+ * @returns {{ full: string, initials: string, toned: string }}  e.g. { full: "zhangsan", initials: "zs", toned: "zhāng sān" }
  */
 export function nameToPinyin(name) {
   if (cache.has(name)) return cache.get(name)
   const arr = pinyin(name, { toneType: 'none', type: 'array' })
   const full = arr.join('')
   const initials = arr.map(w => w[0]).join('')
-  const result = { full, initials }
+  const tonedArr = pinyin(name, { toneType: 'symbol', type: 'array' })
+  const toned = tonedArr.join(' ')
+  const result = { full, initials, toned }
   cache.set(name, result)
   return result
 }

@@ -20,6 +20,7 @@ model Teacher {
 model Class {
   id            Int            @id @default(autoincrement())
   name          String
+  school        String         @default("")  // 学校名称，如"镇海中学"、"蛟川书院"
   teacherId     Int?
   teacher       Teacher?       @relation(fields: [teacherId], references: [id])
   isArchived    Boolean        @default(false)

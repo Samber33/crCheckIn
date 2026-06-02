@@ -205,7 +205,7 @@ export default async function apiRoutes(fastify) {
   })
 
   // POST /api/import — 需要 teacherRequired
-  fastify.post('/api/import', { preHandler: teacherRequired }, async (request, reply) => {
+  fastify.post('/api/import', { preHandler: teacherRequired, config: { bodyLimit: 50 * 1024 * 1024 } }, async (request, reply) => {
     try {
       let fileBuffer = null
       for await (const part of request.parts()) {
@@ -666,7 +666,7 @@ export default async function apiRoutes(fastify) {
   })
 
   // POST /api/info-upload — 上传附件，需要 classOwnerRequired（用于教师端测试）
-  fastify.post('/api/info-upload', { preHandler: classOwnerRequired }, async (request, reply) => {
+  fastify.post('/api/info-upload', { preHandler: classOwnerRequired, config: { bodyLimit: 50 * 1024 * 1024 } }, async (request, reply) => {
     try {
       let fileBuffer = null
       let filename = 'unknown'

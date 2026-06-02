@@ -30,11 +30,15 @@ export async function getClasses(teacherId, { includeArchived = false } = {}) {
     const cfg = cls.signInConfig
     const isSigning = cfg && cfg.activeStartedAt &&
       now < new Date(cfg.activeStartedAt.getTime() + cfg.countdownDurationMin * 60 * 1000)
+    // 从班级名提取年级
+    const gradeChar = cls.name.match(/([一二三四五六七八九十])/)?.[1]
+    const grade = gradeChar ? { '一': '高一', '二': '高二', '三': '高三', '四': '高四' }[gradeChar] : '其他'
     return {
       ...cls,
       studentCount: cls._count.students,
       signedCount: cls._count.signInRecords,
       isSigning,
+      grade,
     }
   })
 }

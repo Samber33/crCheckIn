@@ -1,5 +1,7 @@
 import { adminRequired, teacherRequired } from '../utils/auth.js'
 import { prisma } from '../plugins/db.js'
+import fs from 'fs/promises'
+import path from 'path'
 import {
   getPoolClasses,
   getPoolSemesters,
@@ -19,6 +21,12 @@ import {
   batchUploadPoolPhotos,
   getStudentsWithoutPhotos,
   resolvePhotoConflict,
+  uploadZipForMatching,
+  getZipMatchProgress,
+  startZipMatching,
+  cancelZipMatch,
+  resolveZipConflict,
+  ZIP_JOBS,
 } from '../services/pool.js'
 
 export default async function poolRoutes(app) {
@@ -28,10 +36,22 @@ export default async function poolRoutes(app) {
     const semester = request.query.semester
     const view = request.query.view
     const isRecycleView = view === 'recycle'
-    const classes = isRecycleView ? [] : await getPoolClasses(semester !== undefined ? { semester } : {})
+    const poolData = isRecycleView
+      ? { classes: {}, totalClassCount: 0, totalUniqueStudents: 0, totalWithoutPhotos: 0, gradeWithoutPhotos: {} }
+      : await getPoolClasses(semester !== undefined ? { semester } : {})
     const semesters = await getPoolSemesters()
     const recycleBin = await getRecycleBinClasses()
-    return reply.view('admin/pool.html', { classes, semesters, currentSemester: semester || '', recycleBin, isRecycleView })
+    return reply.view('admin/pool.html', {
+      classes: poolData.classes,
+      totalClassCount: poolData.totalClassCount,
+      totalUniqueStudents: poolData.totalUniqueStudents,
+      totalWithoutPhotos: poolData.totalWithoutPhotos,
+      gradeWithoutPhotos: poolData.gradeWithoutPhotos,
+      semesters,
+      currentSemester: semester || '',
+      recycleBin,
+      isRecycleView,
+    })
   })
 
   // === API: 班级池 ===
@@ -98,7 +118,7 @@ export default async function poolRoutes(app) {
 
   // === API: Excel 导入学生到班级池 ===
 
-  app.post('/admin/api/pool/classes/:id/import', { preHandler: adminRequired }, async (request, reply) => {
+  app.post('/admin/api/pool/classes/:id/import', { preHandler: adminRequired, config: { bodyLimit: 50 * 1024 * 1024 } }, async (request, reply) => {
     const classId = parseInt(request.params.id, 10)
     try {
       let fileBuffer = null
@@ -119,7 +139,7 @@ export default async function poolRoutes(app) {
 
   // === API: 上传学生照片 ===
 
-  app.post('/admin/api/pool/classes/:id/students/:studentId/photo', { preHandler: adminRequired }, async (request, reply) => {
+  app.post('/admin/api/pool/classes/:id/students/:studentId/photo', { preHandler: adminRequired, config: { bodyLimit: 10 * 1024 * 1024 } }, async (request, reply) => {
     const classId = parseInt(request.params.id, 10)
     const studentId = parseInt(request.params.studentId, 10)
     try {
@@ -143,7 +163,7 @@ export default async function poolRoutes(app) {
 
   app.post('/admin/api/pool/classes/:id/photos/bulk', {
     preHandler: adminRequired,
-    config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
+    config: { bodyLimit: 500 * 1024 * 1024, rateLimit: { max: 5, timeWindow: '1 minute' } },
   }, async (request, reply) => {
     const classId = parseInt(request.params.id, 10)
     try {
@@ -164,7 +184,7 @@ export default async function poolRoutes(app) {
 
   // === API: 批量导入学生到班级池 ===
 
-  app.post('/admin/api/pool/batch-import', { preHandler: adminRequired }, async (request, reply) => {
+  app.post('/admin/api/pool/batch-import', { preHandler: adminRequired, config: { bodyLimit: 50 * 1024 * 1024 } }, async (request, reply) => {
     try {
       let fileBuffer = null
       for await (const part of request.parts()) {
@@ -186,7 +206,7 @@ export default async function poolRoutes(app) {
 
   app.post('/admin/api/pool/batch-photos', {
     preHandler: adminRequired,
-    config: { rateLimit: { max: 5, timeWindow: '1 minute' } }, // 限制批量上传频率
+    config: { bodyLimit: 500 * 1024 * 1024, rateLimit: { max: 5, timeWindow: '1 minute' } }, // 限制批量上传频率
   }, async (request, reply) => {
     try {
       const files = []
@@ -206,7 +226,7 @@ export default async function poolRoutes(app) {
 
   // === API: 解决照片冲突（同名学生手动匹配）===
 
-  app.post('/admin/api/pool/photos/resolve', {
+  app.post('/admin/api/pool/photos/resolve', { config: { bodyLimit: 10 * 1024 * 1024 },
     preHandler: adminRequired,
   }, async (request, reply) => {
     try {
@@ -249,6 +269,47 @@ export default async function poolRoutes(app) {
     return reply.send({ ok: true, students })
   })
 
+  // === API: 按 name+homeClass 上传照片（跨所有教学班）===
+
+  app.post('/admin/api/pool/students/by-name/photo', { preHandler: adminRequired, config: { bodyLimit: 10 * 1024 * 1024 } }, async (request, reply) => {
+    try {
+      let fileBuffer = null
+      let filename = 'photo.jpg'
+      for await (const part of request.parts()) {
+        if (part.type === 'file') {
+          fileBuffer = await part.toBuffer()
+          filename = part.filename || 'photo.jpg'
+        }
+      }
+      if (!fileBuffer) return reply.code(400).send({ ok: false, message: '请上传图片' })
+
+      const { name, homeClass } = request.query ?? {}
+      if (!name || !homeClass) return reply.code(400).send({ ok: false, message: '请提供学生姓名和行政班' })
+
+      // 找到该学生在所有教学班的记录
+      const poolClasses = await prisma.class.findMany({
+        where: { teacherId: null, deletedAt: null },
+        include: { students: { where: { name, homeClass } } },
+      })
+
+      let matchedCount = 0
+      for (const cls of poolClasses) {
+        for (const student of cls.students) {
+          const result = await uploadStudentPhoto(cls.id, student.id, fileBuffer, filename)
+          if (result.ok) matchedCount++
+        }
+      }
+
+      if (matchedCount === 0) {
+        return reply.code(404).send({ ok: false, message: '未找到对应学生' })
+      }
+
+      return reply.send({ ok: true, matchedClasses: matchedCount })
+    } catch (err) {
+      return reply.code(500).send({ ok: false, message: '上传失败：' + err.message })
+    }
+  })
+
   // === API: 删除学生照片 ===
 
   app.delete('/admin/api/pool/classes/:classId/students/:studentId/photo', { preHandler: adminRequired }, async (request, reply) => {
@@ -284,7 +345,112 @@ export default async function poolRoutes(app) {
   // === API: 获取可认领的班级池列表（教师端调用） ===
 
   app.get('/api/pool/classes', { preHandler: teacherRequired }, async (request, reply) => {
-    const classes = await getPoolClasses({ teacherId: request.session.teacherId })
+    const poolData = await getPoolClasses({ teacherId: request.session.teacherId })
+    // 将按年级分组的对象展平为数组
+    const classes = Object.values(poolData.classes).flat()
     return reply.send({ ok: true, classes })
+  })
+
+  // === API: ZIP 照片匹配 ===
+
+  // 上传 ZIP 并解压
+  app.post('/admin/api/pool/zip-upload', { config: { bodyLimit: 500 * 1024 * 1024 },
+    preHandler: adminRequired,
+  }, async (request, reply) => {
+    try {
+      let fileBuffer = null
+      for await (const part of request.parts()) {
+        if (part.type === 'file') {
+          const buf = await part.toBuffer()
+          fileBuffer = buf
+        }
+      }
+      if (!fileBuffer) return reply.code(400).send({ ok: false, message: '请上传 ZIP 文件' })
+      const result = await uploadZipForMatching(fileBuffer)
+      return reply.send(result)
+    } catch (err) {
+      return reply.code(500).send({ ok: false, message: '上传失败：' + err.message })
+    }
+  })
+
+  // 获取匹配进度
+  app.get('/admin/api/pool/zip-progress/:jobId', { preHandler: adminRequired }, async (request, reply) => {
+    const jobId = request.params.jobId
+    const progress = getZipMatchProgress(jobId)
+    if (!progress) return reply.code(404).send({ ok: false, message: '任务不存在' })
+    return reply.send(progress)
+  })
+
+  // 启动匹配
+  app.post('/admin/api/pool/zip-match/:jobId', { preHandler: adminRequired }, async (request, reply) => {
+    const jobId = request.params.jobId
+    const { skipExisting } = request.body ?? {}
+    const result = await startZipMatching(jobId, { skipExisting })
+    return reply.send(result)
+  })
+
+  // 取消匹配任务
+  app.delete('/admin/api/pool/zip-match/:jobId', { preHandler: adminRequired }, async (request, reply) => {
+    const jobId = request.params.jobId
+    const result = await cancelZipMatch(jobId)
+    return reply.send(result)
+  })
+
+  // 获取冲突照片预览
+  app.get('/admin/api/pool/zip-conflict-photo/:jobId/:idx', {
+    preHandler: adminRequired,
+  }, async (request, reply) => {
+    const job = ZIP_JOBS.get(request.params.jobId)
+    if (!job || !job.conflicts || !job.conflicts[request.params.idx]) {
+      return reply.code(404).send({ ok: false, message: '照片不存在' })
+    }
+    const conflict = job.conflicts[request.params.idx]
+    try {
+      const buf = await fs.readFile(conflict.filePath)
+      const ext = path.extname(conflict.filename).toLowerCase()
+      const mimeMap = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp' }
+      reply.header('Content-Type', mimeMap[ext] || 'image/jpeg')
+      reply.header('Cache-Control', 'private, max-age=300')
+      return reply.send(buf)
+    } catch {
+      return reply.code(404).send({ ok: false, message: '照片文件不存在' })
+    }
+  })
+
+  // 解决同名冲突
+  app.post('/admin/api/pool/photos/resolve-zip', { config: { bodyLimit: 10 * 1024 * 1024 },
+    preHandler: adminRequired,
+  }, async (request, reply) => {
+    try {
+      let fileBuffer = null
+      let filename = 'photo.jpg'
+      let studentId = null
+      let classId = null
+      for await (const part of request.parts()) {
+        if (part.type === 'file') {
+          fileBuffer = await part.toBuffer()
+          filename = part.filename || 'photo.jpg'
+        } else if (part.fieldname === 'studentId') {
+          studentId = part.value
+        } else if (part.fieldname === 'classId') {
+          classId = part.value
+        }
+      }
+      if (!fileBuffer) return reply.code(400).send({ ok: false, message: '请上传图片' })
+
+      if (!studentId || !classId) {
+        return reply.code(400).send({ ok: false, message: '请指定学生和班级' })
+      }
+
+      const result = await resolveZipConflict({
+        studentId: parseInt(studentId, 10),
+        classId: parseInt(classId, 10),
+        buffer: fileBuffer,
+        filename,
+      })
+      return reply.send(result)
+    } catch (err) {
+      return reply.code(500).send({ ok: false, message: '匹配失败：' + err.message })
+    }
   })
 }

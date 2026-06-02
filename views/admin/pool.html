@@ -51,17 +51,29 @@
           </div>
           <div class="sidebar-body">
             <div style="display: flex; gap: 16px;">
-              {% set totalStudents = 0 %}
-              {% for cls in classes %}{% set totalStudents = totalStudents + cls.studentCount %}{% endfor %}
               <div style="flex:1; text-align:center; padding:12px; background:var(--surface-soft); border-radius:8px;">
-                <p style="font-family:Georgia,serif; font-size:28px; font-weight:400; color:var(--primary); margin:0;">{{ classes | length }}</p>
+                <p style="font-family:Georgia,serif; font-size:28px; font-weight:400; color:var(--primary); margin:0;">{{ totalClassCount }}</p>
                 <p style="font-size:12px; color:var(--muted-soft); margin:4px 0 0;">个班级</p>
               </div>
               <div style="flex:1; text-align:center; padding:12px; background:var(--surface-soft); border-radius:8px;">
-                <p style="font-family:Georgia,serif; font-size:28px; font-weight:400; color:var(--primary); margin:0;">{{ totalStudents }}</p>
+                <p style="font-family:Georgia,serif; font-size:28px; font-weight:400; color:var(--primary); margin:0;">{{ totalUniqueStudents }}</p>
                 <p style="font-size:12px; color:var(--muted-soft); margin:4px 0 0;">名学生</p>
               </div>
+              <div style="flex:1; text-align:center; padding:12px; background:var(--surface-soft); border-radius:8px;">
+                <p style="font-family:Georgia,serif; font-size:28px; font-weight:400; color:var(--error); margin:0;">{{ totalWithoutPhotos }}</p>
+                <p style="font-size:12px; color:var(--muted-soft); margin:4px 0 0;">缺照片</p>
+              </div>
             </div>
+            {% if totalWithoutPhotos > 0 %}
+            <div style="margin-top: 12px; padding: 10px 14px; background: var(--surface-soft); border-radius: 8px; font-size: 12px;">
+              <span style="color: var(--muted-soft);">各年级缺照片：</span>
+              {% for grade in ['高一', '高二', '高三'] %}
+                {% if gradeWithoutPhotos[grade] > 0 %}
+                <span style="margin-right: 12px;">{{ grade }} <strong style="color: var(--error);">{{ gradeWithoutPhotos[grade] }}</strong> 人</span>
+                {% endif %}
+              {% endfor %}
+            </div>
+            {% endif %}
           </div>
         </div>
 
@@ -91,28 +103,29 @@
           </div>
         </div>
 
-        <!-- Batch Photo Upload -->
+        <!-- ZIP Photo Match -->
         <div class="sidebar-card">
           <div class="sidebar-header">
-            <p class="sidebar-title">批量导入照片</p>
+            <p class="sidebar-title">ZIP 照片匹配</p>
           </div>
           <div class="sidebar-body">
-            <p style="font-size: 12px; color: var(--muted-soft); margin: 0 0 12px;">文件名直接匹配学生姓名（如 张三.jpg），跨所有班级池班级自动匹配。</p>
+            <p style="font-size: 12px; color: var(--muted-soft); margin: 0 0 12px;">上传按学校/班级分文件夹的照片 ZIP 包，自动匹配到对应班级和学生。</p>
             <label class="file-label" style="width: 100%; justify-content: center;">
               <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"/>
               </svg>
-              选择照片（可多选）
-              <input type="file" accept="image/*" multiple id="batchPhotoFile" style="display:none;" />
+              选择 ZIP 文件
+              <input type="file" accept=".zip" id="zipPhotoFile" style="display:none;" />
             </label>
-            <div id="batchPhotoInfo" style="display: none; margin-top: 10px; padding: 8px 12px; background: var(--surface-soft); border-radius: 6px; font-size: 12px; color: var(--muted-soft);">
-              已选择 <span id="batchPhotoCount" style="color: var(--ink); font-weight: 500;"></span> 张照片
+            <div id="zipFileInfo" style="display: none; margin-top: 10px; padding: 8px 12px; background: var(--surface-soft); border-radius: 6px; font-size: 12px;">
+              <span id="zipFileName" style="color: var(--ink); font-weight: 500;"></span>
+              <span id="zipFileSize" style="color: var(--muted-soft);"></span>
             </div>
-            <button id="batchPhotoBtn" class="btn btn-primary" style="width: 100%; margin-top: 12px; display: none; background: var(--info);">
+            <button id="zipUploadBtn" class="btn btn-primary" style="width: 100%; margin-top: 12px; display: none; background: var(--warning, #d4a017);">
               <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3"/>
               </svg>
-              批量上传照片
+              上传并匹配
             </button>
           </div>
         </div>
@@ -147,7 +160,7 @@
             <svg style="width:12px;height:12px;margin-right:4px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
             回收站{% if recycleBin.length > 0 %} ({{ recycleBin.length }}){% endif %}
           </a>
-          {% if not currentSemester and classes.length > 0 %}
+          {% if not currentSemester and totalClassCount > 0 %}
           <button id="archiveSemesterBtn" class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px; margin-left: auto;">归档当前学期</button>
           {% endif %}
           {% if currentSemester %}
@@ -155,6 +168,7 @@
           {% endif %}
         </div>
 
+        {% if not isRecycleView and totalClassCount > 0 %}
         <div class="pool-filter-bar" id="poolFilters">
           <div class="pool-filter-set">
             <span class="pool-filter-label">方向</span>
@@ -175,6 +189,7 @@
           </div>
           <span class="pool-filter-result" id="poolFilterResult"></span>
         </div>
+        {% endif %}
 
         {% if isRecycleView %}
           <!-- Recycle Bin View -->
@@ -183,7 +198,7 @@
           {% else %}
           <div class="pool-grid">
             {% for cls in recycleBin %}
-            <div class="pool-class-card {% if cls.assessmentType %}pool-class-card--{{ cls.assessmentType }}{% endif %}" data-pool-class-name="{{ cls.name }}" style="opacity: 0.75;">
+            <div class="pool-class-card {% if cls.assessmentType %}pool-class-card--{{ cls.assessmentType }}{% endif %}" style="opacity: 0.75;">
               <div class="pool-class-head" style="cursor: default;">
                 <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
                   <span class="pool-class-name">{{ cls.name }}</span>
@@ -201,27 +216,44 @@
           {% endif %}
         {% else %}
           <!-- Normal Pool View -->
-          {% if classes.length === 0 %}
+          {% if not classes or classes|length === 0 or (classes['高一']|length === 0 and classes['高二']|length === 0 and classes['高三']|length === 0) %}
           <div class="empty-state" style="background: #fff; border-radius: 12px; border: 1px solid var(--hairline); padding: 48px;">{% if currentSemester %}该学期暂无班级{% else %}暂无班级池班级{% endif %}</div>
           {% else %}
-          <div class="pool-grid">
-            {% for cls in classes %}
-            <div class="pool-class-card {% if cls.assessmentType %}pool-class-card--{{ cls.assessmentType }}{% endif %} {% if cls.claimedByAnyTeacher %}pool-class-claimed{% endif %}" data-class-id="{{ cls.id }}" data-pool-class-name="{{ cls.name }}">
-              <div class="pool-class-head" data-action="open-modal" data-class-id="{{ cls.id }}">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <span class="pool-class-name">{{ cls.name }}</span>
-                  <span class="pool-class-meta">{{ cls.studentCount }} 名学生</span>
-                  {% if cls.claimedByAnyTeacher %}
-                  <span style="font-size: 11px; padding: 2px 8px; background: var(--surface-soft); border-radius: 10px; color: var(--muted-soft);">已认领</span>
+          {% set grades = ['高一', '高二', '高三'] %}
+          {% for grade in grades %}
+          {% set gradeClasses = classes[grade] %}
+          {% if gradeClasses and gradeClasses|length > 0 %}
+          <div class="grade-section" data-grade="{{ grade }}" style="margin-bottom: 12px;">
+            <button class="grade-toggle-btn" style="width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border: 1px solid var(--hairline); border-radius: 10px; background: #fff; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--ink);">
+              <span>{{ grade }}（{{ gradeClasses | length }} 个班级）</span>
+              <svg class="grade-toggle-arrow" style="width: 16px; height: 16px; transition: transform .2s ease;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            <div class="grade-class-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px;">
+              {% for cls in gradeClasses %}
+              <div class="pool-class-card {% if cls.assessmentType %}pool-class-card--{{ cls.assessmentType }}{% endif %} {% if cls.claimedByAnyTeacher %}pool-class-claimed{% endif %}" data-class-id="{{ cls.id }}" data-pool-class-name="{{ cls.name }}">
+                <div class="pool-class-head" data-action="open-modal" data-class-id="{{ cls.id }}">
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <span class="pool-class-name">{{ cls.name }}</span>
+                    <span class="pool-class-meta" style="font-size: 11px;">{{ cls.studentCount }} 名</span>
+                    {% if cls.claimedByAnyTeacher %}
+                    <span style="font-size: 10px; padding: 1px 6px; background: var(--primary); color: #fff; border-radius: 8px; font-weight: 600;">已认领</span>
+                    {% endif %}
+                  </div>
+                  {% if cls.homeClassGroups %}
+                  <div style="font-size: 10px; color: var(--muted-soft); margin-top: 3px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    {% for g in cls.homeClassGroups %}{{ g.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+                  </div>
+                  {% endif %}
+                  {% if not currentSemester %}
+                  <button data-action="delete-class" data-class-id="{{ cls.id }}" data-claimed="{{ cls.claimedByAnyTeacher }}" class="pool-action-btn" style="color: var(--error); font-size: 10px;">删除</button>
                   {% endif %}
                 </div>
-                {% if not currentSemester %}
-                <button data-action="delete-class" data-class-id="{{ cls.id }}" data-claimed="{{ cls.claimedByAnyTeacher }}" class="pool-action-btn" style="color: var(--error);">删除</button>
-                {% endif %}
               </div>
+              {% endfor %}
             </div>
-            {% endfor %}
           </div>
+          {% endif %}
+          {% endfor %}
           {% endif %}
         {% endif %}
         <div class="pool-filter-empty" id="poolFilterEmpty" hidden>没有符合筛选条件的班级</div>
@@ -298,29 +330,60 @@
 
   <!-- Unmatched Students Modal -->
   <div id="unmatchedStudentsModal" class="modal-overlay">
-    <div class="modal-card" style="max-width: 520px;">
+    <div class="modal-card" style="max-width: 720px;">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
         <div class="modal-title" style="margin: 0;" id="unmatchedModalTitle">缺照片学生</div>
         <button class="preset-close-btn" onclick="closeUnmatchedModal()">&times;</button>
       </div>
 
-      <!-- Unmatched files -->
+      <!-- Grade Stats -->
+      <div id="noPhotoGradeStats" style="display: none; margin-bottom: 16px;">
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+          <div style="padding: 10px; background: #f0fdf4; border-radius: 8px; text-align: center;">
+            <p style="font-size: 22px; font-weight: 700; color: #176b31; margin: 0;" id="noPhotoGrade1">0</p>
+            <p style="font-size: 11px; color: #23824a; margin: 2px 0 0;">高一</p>
+          </div>
+          <div style="padding: 10px; background: #fef2f2; border-radius: 8px; text-align: center;">
+            <p style="font-size: 22px; font-weight: 700; color: var(--error); margin: 0;" id="noPhotoGrade2">0</p>
+            <p style="font-size: 11px; color: var(--error); margin: 2px 0 0;">高二</p>
+          </div>
+          <div style="padding: 10px; background: var(--surface-soft); border-radius: 8px; text-align: center;">
+            <p style="font-size: 22px; font-weight: 700; color: var(--muted); margin: 0;" id="noPhotoGrade3">0</p>
+            <p style="font-size: 11px; color: var(--muted-soft); margin: 2px 0 0;">高三</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Batch Actions -->
+      <div id="noPhotoBatchActions" style="display: none; margin-bottom: 12px; padding: 10px; background: var(--surface-soft); border-radius: 8px;">
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <span style="font-size: 12px; color: var(--muted);">已选 <strong id="noPhotoSelectedCount">0</strong> 人</span>
+          <button class="btn btn-primary" id="noPhotoBatchUploadBtn" style="width: auto; padding: 4px 12px; font-size: 11px; display: none;">批量上传照片</button>
+          <button class="btn btn-secondary" id="noPhotoBatchIgnoreBtn" style="width: auto; padding: 4px 12px; font-size: 11px; display: none;">批量忽略</button>
+          <label class="file-label" id="noPhotoBatchFileLabel" style="display: none; padding: 4px 10px; font-size: 11px;">
+            选择照片
+            <input type="file" accept="image/*" multiple id="noPhotoBatchFileInput" style="display: none;" />
+          </label>
+        </div>
+      </div>
+
+      <!-- Unmatched files (from batch upload) -->
       <div id="unmatchedFilesSection" style="display: none; margin-bottom: 16px;">
-        <p style="font-size: 12px; color: var(--muted-soft); margin: 0 0 8px;">以下照片文件名未匹配到学生，可忽略或检查文件名是否正确</p>
+        <p style="font-size: 12px; color: var(--muted-soft); margin: 0 0 8px;">以下照片文件名未匹配到学生：</p>
         <div id="unmatchedFilesList" style="max-height: 120px; overflow-y: auto; border: 1px solid var(--hairline); border-radius: 8px; padding: 8px;"></div>
       </div>
 
-      <!-- Students without photos -->
-      <div>
-        <p style="font-size: 12px; color: var(--muted-soft); margin: 0 0 8px;">以下学生还没有照片，可以上传或忽略</p>
-        <div id="unmatchedStudentsList" style="max-height: 360px; overflow-y: auto; border: 1px solid var(--hairline); border-radius: 8px; background: #fff;"></div>
-      </div>
+      <!-- Students without photos - grouped by grade -->
+      <div id="noPhotoStudentList" style="max-height: 50vh; overflow-y: auto;"></div>
 
       <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
         <button class="btn btn-secondary" onclick="closeUnmatchedModal()">完成</button>
       </div>
     </div>
   </div>
+
+  <!-- Hidden file input for single student upload -->
+  <input type="file" accept="image/*" id="noPhotoSingleFileInput" style="display: none;" />
 
   <!-- Photo Conflict Resolution Modal -->
   <div id="conflictModal" class="modal-overlay">
@@ -333,6 +396,93 @@
       <div id="conflictList" style="max-height: 60vh; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;"></div>
       <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
         <button class="btn btn-secondary" onclick="closeConflictModal()">完成</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ZIP Match Modal -->
+  <div id="zipMatchModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 640px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+        <div class="modal-title" style="margin: 0;" id="zipMatchTitle">ZIP 照片匹配</div>
+        <button class="preset-close-btn" onclick="closeZipMatchModal()">&times;</button>
+      </div>
+
+      <!-- Step 1: Folder structure preview -->
+      <div id="zipStepPreview">
+        <p style="font-size: 12px; color: var(--muted-soft); margin: 0 0 8px;">识别到的文件夹结构：</p>
+        <div id="zipFolderTree" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--hairline); border-radius: 8px; padding: 10px; font-size: 12px; background: #fff; line-height: 1.8;"></div>
+        <div style="margin-top: 12px; display: flex; justify-content: space-between;">
+          <button class="btn btn-secondary" onclick="cancelZipUpload()">取消</button>
+          <button class="btn btn-primary" id="zipStartMatchBtn" onclick="startZipMatch()">开始匹配</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Progress -->
+      <div id="zipStepProgress" style="display: none;">
+        <div style="margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span style="font-size: 13px; font-weight: 500;" id="zipProgressText">匹配中...</span>
+            <span style="font-size: 13px; font-weight: 700; color: var(--primary);" id="zipProgressPercent">0%</span>
+          </div>
+          <div class="progress-track" style="height: 10px; border-radius: 999px; background: var(--surface-soft); overflow: hidden;">
+            <div id="zipProgressBar" style="height: 100%; width: 0; border-radius: inherit; background: var(--primary); transition: width .3s ease;"></div>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px;">
+          <div style="padding: 10px; background: var(--surface-soft); border-radius: 8px; text-align: center;">
+            <p style="font-size: 22px; font-weight: 700; color: var(--primary); margin: 0;" id="zipMatchedCount">0</p>
+            <p style="font-size: 11px; color: var(--muted-soft); margin: 2px 0 0;">已匹配</p>
+          </div>
+          <div style="padding: 10px; background: var(--surface-soft); border-radius: 8px; text-align: center;">
+            <p style="font-size: 22px; font-weight: 700; color: var(--muted); margin: 0;" id="zipTotalCount">0</p>
+            <p style="font-size: 11px; color: var(--muted-soft); margin: 2px 0 0;">总照片</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Results -->
+      <div id="zipStepResults" style="display: none;">
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px;">
+          <div style="padding: 10px; background: #f0fdf4; border-radius: 8px; text-align: center;">
+            <p style="font-size: 22px; font-weight: 700; color: #176b31; margin: 0;" id="zipResultMatched">0</p>
+            <p style="font-size: 11px; color: #23824a; margin: 2px 0 0;">已匹配</p>
+          </div>
+          <div style="padding: 10px; background: #fef2f2; border-radius: 8px; text-align: center;">
+            <p style="font-size: 22px; font-weight: 700; color: var(--error); margin: 0;" id="zipResultUnmatched">0</p>
+            <p style="font-size: 11px; color: var(--error); margin: 2px 0 0;">未匹配</p>
+          </div>
+          <div style="padding: 10px; background: var(--surface-soft); border-radius: 8px; text-align: center;">
+            <p style="font-size: 22px; font-weight: 700; color: var(--muted); margin: 0;" id="zipResultMissing">0</p>
+            <p style="font-size: 11px; color: var(--muted-soft); margin: 2px 0 0;">缺班级</p>
+          </div>
+          <div style="padding: 10px; background: #fff7ed; border-radius: 8px; text-align: center;">
+            <p style="font-size: 22px; font-weight: 700; color: var(--warning, #d4a017); margin: 0;" id="zipResultConflicts">0</p>
+            <p style="font-size: 11px; color: var(--warning, #d4a017); margin: 2px 0 0;">同名待选</p>
+          </div>
+        </div>
+
+        <!-- Missing classes -->
+        <div id="zipMissingSection" style="display: none; margin-bottom: 12px;">
+          <p style="font-size: 12px; font-weight: 500; color: var(--muted); margin: 0 0 6px;">以下班级在池中没有对应，已跳过：</p>
+          <div id="zipMissingList" style="max-height: 120px; overflow-y: auto; border: 1px solid var(--hairline); border-radius: 8px; padding: 8px; background: #fff; font-size: 12px;"></div>
+        </div>
+
+        <!-- Unmatched students -->
+        <div id="zipUnmatchedSection" style="display: none; margin-bottom: 12px;">
+          <p style="font-size: 12px; font-weight: 500; color: var(--muted); margin: 0 0 6px;">以下照片未匹配到学生（该学生可能不在池中）：</p>
+          <div id="zipUnmatchedList" style="max-height: 160px; overflow-y: auto; border: 1px solid var(--hairline); border-radius: 8px; padding: 8px; background: #fff; font-size: 12px;"></div>
+        </div>
+
+        <!-- Same-name conflicts -->
+        <div id="zipConflictsSection" style="display: none; margin-bottom: 12px;">
+          <p style="font-size: 12px; font-weight: 500; color: var(--muted); margin: 0 0 6px;">同名照片需手动选择匹配对象：</p>
+          <div id="zipConflictsList" style="max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end;">
+          <button class="btn btn-secondary" onclick="closeZipMatchModal()">完成</button>
+        </div>
       </div>
     </div>
   </div>
@@ -353,12 +503,8 @@ const poolFilterState = { direction: 'all', grade: 'all' }
 
 function getPoolClassFilters(name) {
   const normalizedName = String(name || '').trim()
-  let grade = ''
+  const grade = normalizedName.match(/[一二三]/)?.[0] || ''
   let direction = ''
-  if (normalizedName.startsWith('一')) grade = '一'
-  else if (normalizedName.startsWith('二')) grade = '二'
-  else if (normalizedName.startsWith('三')) grade = '三'
-
   if (/[通劳]/.test(normalizedName)) direction = '通'
   else if (/[信职]/.test(normalizedName)) direction = '信'
   return { direction, grade }
@@ -372,17 +518,22 @@ function applyPoolClassFilters() {
     const matchesDirection = poolFilterState.direction === 'all' || filters.direction === poolFilterState.direction
     const matchesGrade = poolFilterState.grade === 'all' || filters.grade === poolFilterState.grade
     const isVisible = matchesDirection && matchesGrade
-    card.hidden = !isVisible
+    card.style.display = isVisible ? '' : 'none'
     if (isVisible) visibleCount++
+  })
+
+  document.querySelectorAll('.grade-section').forEach(section => {
+    const hasVisibleCard = [...section.querySelectorAll('.pool-class-card')].some(card => card.style.display !== 'none')
+    section.style.display = hasVisibleCard ? '' : 'none'
   })
 
   const result = document.getElementById('poolFilterResult')
   const empty = document.getElementById('poolFilterEmpty')
-  result.textContent = cards.length ? `${visibleCount} / ${cards.length} 个班级` : ''
-  empty.hidden = cards.length === 0 || visibleCount > 0
+  if (result) result.textContent = cards.length ? `${visibleCount} / ${cards.length} 个班级` : ''
+  if (empty) empty.hidden = cards.length === 0 || visibleCount > 0
 }
 
-document.getElementById('poolFilters').addEventListener('click', (e) => {
+document.getElementById('poolFilters')?.addEventListener('click', (e) => {
   const button = e.target.closest('.pool-filter-btn')
   if (!button) return
   const type = button.dataset.filterType
@@ -396,6 +547,22 @@ document.getElementById('poolFilters').addEventListener('click', (e) => {
 })
 
 applyPoolClassFilters()
+
+// === Grade Section Toggle ===
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.grade-toggle-btn')
+  if (!btn) return
+  const section = btn.closest('.grade-section')
+  const grid = section.querySelector('.grade-class-grid')
+  const arrow = btn.querySelector('.grade-toggle-arrow')
+  if (grid.style.display === 'none') {
+    grid.style.display = 'grid'
+    arrow.style.transform = 'rotate(0deg)'
+  } else {
+    grid.style.display = 'none'
+    arrow.style.transform = 'rotate(-90deg)'
+  }
+})
 
 // === Batch Student Import ===
 document.getElementById('batchImportFile').addEventListener('change', (e) => {
@@ -422,50 +589,6 @@ document.getElementById('batchImportBtn').addEventListener('click', async () => 
   } else {
     showToast(data.message || '导入失败', false)
   }
-})
-
-// === Batch Photo Upload ===
-document.getElementById('batchPhotoFile').addEventListener('change', (e) => {
-  const countEl = document.getElementById('batchPhotoCount')
-  const btnEl = document.getElementById('batchPhotoBtn')
-  const infoEl = document.getElementById('batchPhotoInfo')
-  if (e.target.files.length > 0) {
-    countEl.textContent = e.target.files.length
-    btnEl.style.display = ''
-    infoEl.style.display = ''
-  } else {
-    btnEl.style.display = 'none'
-    infoEl.style.display = 'none'
-  }
-})
-
-document.getElementById('batchPhotoBtn').addEventListener('click', async () => {
-  const fileInput = document.getElementById('batchPhotoFile')
-  if (!fileInput.files.length) return
-  const btn = document.getElementById('batchPhotoBtn')
-  btn.disabled = true; btn.textContent = '上传中...'
-  const fd = new FormData()
-  for (const f of fileInput.files) fd.append('files', f)
-  const res = await fetch('/admin/api/pool/batch-photos', { method: 'POST', body: fd })
-  const data = await res.json()
-  btn.disabled = false; btn.innerHTML = '<svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>批量上传照片'
-  if (data.ok) {
-    let msg = `已匹配 ${data.matched} 张照片`
-    if (data.unmatched && data.unmatched.length) msg += `，${data.unmatched.length} 张未匹配`
-    if (data.conflicts && data.conflicts.length) msg += `，${data.conflicts.length} 张需手动匹配`
-    showToast(msg)
-    if (data.unmatchedStudents && data.unmatchedStudents.length > 0) {
-      openUnmatchedModal(data.unmatched, data.unmatchedStudents)
-    }
-    if (data.conflicts && data.conflicts.length > 0) {
-      openConflictModal(data.conflicts)
-    }
-  } else {
-    showToast(data.message || '上传失败', false)
-  }
-  fileInput.value = ''
-  btn.style.display = 'none'
-  document.getElementById('batchPhotoInfo').style.display = 'none'
 })
 
 // === Class Detail Modal ===
@@ -815,28 +938,114 @@ document.getElementById('presetTagAddInput').addEventListener('keydown', (e) => 
 
 // === Unmatched Students Modal ===
 
-function renderUnmatchedStudentsList(students) {
-  const studentsList = document.getElementById('unmatchedStudentsList')
-  if (students && students.length > 0) {
-    studentsList.innerHTML = students.map(s =>
-      `<div class="unmatched-student-item" data-student-id="${s.id}" data-class-id="${s.classId}" style="padding: 8px 12px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--hairline);">
-        <div style="flex: 1; min-width: 0;">
-          <div style="font-size: 13px; font-weight: 500; color: var(--ink);">${escHtml(s.name)}</div>
-          ${s.className ? `<div style="font-size: 11px; color: var(--muted-soft);">${escHtml(s.className)}</div>` : ''}
-        </div>
-        <label class="file-label" style="padding: 4px 12px; font-size: 11px; flex-shrink: 0;">
-          上传照片
-          <input type="file" accept="image/*" class="unmatched-photo-input" data-student-id="${s.id}" data-class-id="${s.classId}" style="display:none;" />
-        </label>
-        <button class="btn btn-secondary skip-btn" style="padding: 4px 12px; font-size: 11px; flex-shrink: 0;" onclick="this.closest('.unmatched-student-item').remove(); checkUnmatchedModalEmpty();">忽略</button>
-      </div>`
-    ).join('')
+// 全局状态
+let noPhotoStudents = []
+let noPhotoSelected = new Set()
+let noPhotoBatchFiles = []
+
+function renderNoPhotoStudents(students) {
+  noPhotoStudents = students
+  noPhotoSelected.clear()
+  updateNoPhotoSelection()
+
+  const container = document.getElementById('noPhotoStudentList')
+  if (!students || students.length === 0) {
+    container.innerHTML = '<div style="padding: 32px; text-align: center; color: var(--muted-soft); font-size: 13px;">所有学生已有照片</div>'
+    return
+  }
+
+  // 按年级分组
+  const byGrade = { '高一': [], '高二': [], '高三': [], '未知年级': [] }
+  students.forEach(s => {
+    const grade = s.grade || '未知年级'
+    if (byGrade[grade]) byGrade[grade].push(s)
+    else byGrade['未知年级'].push(s)
+  })
+
+  // 年级统计
+  const statsEl = document.getElementById('noPhotoGradeStats')
+  if (Object.values(byGrade).some(g => g.length > 0)) {
+    statsEl.style.display = ''
+    document.getElementById('noPhotoGrade1').textContent = byGrade['高一'].length
+    document.getElementById('noPhotoGrade2').textContent = byGrade['高二'].length
+    document.getElementById('noPhotoGrade3').textContent = byGrade['高三'].length
   } else {
-    studentsList.innerHTML = '<div style="padding: 16px; text-align: center; color: var(--muted-soft); font-size: 12px;">所有学生已有照片</div>'
+    statsEl.style.display = 'none'
+  }
+
+  let html = ''
+  for (const [grade, gradeStudents] of Object.entries(byGrade)) {
+    if (gradeStudents.length === 0) continue
+    html += `<div style="margin-bottom: 12px;">
+      <div style="font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 6px; padding: 6px 10px; background: var(--surface-soft); border-radius: 6px;">
+        ${grade}（${gradeStudents.length} 人）
+      </div>
+      ${gradeStudents.map(s => {
+        const key = `${s.name}|||${s.homeClass}`
+        const checked = noPhotoSelected.has(key) ? 'checked' : ''
+        return `<div class="no-photo-item" data-key="${escHtml(key)}" style="padding: 8px 12px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--hairline); background: #fff;">
+          <input type="checkbox" class="no-photo-checkbox" data-key="${escHtml(key)}" ${checked} style="width: 16px; height: 16px; cursor: pointer;" />
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 13px; font-weight: 500; color: var(--ink);">${escHtml(s.name)}</div>
+            <div style="font-size: 11px; color: var(--muted-soft);">
+              行政班：${escHtml(s.homeClass)}
+              ${s.classes && s.classes.length > 0 ? ' | 教学班：' + s.classes.map(c => escHtml(c.className)).join(', ') : ''}
+            </div>
+          </div>
+          <label class="file-label" style="padding: 4px 10px; font-size: 11px; flex-shrink: 0;">
+            上传
+            <input type="file" accept="image/*" class="no-photo-upload-input" data-key="${escHtml(key)}" style="display:none;" />
+          </label>
+        </div>`
+      }).join('')}
+    </div>`
+  }
+
+  container.innerHTML = html
+}
+
+function updateNoPhotoSelection() {
+  const countEl = document.getElementById('noPhotoSelectedCount')
+  const batchActionsEl = document.getElementById('noPhotoBatchActions')
+  const uploadBtn = document.getElementById('noPhotoBatchUploadBtn')
+  const ignoreBtn = document.getElementById('noPhotoBatchIgnoreBtn')
+  const fileLabel = document.getElementById('noPhotoBatchFileLabel')
+
+  const count = noPhotoSelected.size
+  countEl.textContent = count
+  batchActionsEl.style.display = count > 0 ? '' : 'none'
+  uploadBtn.style.display = count > 0 && noPhotoBatchFiles.length === 0 ? '' : 'none'
+  ignoreBtn.style.display = count > 0 ? '' : 'none'
+  fileLabel.style.display = count > 0 && noPhotoBatchFiles.length > 0 ? '' : 'none'
+}
+
+// 打开缺照片学生弹窗
+async function openNoPhotoModal() {
+  document.getElementById('unmatchedModalTitle').textContent = '缺照片学生'
+  document.getElementById('unmatchedFilesSection').style.display = 'none'
+  document.getElementById('noPhotoStudentList').innerHTML = '<div style="padding: 32px; text-align: center; color: var(--muted-soft); font-size: 13px;">加载中...</div>'
+  document.getElementById('noPhotoGradeStats').style.display = 'none'
+  document.getElementById('noPhotoBatchActions').style.display = 'none'
+  document.getElementById('unmatchedStudentsModal').classList.add('active')
+  noPhotoBatchFiles = []
+
+  try {
+    const res = await fetch('/admin/api/pool/students-without-photos')
+    const data = await res.json()
+    if (data.ok) {
+      renderNoPhotoStudents(data.students)
+    } else {
+      document.getElementById('noPhotoStudentList').innerHTML = '<div style="padding: 16px; text-align: center; color: var(--error); font-size: 12px;">加载失败</div>'
+    }
+  } catch {
+    document.getElementById('noPhotoStudentList').innerHTML = '<div style="padding: 16px; text-align: center; color: var(--error); font-size: 12px;">网络错误</div>'
   }
 }
 
-// 上传后弹窗：显示未匹配文件 + 缺照片学生
+// 绑定按钮事件
+document.getElementById('viewNoPhotoBtn').addEventListener('click', openNoPhotoModal)
+
+// 批量上传后弹窗：显示未匹配文件 + 缺照片学生
 function openUnmatchedModal(unmatchedFiles, unmatchedStudents) {
   document.getElementById('unmatchedModalTitle').textContent = '上传结果'
   const filesSection = document.getElementById('unmatchedFilesSection')
@@ -854,65 +1063,52 @@ function openUnmatchedModal(unmatchedFiles, unmatchedStudents) {
     filesSection.style.display = 'none'
   }
 
-  renderUnmatchedStudentsList(unmatchedStudents)
+  renderNoPhotoStudents(unmatchedStudents || [])
   document.getElementById('unmatchedStudentsModal').classList.add('active')
 }
 
-// 手动查看：仅显示缺照片学生
-async function openNoPhotoModal() {
-  document.getElementById('unmatchedModalTitle').textContent = '缺照片学生'
-  document.getElementById('unmatchedFilesSection').style.display = 'none'
-  document.getElementById('unmatchedStudentsList').innerHTML = '<div style="padding: 16px; text-align: center; color: var(--muted-soft); font-size: 12px;">加载中...</div>'
-  document.getElementById('unmatchedStudentsModal').classList.add('active')
-
-  try {
-    const res = await fetch('/admin/api/pool/students-without-photos')
-    const data = await res.json()
-    if (data.ok) {
-      renderUnmatchedStudentsList(data.students)
-    } else {
-      document.getElementById('unmatchedStudentsList').innerHTML = '<div style="padding: 16px; text-align: center; color: var(--error); font-size: 12px;">加载失败</div>'
-    }
-  } catch {
-    document.getElementById('unmatchedStudentsList').innerHTML = '<div style="padding: 16px; text-align: center; color: var(--error); font-size: 12px;">网络错误</div>'
-  }
-}
-
-document.getElementById('viewNoPhotoBtn').addEventListener('click', openNoPhotoModal)
-
+// 关闭弹窗
 function closeUnmatchedModal() {
   document.getElementById('unmatchedStudentsModal').classList.remove('active')
+  noPhotoStudents = []
+  noPhotoSelected.clear()
+  noPhotoBatchFiles = []
 }
 
 document.getElementById('unmatchedStudentsModal').addEventListener('click', (e) => {
   if (e.target === e.currentTarget) closeUnmatchedModal()
 })
 
-function checkUnmatchedModalEmpty() {
-  const list = document.getElementById('unmatchedStudentsList')
-  if (list.children.length === 0) {
-    list.innerHTML = '<div style="padding: 16px; text-align: center; color: var(--muted-soft); font-size: 12px;">所有学生已有照片</div>'
+// 复选框选择
+document.addEventListener('change', (e) => {
+  if (e.target.classList.contains('no-photo-checkbox')) {
+    const key = e.target.dataset.key
+    if (e.target.checked) noPhotoSelected.add(key)
+    else noPhotoSelected.delete(key)
+    updateNoPhotoSelection()
   }
-}
+})
 
-// Unmatched student photo upload
+// 单个上传
 document.addEventListener('change', async (e) => {
-  if (e.target.classList.contains('unmatched-photo-input')) {
+  if (e.target.classList.contains('no-photo-upload-input')) {
     const file = e.target.files[0]
     if (!file) return
-    const studentId = parseInt(e.target.dataset.studentId)
-    const classId = parseInt(e.target.dataset.classId)
+    const key = e.target.dataset.key
+    const student = noPhotoStudents.find(s => `${s.name}|||${s.homeClass}` === key)
+    if (!student) return
+
     const fd = new FormData()
     fd.append('file', file)
-    const res = await fetch(`/admin/api/pool/classes/${classId}/students/${studentId}/photo`, {
+    const res = await fetch(`/admin/api/pool/students/by-name/photo?name=${encodeURIComponent(student.name)}&homeClass=${encodeURIComponent(student.homeClass)}`, {
       method: 'POST', body: fd
     })
     const data = await res.json()
     if (data.ok) {
       showToast('照片已上传')
-      const item = e.target.closest('.unmatched-student-item')
-      if (item) item.remove()
-      checkUnmatchedModalEmpty()
+      noPhotoSelected.delete(key)
+      noPhotoStudents = noPhotoStudents.filter(s => `${s.name}|||${s.homeClass}` !== key)
+      renderNoPhotoStudents(noPhotoStudents)
       if (currentClassId) loadClassStudents(currentClassId)
     } else {
       showToast(data.message || '上传失败', false)
@@ -920,6 +1116,66 @@ document.addEventListener('change', async (e) => {
     e.target.value = ''
   }
 })
+
+// 批量忽略
+document.getElementById('noPhotoBatchIgnoreBtn').addEventListener('click', () => {
+  noPhotoStudents = noPhotoStudents.filter(s => !noPhotoSelected.has(`${s.name}|||${s.homeClass}`))
+  noPhotoSelected.clear()
+  renderNoPhotoStudents(noPhotoStudents)
+  showToast('已忽略')
+})
+
+// 批量上传按钮
+document.getElementById('noPhotoBatchUploadBtn').addEventListener('click', () => {
+  document.getElementById('noPhotoBatchFileInput').click()
+})
+
+// 批量上传文件选择
+document.getElementById('noPhotoBatchFileInput').addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files)
+  if (files.length === 0) return
+  noPhotoBatchFiles = files
+  updateNoPhotoSelection()
+
+  const selectedStudents = noPhotoStudents.filter(s => noPhotoSelected.has(`${s.name}|||${s.homeClass}`))
+  if (files.length !== selectedStudents.length) {
+    showToast(`请选择 ${selectedStudents.length} 张照片（当前选中 ${selectedStudents.length} 名学生）`, false)
+    return
+  }
+
+  // 逐一上传
+  let successCount = 0
+  for (let i = 0; i < selectedStudents.length; i++) {
+    const student = selectedStudents[i]
+    const file = files[i]
+
+    const fd = new FormData()
+    fd.append('file', file)
+    try {
+      const res = await fetch(`/admin/api/pool/students/by-name/photo?name=${encodeURIComponent(student.name)}&homeClass=${encodeURIComponent(student.homeClass)}`, {
+        method: 'POST', body: fd
+      })
+      const data = await res.json()
+      if (data.ok) successCount++
+    } catch { /* skip */ }
+  }
+
+  showToast(`批量上传完成：${successCount}/${selectedStudents.length} 成功`)
+  // 移除成功的学生
+  noPhotoStudents = noPhotoStudents.filter(s => {
+    const key = `${s.name}|||${s.homeClass}`
+    const idx = selectedStudents.findIndex(ss => `${ss.name}|||${ss.homeClass}` === key)
+    if (idx >= 0) return false
+    return true
+  })
+  noPhotoSelected.clear()
+  noPhotoBatchFiles = []
+  renderNoPhotoStudents(noPhotoStudents)
+  if (currentClassId) loadClassStudents(currentClassId)
+  e.target.value = ''
+})
+
+// === ZIP Match Modal - Same-name conflict resolution ===
 
 // === Photo Conflict Resolution Modal ===
 
@@ -1016,6 +1272,299 @@ document.addEventListener('click', async (e) => {
     statusEl.textContent = '已跳过'
     statusEl.style.color = 'var(--muted-soft)'
     e.target.closest('.conflict-item').style.opacity = '0.6'
+  }
+})
+
+// === ZIP Photo Match ===
+
+let zipCurrentFile = null
+let zipCurrentJobId = null
+let zipPollTimer = null
+
+document.getElementById('zipPhotoFile').addEventListener('change', (e) => {
+  const file = e.target.files[0]
+  const infoEl = document.getElementById('zipFileInfo')
+  const btnEl = document.getElementById('zipUploadBtn')
+  if (file) {
+    zipCurrentFile = file
+    document.getElementById('zipFileName').textContent = file.name
+    document.getElementById('zipFileSize').textContent = ` (${(file.size / 1024 / 1024).toFixed(1)} MB)`
+    infoEl.style.display = ''
+    btnEl.style.display = ''
+  } else {
+    zipCurrentFile = null
+    infoEl.style.display = 'none'
+    btnEl.style.display = 'none'
+  }
+})
+
+document.getElementById('zipUploadBtn').addEventListener('click', async () => {
+  if (!zipCurrentFile) return
+  const btn = document.getElementById('zipUploadBtn')
+  btn.disabled = true; btn.textContent = '上传中...'
+
+  const fd = new FormData()
+  fd.append('file', zipCurrentFile)
+
+  try {
+    const res = await fetch('/admin/api/pool/zip-upload', { method: 'POST', body: fd })
+    const data = await res.json()
+    btn.disabled = false
+    btn.innerHTML = '<svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3"/></svg>上传并匹配'
+
+    if (!data.ok) {
+      showToast(data.message || '上传失败', false)
+      return
+    }
+
+    // Show folder preview
+    zipCurrentJobId = data.jobId
+    renderZipFolderTree(data.folderStructure)
+    document.getElementById('zipTotalCount').textContent = data.totalPhotos
+    document.getElementById('zipStepPreview').style.display = ''
+    document.getElementById('zipStepProgress').style.display = 'none'
+    document.getElementById('zipStepResults').style.display = 'none'
+    const gradeLabel = data.folderStructure.grade || ''
+    document.getElementById('zipMatchTitle').textContent = `ZIP 照片匹配（${gradeLabel} / ${data.totalPhotos} 张照片）`
+    document.getElementById('zipMatchModal').classList.add('active')
+  } catch {
+    btn.disabled = false
+    btn.innerHTML = '<svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3"/></svg>上传并匹配'
+    showToast('上传失败，请重试', false)
+  }
+
+  // Reset file input
+  document.getElementById('zipPhotoFile').value = ''
+  zipCurrentFile = null
+  document.getElementById('zipFileInfo').style.display = 'none'
+  btn.style.display = 'none'
+})
+
+function renderZipFolderTree(structure) {
+  const container = document.getElementById('zipFolderTree')
+  if (!structure || !structure.schools.length) {
+    container.innerHTML = '<div style="color: var(--error);">未识别到有效的文件夹结构</div>'
+    document.getElementById('zipStartMatchBtn').disabled = true
+    return
+  }
+
+  let html = ''
+  if (structure.grade) {
+    html += `<div style="color: var(--muted); font-weight: 500;">📁 ${escHtml(structure.grade)}</div>`
+  }
+
+  for (const school of structure.schools) {
+    html += `<div style="padding-left: 16px; color: var(--ink); font-weight: 600;">📁 ${escHtml(school.schoolName)}</div>`
+    for (const cls of school.classes) {
+      html += `<div style="padding-left: 32px; color: var(--body);">📁 ${escHtml(cls.className)} <span style="color: var(--muted-soft);">(${cls.photoCount} 张照片)</span></div>`
+    }
+  }
+
+  container.innerHTML = html
+  document.getElementById('zipStartMatchBtn').disabled = false
+}
+
+async function startZipMatch() {
+  if (!zipCurrentJobId) return
+  document.getElementById('zipStartMatchBtn').disabled = true
+  document.getElementById('zipStartMatchBtn').textContent = '匹配中...'
+  document.getElementById('zipStepPreview').style.display = 'none'
+  document.getElementById('zipStepProgress').style.display = ''
+
+  // Start matching on server
+  try {
+    await fetch(`/admin/api/pool/zip-match/${zipCurrentJobId}`, { method: 'POST' })
+  } catch {
+    showToast('启动匹配失败', false)
+    return
+  }
+
+  // Poll progress
+  startZipPolling()
+}
+
+function startZipPolling() {
+  if (zipPollTimer) clearInterval(zipPollTimer)
+  zipPollTimer = setInterval(async () => {
+    try {
+      const res = await fetch(`/admin/api/pool/zip-progress/${zipCurrentJobId}`)
+      const data = await res.json()
+      if (!data.ok) return
+
+      updateZipProgress(data)
+
+      if (data.status === 'completed' || data.status === 'failed') {
+        clearInterval(zipPollTimer)
+        zipPollTimer = null
+        showZipResults(data)
+      }
+    } catch {
+      // Silently ignore polling errors
+    }
+  }, 500)
+}
+
+function updateZipProgress(data) {
+  const percent = data.percent || 0
+  document.getElementById('zipProgressPercent').textContent = `${percent}%`
+  document.getElementById('zipProgressBar').style.width = `${percent}%`
+  document.getElementById('zipMatchedCount').textContent = data.matched
+  document.getElementById('zipProgressText').textContent = data.status === 'completed' ? '匹配完成' : '匹配中...'
+}
+
+function showZipResults(data) {
+  document.getElementById('zipStepProgress').style.display = 'none'
+  document.getElementById('zipStepResults').style.display = ''
+
+  document.getElementById('zipResultMatched').textContent = data.matched || 0
+  document.getElementById('zipResultUnmatched').textContent = (data.unmatched && data.unmatched.length) || 0
+  document.getElementById('zipResultMissing').textContent = (data.missingClasses && data.missingClasses.length) || 0
+  document.getElementById('zipResultConflicts').textContent = (data.conflicts && data.conflicts.length) || 0
+
+  // Missing classes
+  if (data.missingClasses && data.missingClasses.length > 0) {
+    document.getElementById('zipMissingSection').style.display = ''
+    document.getElementById('zipMissingList').innerHTML = data.missingClasses.map(c =>
+      `<div style="padding: 4px 0; border-bottom: 1px solid var(--hairline);">${escHtml(c.grade)} / ${escHtml(c.school)} / ${escHtml(c.className)} <span style="color: var(--muted-soft);">（${c.photoCount} 张照片）</span></div>`
+    ).join('')
+  } else {
+    document.getElementById('zipMissingSection').style.display = 'none'
+  }
+
+  // Unmatched students
+  if (data.unmatched && data.unmatched.length > 0) {
+    document.getElementById('zipUnmatchedSection').style.display = ''
+    document.getElementById('zipUnmatchedList').innerHTML = data.unmatched.slice(0, 50).map(u =>
+      `<div style="padding: 4px 0; border-bottom: 1px solid var(--hairline);">${escHtml(u.filename)} <span style="color: var(--muted-soft);">→ ${escHtml(u.grade)} / ${escHtml(u.school)} / ${escHtml(u.className)}</span></div>`
+    ).join('') + (data.unmatched.length > 50 ? `<div style="padding: 4px 0; color: var(--muted-soft);">… 还有 ${data.unmatched.length - 50} 条</div>` : '')
+  } else {
+    document.getElementById('zipUnmatchedSection').style.display = 'none'
+  }
+
+  // Same-name conflicts
+  if (data.conflicts && data.conflicts.length > 0) {
+    document.getElementById('zipConflictsSection').style.display = ''
+    window._zipConflicts = data.conflicts
+    window._zipJobId = zipCurrentJobId
+    document.getElementById('zipConflictsList').innerHTML = data.conflicts.map((c, idx) => {
+      const photoUrl = `/admin/api/pool/zip-conflict-photo/${zipCurrentJobId}/${idx}`
+      return `
+      <div class="zip-conflict-item" data-idx="${idx}" style="padding: 12px; background: #fff; border: 1px solid var(--hairline); border-radius: 8px;">
+        <div style="font-size: 12px; font-weight: 600; margin-bottom: 8px; color: var(--ink);">
+          ${escHtml(c.filename)} <span style="font-weight: 400; color: var(--muted-soft);">→ ${escHtml(c.grade)} / ${escHtml(c.school)} / ${escHtml(c.className)}</span>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: flex-start;">
+          <div style="flex-shrink: 0;">
+            <img src="${photoUrl}" style="width: 80px; height: 100px; object-fit: cover; border-radius: 6px; border: 1px solid var(--hairline);" onerror="this.style.display='none'" />
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <p style="font-size: 11px; color: var(--muted-soft); margin: 0 0 6px;">匹配到 ${c.candidates.length} 名同名学生：</p>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              ${c.candidates.map(s => `
+                <label style="display: flex; align-items: center; gap: 6px; padding: 4px 8px; background: var(--surface-soft); border-radius: 4px; cursor: pointer; font-size: 12px;">
+                  <input type="radio" name="zip-conflict-${idx}" value="${s.studentId}" data-class-id="${s.classId}" />
+                  <span style="font-weight: 500;">${escHtml(s.studentName)}</span>
+                  <span style="font-size: 11px; color: var(--muted-soft);">（${escHtml(s.homeClass)} / ${escHtml(s.className)}）</span>
+                </label>
+              `).join('')}
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 8px;">
+              <button class="zip-conflict-resolve-btn btn btn-primary" data-idx="${idx}" style="width: auto; padding: 3px 12px; font-size: 11px;">确认匹配</button>
+              <button class="zip-conflict-skip-btn btn btn-secondary" data-idx="${idx}" style="width: auto; padding: 3px 12px; font-size: 11px;">跳过</button>
+              <span class="zip-conflict-status" data-idx="${idx}" style="font-size: 11px; line-height: 22px;"></span>
+            </div>
+          </div>
+        </div>
+      </div>`
+    }).join('')
+  } else {
+    document.getElementById('zipConflictsSection').style.display = 'none'
+  }
+
+  // Show toast summary
+  let msg = `已匹配 ${data.matched} 张照片`
+  if (data.unmatched && data.unmatched.length) msg += `，${data.unmatched.length} 张未匹配`
+  if (data.missingClasses && data.missingClasses.length) msg += `，${data.missingClasses.length} 个班级不存在`
+  showToast(msg)
+
+  // Reload page after a delay to reflect changes
+  setTimeout(() => window.location.reload(), 5000)
+}
+
+function cancelZipUpload() {
+  if (zipCurrentJobId) {
+    fetch(`/admin/api/pool/zip-match/${zipCurrentJobId}`, { method: 'DELETE' }).catch(() => {})
+    zipCurrentJobId = null
+  }
+  closeZipMatchModal()
+}
+
+function closeZipMatchModal() {
+  if (zipPollTimer) {
+    clearInterval(zipPollTimer)
+    zipPollTimer = null
+  }
+  document.getElementById('zipMatchModal').classList.remove('active')
+  document.getElementById('zipStepPreview').style.display = ''
+  document.getElementById('zipStepProgress').style.display = 'none'
+  document.getElementById('zipStepResults').style.display = 'none'
+  zipCurrentJobId = null
+}
+
+document.getElementById('zipMatchModal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeZipMatchModal()
+})
+
+// Resolve ZIP conflict
+document.addEventListener('click', async (e) => {
+  if (e.target.classList.contains('zip-conflict-resolve-btn')) {
+    const idx = parseInt(e.target.dataset.idx)
+    const conflict = window._zipConflicts && window._zipConflicts[idx]
+    if (!conflict) return
+
+    const selected = document.querySelector(`input[name="zip-conflict-${idx}"]:checked`)
+    if (!selected) {
+      showToast('请先选择一名学生', false)
+      return
+    }
+
+    const statusEl = document.querySelector(`.zip-conflict-status[data-idx="${idx}"]`)
+    statusEl.textContent = '匹配中...'
+    e.target.disabled = true
+
+    // Fetch the photo from server and send as form data
+    try {
+      const photoRes = await fetch(`/admin/api/pool/zip-conflict-photo/${window._zipJobId}/${idx}`)
+      const blob = await photoRes.blob()
+      const fd = new FormData()
+      fd.append('file', blob, conflict.filename)
+      fd.append('studentId', selected.value)
+      fd.append('classId', selected.dataset.classId)
+
+      const res = await fetch('/admin/api/pool/photos/resolve-zip', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (data.ok) {
+        statusEl.textContent = `已匹配到「${data.className}」${data.studentName}`
+        statusEl.style.color = 'var(--success, #5db872)'
+        e.target.closest('.zip-conflict-item').style.opacity = '0.6'
+      } else {
+        statusEl.textContent = data.message || '匹配失败'
+        statusEl.style.color = 'var(--error)'
+        e.target.disabled = false
+      }
+    } catch {
+      statusEl.textContent = '网络错误'
+      statusEl.style.color = 'var(--error)'
+      e.target.disabled = false
+    }
+  }
+
+  if (e.target.classList.contains('zip-conflict-skip-btn')) {
+    const idx = parseInt(e.target.dataset.idx)
+    const statusEl = document.querySelector(`.zip-conflict-status[data-idx="${idx}"]`)
+    statusEl.textContent = '已跳过'
+    statusEl.style.color = 'var(--muted-soft)'
+    e.target.closest('.zip-conflict-item').style.opacity = '0.6'
   }
 })
 </script>

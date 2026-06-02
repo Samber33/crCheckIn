@@ -610,16 +610,20 @@
       <h1 class="banner-title">欢迎回来，{{ teacher.username }}</h1>
       <p class="banner-sub">管理你的教学班级，创建或导入班级后点击进入管理</p>
       <div class="banner-stats">
-        <div class="banner-stat">
-          <p class="banner-stat-label">班级总数</p>
-          <p class="banner-stat-value">{{ classes | length }}</p>
-        </div>
+        {% set classCount = 0 %}
         {% set totalStudents = 0 %}
         {% set totalSigned = 0 %}
-        {% for cls in classes %}
+        {% for group in classes %}
+        {% for cls in group.classes %}
+        {% set classCount = classCount + 1 %}
         {% set totalStudents = totalStudents + cls.studentCount %}
         {% set totalSigned = totalSigned + cls.signedCount %}
         {% endfor %}
+        {% endfor %}
+        <div class="banner-stat">
+          <p class="banner-stat-label">班级总数</p>
+          <p class="banner-stat-value">{{ classCount }}</p>
+        </div>
         <div class="banner-stat">
           <p class="banner-stat-label">学生总数</p>
           <p class="banner-stat-value">{{ totalStudents }}</p>
@@ -729,13 +733,21 @@
             {% if showArchived %}
             <h2 class="section-title">已归档班级</h2>
             <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 12px; color: var(--muted-soft); background: var(--surface-card); padding: 4px 10px; border-radius: 9999px;">{{ classes | length }} 个</span>
+              {% set archivedTotal = 0 %}
+              {% for group in classes %}
+              {% set archivedTotal = archivedTotal + group.classes | length %}
+              {% endfor %}
+              <span style="font-size: 12px; color: var(--muted-soft); background: var(--surface-card); padding: 4px 10px; border-radius: 9999px;">{{ archivedTotal }} 个</span>
               <a href="/teacher/classes" style="font-size: 13px; color: var(--primary); text-decoration: none; font-weight: 500;">返回活跃班级</a>
             </div>
             {% else %}
             <h2 class="section-title">我的班级</h2>
             <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 12px; color: var(--muted-soft); background: var(--surface-card); padding: 4px 10px; border-radius: 9999px;">{{ classes | length }} 个</span>
+              {% set activeTotal = 0 %}
+              {% for group in classes %}
+              {% set activeTotal = activeTotal + group.classes | length %}
+              {% endfor %}
+              <span style="font-size: 12px; color: var(--muted-soft); background: var(--surface-card); padding: 4px 10px; border-radius: 9999px;">{{ activeTotal }} 个</span>
               {% if archivedCount > 0 %}
               <a href="/teacher/classes?archived=1" style="font-size: 13px; color: var(--muted); text-decoration: none; font-weight: 500;">查看已归档 ({{ archivedCount }})</a>
               {% endif %}
@@ -743,7 +755,14 @@
             {% endif %}
           </div>
 
-          {% if classes.length === 0 %}
+          {% set hasAnyClasses = false %}
+          {% for group in classes %}
+          {% if group.classes | length > 0 %}
+          {% set hasAnyClasses = true %}
+          {% endif %}
+          {% endfor %}
+
+          {% if not hasAnyClasses %}
           <div class="empty-state">
             <div class="empty-icon">
               <svg style="width:24px;height:24px;color:var(--muted-soft);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -753,8 +772,14 @@
             <p style="font-size: 14px; color: var(--muted-soft); margin: 0;">暂无班级，请先在右侧创建或导入</p>
           </div>
           {% else %}
-          <div class="class-grid" id="classGrid">
-            {% for cls in classes %}
+          {% for group in classes %}
+          {% if group.classes | length > 0 %}
+          <div class="grade-section" style="margin-bottom: 20px;">
+            <h3 style="font-size: 15px; font-weight: 600; color: var(--ink); margin: 0 0 12px; padding: 8px 12px; background: var(--surface-card); border-radius: 8px;">
+              {{ group.grade }}（{{ group.classes | length }} 个班级）
+            </h3>
+            <div class="class-grid">
+            {% for cls in group.classes %}
             <div class="class-item{% if cls.isArchived %} archived{% endif %}" data-class-id="{{ cls.id }}" data-class-name="{{ cls.name }}" draggable="{% if not cls.isArchived %}true{% else %}false{% endif %}">
               <a href="/teacher/classes/{{ cls.id }}" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 12px; flex: 1;">
                 <div class="class-item-head">
@@ -790,7 +815,10 @@
               </div>
             </div>
             {% endfor %}
+            </div>
           </div>
+          {% endif %}
+          {% endfor %}
           {% endif %}
         </div>
       </div>
@@ -1080,10 +1108,11 @@ if (poolSelect && poolClaimBtn) {
 }
 
 // === Drag and Drop Reorder ===
-const classGrid = document.getElementById('classGrid')
 let draggedItem = null
+const allClassGrids = document.querySelectorAll('.class-grid')
+const mainContainer = document.querySelector('.section-card') || document.body
 
-if (classGrid) {
+allClassGrids.forEach(classGrid => {
   classGrid.addEventListener('dragstart', (e) => {
     const item = e.target.closest('.class-item')
     if (!item || item.classList.contains('archived')) return
@@ -1097,8 +1126,7 @@ if (classGrid) {
     const item = e.target.closest('.class-item')
     if (item) item.style.opacity = ''
     draggedItem = null
-    // Remove all drag-over indicators
-    classGrid.querySelectorAll('.class-item').forEach(i => i.classList.remove('drag-over'))
+    document.querySelectorAll('.class-item').forEach(i => i.classList.remove('drag-over'))
   })
 
   classGrid.addEventListener('dragover', (e) => {
@@ -1106,8 +1134,7 @@ if (classGrid) {
     e.dataTransfer.dropEffect = 'move'
     const target = e.target.closest('.class-item')
     if (!target || target === draggedItem || target.classList.contains('archived')) return
-    // Remove previous indicators
-    classGrid.querySelectorAll('.class-item').forEach(i => i.classList.remove('drag-over'))
+    document.querySelectorAll('.class-item').forEach(i => i.classList.remove('drag-over'))
     target.classList.add('drag-over')
   })
 
@@ -1122,10 +1149,10 @@ if (classGrid) {
     if (!target || target === draggedItem || !draggedItem) return
     target.classList.remove('drag-over')
 
-    // Determine position
-    const items = [...classGrid.querySelectorAll('.class-item:not(.archived)')]
-    const draggedIndex = items.indexOf(draggedItem)
-    const targetIndex = items.indexOf(target)
+    // Collect all non-archived items across all grids
+    const allItems = [...document.querySelectorAll('.class-item:not(.archived)')]
+    const draggedIndex = allItems.indexOf(draggedItem)
+    const targetIndex = allItems.indexOf(target)
 
     if (draggedIndex === -1 || targetIndex === -1) return
 
@@ -1136,8 +1163,8 @@ if (classGrid) {
       target.before(draggedItem)
     }
 
-    // Collect new order and save
-    const newOrder = [...classGrid.querySelectorAll('.class-item')].map(i => parseInt(i.dataset.classId))
+    // Collect new order from all grids
+    const newOrder = [...document.querySelectorAll('.class-item:not(.archived)')].map(i => parseInt(i.dataset.classId))
     const res = await fetch('/api/classes/reorder', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -1149,7 +1176,7 @@ if (classGrid) {
       window.location.reload()
     }
   })
-}
+})
 </script>
 </body>
 </html>

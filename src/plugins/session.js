@@ -22,7 +22,14 @@ async function sessionPlugin(app) {
   app.addHook('onRequest', async (request, reply) => {
     if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) return
     // SSE 使用 GET，此处无需排除
-    // 排除无需 CSRF 的公开路由（学生签到、信息提交通过 rate-limit 保护）
+    // 跳过公开 API（学生签到、信息提交、照片上传等通过 rate-limit 保护）
+    if (request.url.startsWith('/api/signin') ||
+        request.url.startsWith('/api/info-') ||
+        request.url.startsWith('/api/students/match') ||
+        request.url.startsWith('/api/preset-tags') ||
+        request.url.startsWith('/api/teacher-login')) {
+      return
+    }
     const origin = request.headers['origin']
     const referer = request.headers['referer']
     const host = request.headers['host']

@@ -4,9 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{% if cls %}{{ cls.name }} - {% endif %}学生签到</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* 系统字体回退，避免外部依赖 */
+    @font-face {
+      font-family: 'JetBrains Mono';
+      src: local('JetBrains Mono'), local('Consolas'), local('Monaco'), local('monospace');
+    }
+    @font-face {
+      font-family: 'Inter';
+      src: local('Inter'), local('-apple-system'), local('BlinkMacSystemFont'), local('Segoe UI'), local('PingFang SC'), local('Microsoft YaHei'), local(sans-serif);
+    }
+  </style>
   <link rel="stylesheet" href="/public/design-system.css">
   <link rel="stylesheet" href="/public/tailwind.min.css">
   <style>

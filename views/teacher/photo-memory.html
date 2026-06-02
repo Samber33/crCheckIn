@@ -81,6 +81,20 @@
       transition: all .15s ease;
     }
     .nav-action:hover { background: var(--surface-card); color: var(--ink); }
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all .15s ease;
+    }
+    .nav-link:hover { background: var(--surface-card); color: var(--ink); }
+    .text-lg { font-size: 18px; }
 
     .memory-page {
       max-width: 1300px;
@@ -272,6 +286,21 @@
       line-height: 1.1;
       text-align: center;
       word-break: break-word;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .name-prompt .name-pinyin {
+      font-size: clamp(18px, 4vw, 26px);
+      font-weight: 600;
+      color: var(--primary, #cc785c);
+      letter-spacing: 2px;
+      text-transform: capitalize;
+    }
+    .name-prompt .name-chinese {
+      font-size: clamp(34px, 7vw, 64px);
+      font-weight: 800;
     }
     .name-reveal {
       position: absolute;
@@ -285,6 +314,21 @@
       font-weight: 800;
       text-align: center;
       backdrop-filter: blur(8px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .name-pinyin {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--primary, #cc785c);
+      letter-spacing: 2px;
+      text-transform: capitalize;
+    }
+    .name-chinese {
+      font-size: 28px;
+      font-weight: 800;
     }
     .swipe-cue {
       position: absolute;
@@ -365,13 +409,26 @@
       background: var(--surface-card);
     }
     .option-name {
-      display: block;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       margin-top: 8px;
       color: var(--body);
       font-size: 13px;
       font-weight: 700;
       line-height: 1.25;
       text-align: center;
+    }
+    .option-button .name-pinyin {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary, #cc785c);
+      letter-spacing: 1px;
+      text-transform: capitalize;
+    }
+    .option-button .name-chinese {
+      font-size: 13px;
+      font-weight: 700;
     }
     .feedback {
       min-height: 24px;
@@ -517,9 +574,15 @@
   <header class="header-bar">
     <div class="header-inner">
       <div class="header-left">
-        <h1 class="page-title">学生照片记忆卡</h1>
+        <a href="{{ backHref }}" class="nav-link">
+          <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+          返回
+        </a>
+        <span style="color: var(--hairline);">|</span>
+        <span class="page-title text-lg">学生照片记忆卡</span>
       </div>
-      <a class="nav-action" href="{{ backHref }}">返回班级</a>
     </div>
   </header>
 
@@ -875,7 +938,13 @@ function renderStudy(student, isNameVisible) {
   els.studentPhoto.alt = isNameVisible ? student.name : '学生照片'
   els.namePrompt.hidden = true
   els.nameReveal.hidden = !isNameVisible
-  els.nameReveal.textContent = isNameVisible ? student.name : ''
+  if (isNameVisible) {
+    els.nameReveal.innerHTML = student.pinyin
+      ? `<span class="name-pinyin">${student.pinyin}</span><span class="name-chinese">${student.name}</span>`
+      : student.name
+  } else {
+    els.nameReveal.textContent = ''
+  }
   els.options.hidden = true
   els.nextButton.hidden = true
   els.primaryButton.hidden = false
@@ -900,11 +969,15 @@ function renderQuestion(question, result) {
 
   if (isNameToPhoto) {
     els.studentPhoto.removeAttribute('src')
-    els.namePrompt.textContent = question.answer.name
+    els.namePrompt.innerHTML = question.answer.pinyin
+      ? `<span class="name-pinyin">${question.answer.pinyin}</span><span class="name-chinese">${question.answer.name}</span>`
+      : question.answer.name
   } else {
     els.studentPhoto.src = question.answer.photoUrl
     els.studentPhoto.alt = '学生照片'
-    els.nameReveal.textContent = question.answer.name
+    els.nameReveal.innerHTML = question.answer.pinyin
+      ? `<span class="name-pinyin">${question.answer.pinyin}</span><span class="name-chinese">${question.answer.name}</span>`
+      : question.answer.name
   }
 
   els.options.innerHTML = ''
@@ -924,13 +997,21 @@ function renderQuestion(question, result) {
       image.onerror = () => { image.src = createPlaceholder('照片不可用', '') }
       button.appendChild(image)
       if (isAnswered) {
-        const name = document.createElement('span')
-        name.className = 'option-name'
-        name.textContent = student.name
-        button.appendChild(name)
+        const nameWrap = document.createElement('span')
+        nameWrap.className = 'option-name'
+        if (student.pinyin) {
+          nameWrap.innerHTML = `<span class="name-pinyin">${student.pinyin}</span><span class="name-chinese">${student.name}</span>`
+        } else {
+          nameWrap.textContent = student.name
+        }
+        button.appendChild(nameWrap)
       }
     } else {
-      button.textContent = student.name
+      if (student.pinyin) {
+        button.innerHTML = `<span class="name-pinyin">${student.pinyin}</span><span class="name-chinese">${student.name}</span>`
+      } else {
+        button.textContent = student.name
+      }
     }
 
     els.options.appendChild(button)

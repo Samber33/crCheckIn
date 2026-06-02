@@ -38,6 +38,28 @@ export async function getAllClassesDetail({ includePool = false } = {}) {
     },
   })
 
+  // 池班级需要去重学生数（同一学生在不同教学班只计一次）
+  const poolClassIds = classes.filter(c => c.teacherId === null).map(c => c.id)
+  const poolStudents = poolClassIds.length > 0
+    ? await prisma.student.findMany({
+        where: { classId: { in: poolClassIds } },
+        select: { classId: true, name: true, homeClass: true },
+      })
+    : []
+
+  // 按 classId → name+homeClass 去重
+  const poolUniqueCounts = new Map()
+  for (const s of poolStudents) {
+    const key = `${s.classId}|||${s.name}|||${s.homeClass}`
+    if (!poolUniqueCounts.has(key)) {
+      poolUniqueCounts.set(key, s.classId)
+    }
+  }
+  const poolCountMap = new Map()
+  for (const [, classId] of poolUniqueCounts) {
+    poolCountMap.set(classId, (poolCountMap.get(classId) || 0) + 1)
+  }
+
   const classIds = classes.map(c => c.id)
   const [configs, recordCounts, sessions] = await Promise.all([
     prisma.signInConfig.findMany({ where: { classId: { in: classIds } } }),
@@ -74,7 +96,7 @@ export async function getAllClassesDetail({ includePool = false } = {}) {
       name: cls.name,
       teacherUsername: cls.teacher?.username ?? '班级池',
       teacherId: cls.teacherId,
-      studentCount: cls._count.students,
+      studentCount: cls.teacherId === null ? (poolCountMap.get(cls.id) || 0) : cls._count.students,
       signedCount: recordCountMap.get(cls.id) || 0,
       totalSessions: sessionCountMap.get(cls.id) || 0,
       signInStatus,
