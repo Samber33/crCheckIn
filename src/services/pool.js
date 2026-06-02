@@ -331,8 +331,8 @@ export async function syncPoolPhotosToTeacherClasses(poolClassId) {
     for (const ts of teacherStudents) {
       const identityKey = getStudentIdentityKey(ts)
       const poolPhoto = poolPhotoMap.get(identityKey)
-      if (poolPhoto && !ts.photoUrl) {
-        // 班级池有照片，教师没有 → 更新
+      if (poolPhoto && ts.photoUrl !== poolPhoto.photoUrl) {
+        // 班级池有照片，教师照片不同（含为空）→ 更新
         updatePhotoIds.push({ id: ts.id, photoUrl: poolPhoto.photoUrl })
         totalSynced++
       }
@@ -383,9 +383,9 @@ export async function syncTeacherPhotoToPool(teacherClassId) {
 
   const updates = []
   for (const ps of poolStudents) {
-    if (ps.photoUrl) continue
     const tp = teacherPhotoMap.get(getStudentIdentityKey(ps))
-    if (tp) {
+    if (tp && ps.photoUrl !== tp.photoUrl) {
+      // 教师有照片，班级池照片不同（含为空）→ 更新
       updates.push({ id: ps.id, photoUrl: tp.photoUrl })
     }
   }
@@ -486,7 +486,7 @@ export async function claimPoolClass(classId, teacherId) {
       if (!ps.photoUrl) continue
       const es = existingMap.get(getStudentIdentityKey(ps))
       if (es) {
-        if (!es.photoUrl) {
+        if (es.photoUrl !== ps.photoUrl) {
           claimUpdates.push(prisma.student.update({ where: { id: es.id }, data: { photoUrl: ps.photoUrl } }))
           mergedCount++
         }
