@@ -404,6 +404,17 @@ export async function syncTeacherPhotoToPool(teacherClassId) {
         batch.map(u => prisma.student.update({ where: { id: u.id }, data: { photoUrl: u.photoUrl } }))
       )
     }
+
+    // 触发反向同步：班级池有新照片 → 同步到其他教师班级（跨学科同行政班）
+    const affectedPoolClassIds = [...new Set(allUpdates.map(u => {
+      for (const pc of poolClasses) {
+        if (pc.students.some(s => s.id === u.id)) return pc.id
+      }
+      return null
+    }).filter(Boolean))]
+    for (const poolId of affectedPoolClassIds) {
+      try { await syncPoolPhotosToTeacherClasses(poolId) } catch {}
+    }
   }
 
   return { ok: true, synced: allUpdates.length }
