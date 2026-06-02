@@ -10,38 +10,6 @@ import { fileURLToPath } from 'url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const UPLOAD_DIR = path.resolve(__dirname, '../../uploads/photos')
 
-// 照片同步防抖：批量上传时延迟同步，避免 N+1 问题
-const _pendingSyncPoolClassIds = new Set()
-const _pendingSyncTeacherClassIds = new Set()
-let _syncTimer = null
-
-function _schedulePoolSync(classId) {
-  _pendingSyncPoolClassIds.add(classId)
-  _flushSyncTimer()
-}
-
-function _scheduleTeacherSync(classId) {
-  _pendingSyncTeacherClassIds.add(classId)
-  _flushSyncTimer()
-}
-
-function _flushSyncTimer() {
-  if (_syncTimer) return
-  _syncTimer = setTimeout(async () => {
-    _syncTimer = null
-    const poolIds = [..._pendingSyncPoolClassIds]
-    const teacherIds = [..._pendingSyncTeacherClassIds]
-    _pendingSyncPoolClassIds.clear()
-    _pendingSyncTeacherClassIds.clear()
-    for (const cid of poolIds) {
-      try { await syncPoolPhotosToTeacherClasses(cid) } catch {}
-    }
-    for (const cid of teacherIds) {
-      try { await syncTeacherPhotoToPool(cid) } catch {}
-    }
-  }, 500)
-}
-
 // 数据库写入队列：序列化并发写入，避免 SQLite 锁竞争导致超时
 const _writeQueue = []
 let _writeProcessing = false
@@ -80,6 +48,31 @@ function normalizeName(name) {
     .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)) // 全角数字→半角
     .replace(/^[.\-_\s]+|[.\-_\s]+$/g, '')                 // 去除首尾标点
     .toLowerCase()
+}
+
+/**
+ * 全局同步：将照片更新到所有 name + homeClass 相同的学生
+ * @param {string} studentName - 学生姓名
+ * @param {string} homeClass - 行政班
+ * @param {string} photoUrl - 新照片 URL
+ * @returns {number} 同步更新的学生数（不含自身）
+ */
+async function syncPhotoAcrossAllClasses(studentName, homeClass, photoUrl) {
+  const students = await prisma.student.findMany({
+    where: { name: studentName, homeClass: homeClass || '', photoUrl: { not: photoUrl } },
+    select: { id: true, photoUrl: true },
+  })
+  if (students.length === 0) return 0
+  const updates = students.filter(s => s.photoUrl !== photoUrl)
+  if (updates.length === 0) return 0
+  const BATCH = 100
+  for (let i = 0; i < updates.length; i += BATCH) {
+    const batch = updates.slice(i, i + BATCH)
+    await prisma.$transaction(
+      batch.map(u => prisma.student.update({ where: { id: u.id }, data: { photoUrl } }))
+    )
+  }
+  return updates.length
 }
 
 /**
@@ -302,122 +295,6 @@ export async function hardDeletePoolClass(classId) {
     await deleteClassesCascadeWithTx(tx, [classId])
   })
   return { ok: true, message: `「${cls.name}」已彻底删除` }
-}
-
-/**
- * 将班级池中的照片同步到教师班级
- * 同一行政班的学生是同一个人，跨学科同步（一职有照片 → 一劳也有）
- * @param {number} poolClassId - 班级池班级 ID
- * @returns {{ ok: boolean, synced: number }}
- */
-export async function syncPoolPhotosToTeacherClasses(poolClassId) {
-  const poolClass = await prisma.class.findUnique({ where: { id: poolClassId } })
-  if (!poolClass || poolClass.teacherId !== null) return { ok: false, synced: 0 }
-
-  // 获取班级池中有照片的学生
-  const poolStudents = await prisma.student.findMany({
-    where: { classId: poolClassId },
-    select: { name: true, photoUrl: true, homeClass: true },
-  })
-  // 复合身份（姓名+行政班）→ 有照片的学生
-  const poolPhotoMap = new Map(
-    poolStudents
-      .filter(s => s.photoUrl)
-      .map(s => [getStudentIdentityKey(s), s])
-  )
-  if (poolPhotoMap.size === 0) return { ok: true, synced: 0 }
-
-  // 查找所有教师班级（跨学科），批量加载学生
-  const teacherClasses = await prisma.class.findMany({
-    where: { teacherId: { not: null }, deletedAt: null },
-    select: { id: true, name: true, students: { select: { id: true, name: true, homeClass: true, photoUrl: true } } },
-  })
-
-  let totalSynced = 0
-  const allUpdates = []
-
-  for (const tc of teacherClasses) {
-    for (const ts of tc.students) {
-      const identityKey = getStudentIdentityKey(ts)
-      const poolPhoto = poolPhotoMap.get(identityKey)
-      if (poolPhoto && ts.photoUrl !== poolPhoto.photoUrl) {
-        // 班级池有照片，教师照片不同（含为空）→ 更新
-        allUpdates.push({ id: ts.id, photoUrl: poolPhoto.photoUrl })
-        totalSynced++
-      }
-    }
-  }
-
-  // 批量更新照片
-  if (allUpdates.length > 0) {
-    const BATCH = 100
-    for (let i = 0; i < allUpdates.length; i += BATCH) {
-      const batch = allUpdates.slice(i, i + BATCH)
-      await prisma.$transaction(
-        batch.map(u => prisma.student.update({ where: { id: u.id }, data: { photoUrl: u.photoUrl } }))
-      )
-    }
-  }
-
-  return { ok: true, synced: totalSynced }
-}
-
-/**
- * 教师端上传照片后，同步到班级池（跨学科同行政班）
- * @param {number} teacherClassId - 教师班级 ID
- */
-export async function syncTeacherPhotoToPool(teacherClassId) {
-  const teacherClass = await prisma.class.findUnique({ where: { id: teacherClassId } })
-  if (!teacherClass || teacherClass.teacherId === null) return { ok: false, synced: 0 }
-
-  // 获取教师班级中有照片的学生
-  const teacherStudents = await prisma.student.findMany({
-    where: { classId: teacherClassId, photoUrl: { not: '' } },
-    select: { name: true, homeClass: true, photoUrl: true },
-  })
-  if (teacherStudents.length === 0) return { ok: true, synced: 0 }
-
-  // 复合身份（姓名+行政班）→ 有照片的学生
-  const teacherPhotoMap = new Map(teacherStudents.map(s => [getStudentIdentityKey(s), s]))
-
-  // 查找所有班级池班级（跨学科），批量加载学生
-  const poolClasses = await prisma.class.findMany({
-    where: { teacherId: null, deletedAt: null },
-    select: { id: true, name: true, students: { select: { id: true, name: true, homeClass: true, photoUrl: true } } },
-  })
-
-  const allUpdates = []
-  for (const pc of poolClasses) {
-    for (const ps of pc.students) {
-      const tp = teacherPhotoMap.get(getStudentIdentityKey(ps))
-      if (tp && ps.photoUrl !== tp.photoUrl) {
-        allUpdates.push({ id: ps.id, photoUrl: tp.photoUrl })
-      }
-    }
-  }
-
-  if (allUpdates.length > 0) {
-    const BATCH = 100
-    for (let i = 0; i < allUpdates.length; i += BATCH) {
-      const batch = allUpdates.slice(i, i + BATCH)
-      await prisma.$transaction(
-        batch.map(u => prisma.student.update({ where: { id: u.id }, data: { photoUrl: u.photoUrl } }))
-      )
-    }
-
-    // 触发反向同步：班级池有新照片 → 同步到其他教师班级（跨学科同行政班）
-    const affectedPoolClassIds = [...new Set(allUpdates.map(u => {
-      for (const pc of poolClasses) {
-        if (pc.students.some(s => s.id === u.id)) return pc.id
-      }
-      return null
-    }).filter(Boolean))]
-    for (const poolId of affectedPoolClassIds) {
-      try { await syncPoolPhotosToTeacherClasses(poolId) } catch {}
-    }
-  }
-
-  return { ok: true, synced: allUpdates.length }
 }
 
 /**
@@ -681,13 +558,8 @@ export async function uploadStudentPhoto(classId, studentId, fileBuffer, filenam
     })
   )
 
-  // 同步照片：班级池 → 教师班级，或教师班级 → 班级池（防抖）
-  const cls = await prisma.class.findUnique({ where: { id: classId } })
-  if (cls && cls.teacherId === null) {
-    _schedulePoolSync(classId)
-  } else if (cls && cls.teacherId !== null) {
-    _scheduleTeacherSync(classId)
-  }
+  // 全局同步：同行政班的所有学生都更新照片
+  await syncPhotoAcrossAllClasses(student.name, student.homeClass, url)
 
   return { ok: true, url, message: '照片已上传' }
 }
@@ -784,9 +656,17 @@ export async function bulkUploadPhotos(classId, files) {
     select: { id: true, name: true, classId: true },
   })
 
-  // 同步照片到同名教师班级（防抖）
-  if (matched.length > 0) {
-    _schedulePoolSync(classId)
+  // 全局同步：按行政班同步到所有班级
+  const syncedKeys = new Set()
+  for (const m of matched) {
+    const student = dbUpdates.find(u => u.photoUrl === m.url)
+    if (!student) continue
+    const s = students.find(st => st.id === student.studentId)
+    if (!s) continue
+    const key = `${s.name}|||${s.homeClass || ''}`
+    if (syncedKeys.has(key)) continue
+    syncedKeys.add(key)
+    await syncPhotoAcrossAllClasses(s.name, s.homeClass, m.url)
   }
 
   return { ok: true, matched: matched.length, unmatched, unmatchedStudents: studentsWithoutPhotos }
@@ -817,41 +697,19 @@ export async function deleteStudentPhoto(studentId, classId) {
     })
   )
 
-  // 同步删除
-  const cls = await prisma.class.findUnique({ where: { id: classId } })
-  if (cls && cls.teacherId !== null) {
-    // 教师班级 → 班级池
-    const poolClass = await prisma.class.findFirst({
-      where: { name: cls.name, teacherId: null, deletedAt: null },
-      select: { id: true },
-    })
-    if (poolClass) {
-      const poolStudent = await prisma.student.findFirst({
-        where: { classId: poolClass.id, name: student.name },
-        select: { id: true },
-      })
-      if (poolStudent) {
-        await _enqueueWrite(() =>
-          prisma.student.update({ where: { id: poolStudent.id }, data: { photoUrl: '' } })
-        )
-      }
-    }
-  } else if (cls && cls.teacherId === null) {
-    // 班级池 → 所有同名教师班级
-    const teacherClasses = await prisma.class.findMany({
-      where: { name: cls.name, teacherId: { not: null }, deletedAt: null },
-      select: { id: true },
-    })
-    for (const tc of teacherClasses) {
-      const ts = await prisma.student.findFirst({
-        where: { classId: tc.id, name: student.name },
-        select: { id: true },
-      })
-      if (ts) {
-        await _enqueueWrite(() =>
-          prisma.student.update({ where: { id: ts.id }, data: { photoUrl: '' } })
-        )
-      }
+  // 全局同步删除：清空所有 name + homeClass 相同的学生照片
+  const sameStudents = await prisma.student.findMany({
+    where: { name: student.name, homeClass: student.homeClass || '', id: { not: studentId } },
+    select: { id: true, photoUrl: true },
+  })
+  const toClear = sameStudents.filter(s => s.photoUrl)
+  if (toClear.length > 0) {
+    const BATCH = 100
+    for (let i = 0; i < toClear.length; i += BATCH) {
+      const batch = toClear.slice(i, i + BATCH)
+      await prisma.$transaction(
+        batch.map(s => prisma.student.update({ where: { id: s.id }, data: { photoUrl: '' } }))
+      )
     }
   }
 
@@ -1112,20 +970,22 @@ export async function batchUploadPoolPhotos(files) {
   // 获取班级池中所有没有照片的学生
   const unmatchedStudents = await getStudentsWithoutPhotos()
 
-  // 同步照片到同名教师班级（按受影响的班级去重）
-  if (matched.length > 0) {
-    const affectedClassIds = [...new Set(dbUpdates.map(u => {
-      // 从 studentMultiMap 反查 classId
-      for (const [key, vals] of studentMultiMap) {
-        for (const v of vals) {
-          if (v.student.id === u.studentId) return v.classId
-        }
+  // 全局同步：按行政班同步到所有班级
+  const syncedKeys = new Set()
+  for (const u of dbUpdates) {
+    // 从 studentMultiMap 反查学生信息
+    let studentInfo = null
+    for (const [key, vals] of studentMultiMap) {
+      for (const v of vals) {
+        if (v.student.id === u.studentId) { studentInfo = v.student; break }
       }
-      return null
-    }).filter(Boolean))]
-    for (const cid of affectedClassIds) {
-      _schedulePoolSync(cid)
+      if (studentInfo) break
     }
+    if (!studentInfo) continue
+    const identityKey = `${studentInfo.name}|||${studentInfo.homeClass || ''}`
+    if (syncedKeys.has(identityKey)) continue
+    syncedKeys.add(identityKey)
+    await syncPhotoAcrossAllClasses(studentInfo.name, studentInfo.homeClass, u.photoUrl)
   }
 
   return { ok: true, matched: matched.length, unmatched, conflicts, unmatchedStudents }
@@ -1200,8 +1060,8 @@ export async function resolvePhotoConflict({ studentId, classId, buffer, filenam
     })
   })
 
-  // 同步照片到教师班级
-  _schedulePoolSync(classId)
+  // 全局同步：同行政班的所有学生都更新照片
+  await syncPhotoAcrossAllClasses(student.name, student.homeClass, url)
 
   return { ok: true, studentName: student.name, className: student.class.name, url }
 }
@@ -1682,9 +1542,16 @@ export async function startZipMatching(jobId) {
     }
   }
 
-  // 同步到教师班级
-  for (const cid of affectedClassIds) {
-    _schedulePoolSync(cid)
+  // 全局同步：按行政班同步到所有班级
+  const syncedKeys = new Set()
+  for (const u of dbUpdates) {
+    // 从 affectedClassIds 反查学生信息（简化：直接查数据库）
+    const s = await prisma.student.findUnique({ where: { id: u.studentId }, select: { name: true, homeClass: true } })
+    if (!s) continue
+    const key = `${s.name}|||${s.homeClass || ''}`
+    if (syncedKeys.has(key)) continue
+    syncedKeys.add(key)
+    await syncPhotoAcrossAllClasses(s.name, s.homeClass, u.photoUrl)
   }
 
   // 清理临时文件
@@ -1758,7 +1625,8 @@ export async function resolveZipConflict({ studentId, classId, filename, buffer 
     })
   })
 
-  _schedulePoolSync(classId)
+  // 全局同步：同行政班的所有学生都更新照片
+  await syncPhotoAcrossAllClasses(student.name, student.homeClass, url)
 
   return { ok: true, studentName: student.name, className: student.class.name, url }
 }
