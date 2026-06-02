@@ -96,30 +96,14 @@ function isPhotoFileValid(photoUrl) {
 }
 
 /**
- * 从班级名提取学科分组
- * 职、信 → "信息"（信息技术学科）
- * 通、劳 → "通用"（通用技术学科）
- * 其他 → 原字符
+ * 学生复合身份标识：姓名 + 行政班
+ * 同一行政班的同一学生是同一个人（跨学科同步照片）
  */
-function extractSubjectFromClass(className) {
-  const match = String(className || '').match(/[一二三四五六七八九十]([^\d])/)
-  if (!match) return ''
-  const ch = match[1]
-  if (ch === '职' || ch === '信') return '信息'
-  if (ch === '通' || ch === '劳') return '通用'
-  return ch
-}
-
-/**
- * 学生复合身份标识：姓名 + 行政班 + 学科，用于跨班级匹配同一真实学生
- * 同一学生在不同学科（一职/一劳）是不同的课程记录，不应互相覆盖
- */
-function getStudentIdentityKey(student, className = '') {
+function getStudentIdentityKey(student) {
   const nameKey = normalizeName(student?.name)
   if (!nameKey) return ''
   const homeClassKey = normalizeName(student?.homeClass || '')
-  const subject = extractSubjectFromClass(className)
-  return `${nameKey}::${homeClassKey}::${subject}`
+  return `${nameKey}::${homeClassKey}`
 }
 
 /**
@@ -321,7 +305,8 @@ export async function hardDeletePoolClass(classId) {
 }
 
 /**
- * 将班级池中的照片同步到同名教师班级
+ * 将班级池中的照片同步到教师班级
+ * 同一行政班的学生是同一个人，跨学科同步（一职有照片 → 一劳也有）
  * @param {number} poolClassId - 班级池班级 ID
  * @returns {{ ok: boolean, synced: number }}
  */
@@ -329,51 +314,47 @@ export async function syncPoolPhotosToTeacherClasses(poolClassId) {
   const poolClass = await prisma.class.findUnique({ where: { id: poolClassId } })
   if (!poolClass || poolClass.teacherId !== null) return { ok: false, synced: 0 }
 
-  // 查找所有同名的教师班级
-  const teacherClasses = await prisma.class.findMany({
-    where: { name: poolClass.name, teacherId: { not: null }, deletedAt: null },
-    select: { id: true },
-  })
-  if (teacherClasses.length === 0) return { ok: true, synced: 0 }
-
-  // 获取班级池中所有学生（含照片和无照片）
+  // 获取班级池中有照片的学生
   const poolStudents = await prisma.student.findMany({
     where: { classId: poolClassId },
     select: { name: true, photoUrl: true, homeClass: true },
   })
-  // 班级池中有照片的学生：复合身份 → student
+  // 复合身份（姓名+行政班）→ 有照片的学生
   const poolPhotoMap = new Map(
     poolStudents
       .filter(s => s.photoUrl)
-      .map(s => [getStudentIdentityKey(s, poolClass.name), s])
+      .map(s => [getStudentIdentityKey(s), s])
   )
+  if (poolPhotoMap.size === 0) return { ok: true, synced: 0 }
+
+  // 查找所有教师班级（跨学科），批量加载学生
+  const teacherClasses = await prisma.class.findMany({
+    where: { teacherId: { not: null }, deletedAt: null },
+    select: { id: true, name: true, students: { select: { id: true, name: true, homeClass: true, photoUrl: true } } },
+  })
 
   let totalSynced = 0
+  const allUpdates = []
 
   for (const tc of teacherClasses) {
-    const teacherStudents = await prisma.student.findMany({
-      where: { classId: tc.id },
-      select: { id: true, name: true, homeClass: true, photoUrl: true },
-    })
-
-    const updatePhotoIds = []
-
-    for (const ts of teacherStudents) {
-      const identityKey = getStudentIdentityKey(ts, poolClass.name)
+    for (const ts of tc.students) {
+      const identityKey = getStudentIdentityKey(ts)
       const poolPhoto = poolPhotoMap.get(identityKey)
       if (poolPhoto && ts.photoUrl !== poolPhoto.photoUrl) {
         // 班级池有照片，教师照片不同（含为空）→ 更新
-        updatePhotoIds.push({ id: ts.id, photoUrl: poolPhoto.photoUrl })
+        allUpdates.push({ id: ts.id, photoUrl: poolPhoto.photoUrl })
         totalSynced++
       }
     }
+  }
 
-    // 批量更新照片
-    if (updatePhotoIds.length > 0) {
+  // 批量更新照片
+  if (allUpdates.length > 0) {
+    const BATCH = 100
+    for (let i = 0; i < allUpdates.length; i += BATCH) {
+      const batch = allUpdates.slice(i, i + BATCH)
       await prisma.$transaction(
-        updatePhotoIds.map(u =>
-          prisma.student.update({ where: { id: u.id }, data: { photoUrl: u.photoUrl } })
-        )
+        batch.map(u => prisma.student.update({ where: { id: u.id }, data: { photoUrl: u.photoUrl } }))
       )
     }
   }
@@ -382,19 +363,12 @@ export async function syncPoolPhotosToTeacherClasses(poolClassId) {
 }
 
 /**
- * 教师端上传照片后，同步到同名班级池班级
+ * 教师端上传照片后，同步到班级池（跨学科同行政班）
  * @param {number} teacherClassId - 教师班级 ID
  */
 export async function syncTeacherPhotoToPool(teacherClassId) {
   const teacherClass = await prisma.class.findUnique({ where: { id: teacherClassId } })
   if (!teacherClass || teacherClass.teacherId === null) return { ok: false, synced: 0 }
-
-  // 查找同名的班级池班级
-  const poolClass = await prisma.class.findFirst({
-    where: { name: teacherClass.name, teacherId: null, deletedAt: null },
-    select: { id: true },
-  })
-  if (!poolClass) return { ok: true, synced: 0 }
 
   // 获取教师班级中有照片的学生
   const teacherStudents = await prisma.student.findMany({
@@ -403,32 +377,36 @@ export async function syncTeacherPhotoToPool(teacherClassId) {
   })
   if (teacherStudents.length === 0) return { ok: true, synced: 0 }
 
-  const teacherPhotoMap = new Map(teacherStudents.map(s => [getStudentIdentityKey(s, teacherClass.name), s]))
+  // 复合身份（姓名+行政班）→ 有照片的学生
+  const teacherPhotoMap = new Map(teacherStudents.map(s => [getStudentIdentityKey(s), s]))
 
-  // 获取班级池中没有照片的学生
-  const poolStudents = await prisma.student.findMany({
-    where: { classId: poolClass.id },
-    select: { id: true, name: true, homeClass: true, photoUrl: true },
+  // 查找所有班级池班级（跨学科），批量加载学生
+  const poolClasses = await prisma.class.findMany({
+    where: { teacherId: null, deletedAt: null },
+    select: { id: true, name: true, students: { select: { id: true, name: true, homeClass: true, photoUrl: true } } },
   })
 
-  const updates = []
-  for (const ps of poolStudents) {
-    const tp = teacherPhotoMap.get(getStudentIdentityKey(ps, teacherClass.name))
-    if (tp && ps.photoUrl !== tp.photoUrl) {
-      // 教师有照片，班级池照片不同（含为空）→ 更新
-      updates.push({ id: ps.id, photoUrl: tp.photoUrl })
+  const allUpdates = []
+  for (const pc of poolClasses) {
+    for (const ps of pc.students) {
+      const tp = teacherPhotoMap.get(getStudentIdentityKey(ps))
+      if (tp && ps.photoUrl !== tp.photoUrl) {
+        allUpdates.push({ id: ps.id, photoUrl: tp.photoUrl })
+      }
     }
   }
 
-  if (updates.length > 0) {
-    await prisma.$transaction(
-      updates.map(u =>
-        prisma.student.update({ where: { id: u.id }, data: { photoUrl: u.photoUrl } })
+  if (allUpdates.length > 0) {
+    const BATCH = 100
+    for (let i = 0; i < allUpdates.length; i += BATCH) {
+      const batch = allUpdates.slice(i, i + BATCH)
+      await prisma.$transaction(
+        batch.map(u => prisma.student.update({ where: { id: u.id }, data: { photoUrl: u.photoUrl } }))
       )
-    )
+    }
   }
 
-  return { ok: true, synced: updates.length }
+  return { ok: true, synced: allUpdates.length }
 }
 
 /**
@@ -507,14 +485,14 @@ export async function claimPoolClass(classId, teacherId) {
       where: { classId: existing.id },
       select: { id: true, name: true, homeClass: true, photoUrl: true },
     })
-    const existingMap = new Map(existingStudents.map(s => [getStudentIdentityKey(s, cls.name), s]))
+    const existingMap = new Map(existingStudents.map(s => [getStudentIdentityKey(s), s]))
 
     let mergedCount = 0
     const claimUpdates = []
     const claimInserts = []
     for (const ps of poolStudents) {
       if (!ps.photoUrl) continue
-      const es = existingMap.get(getStudentIdentityKey(ps, cls.name))
+      const es = existingMap.get(getStudentIdentityKey(ps))
       if (es) {
         if (es.photoUrl !== ps.photoUrl) {
           claimUpdates.push(prisma.student.update({ where: { id: es.id }, data: { photoUrl: ps.photoUrl } }))
