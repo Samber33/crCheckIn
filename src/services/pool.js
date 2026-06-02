@@ -83,6 +83,17 @@ function normalizeName(name) {
 }
 
 /**
+ * 学生复合身份标识：姓名 + 行政班，用于跨班级匹配同一真实学生
+ * 旧数据 homeClass 为空时退化为仅姓名匹配
+ */
+function getStudentIdentityKey(student) {
+  const nameKey = normalizeName(student?.name)
+  if (!nameKey) return ''
+  const homeClassKey = normalizeName(student?.homeClass || '')
+  return `${nameKey}::${homeClassKey}`
+}
+
+/**
  * 从班级名提取年级标识（任意位置匹配）
  * "一职B4" → "一", "二劳A3" → "二", "二信B7" → "二"
  */
@@ -300,17 +311,11 @@ export async function syncPoolPhotosToTeacherClasses(poolClassId) {
     where: { classId: poolClassId },
     select: { name: true, photoUrl: true, homeClass: true },
   })
-  // 班级池中有照片的学生
+  // 班级池中有照片的学生：复合身份 → student
   const poolPhotoMap = new Map(
     poolStudents
       .filter(s => s.photoUrl)
-      .map(s => [normalizeName(s.name), s])
-  )
-  // 班级池中无照片的学生姓名集合
-  const poolNoPhotoSet = new Set(
-    poolStudents
-      .filter(s => !s.photoUrl)
-      .map(s => normalizeName(s.name))
+      .map(s => [getStudentIdentityKey(s), s])
   )
 
   let totalSynced = 0
@@ -318,66 +323,28 @@ export async function syncPoolPhotosToTeacherClasses(poolClassId) {
   for (const tc of teacherClasses) {
     const teacherStudents = await prisma.student.findMany({
       where: { classId: tc.id },
-      select: { id: true, name: true, photoUrl: true },
+      select: { id: true, name: true, homeClass: true, photoUrl: true },
     })
 
     const updatePhotoIds = []
-    const clearPhotoIds = []
-    const insertData = []
 
     for (const ts of teacherStudents) {
-      const normName = normalizeName(ts.name)
-      const poolPhoto = poolPhotoMap.get(normName)
-      if (poolPhoto) {
+      const identityKey = getStudentIdentityKey(ts)
+      const poolPhoto = poolPhotoMap.get(identityKey)
+      if (poolPhoto && !ts.photoUrl) {
         // 班级池有照片，教师没有 → 更新
-        if (!ts.photoUrl) {
-          updatePhotoIds.push({ id: ts.id, photoUrl: poolPhoto.photoUrl })
-          totalSynced++
-        }
-      } else if (ts.photoUrl && poolNoPhotoSet.has(normName)) {
-        // 班级池无照片，教师有 → 清除
-        clearPhotoIds.push(ts.id)
-        totalSynced++
-      } else if (ts.photoUrl && !poolPhotoMap.has(normName) && !poolNoPhotoSet.has(normName)) {
-        // 班级池中不存在该学生，但教师有照片 → 保留（不做处理）
-      }
-    }
-
-    // 班级池有但教师没有的学生：复制过去
-    const teacherNameSet = new Set(teacherStudents.map(s => normalizeName(s.name)))
-    for (const [normName, ps] of poolPhotoMap) {
-      if (!teacherNameSet.has(normName)) {
-        insertData.push({
-          name: ps.name,
-          homeClass: ps.homeClass,
-          photoUrl: ps.photoUrl,
-          classId: tc.id,
-        })
+        updatePhotoIds.push({ id: ts.id, photoUrl: poolPhoto.photoUrl })
         totalSynced++
       }
     }
 
-    // 批量更新照片（使用 Prisma transaction 批量执行）
+    // 批量更新照片
     if (updatePhotoIds.length > 0) {
       await prisma.$transaction(
         updatePhotoIds.map(u =>
           prisma.student.update({ where: { id: u.id }, data: { photoUrl: u.photoUrl } })
         )
       )
-    }
-
-    // 批量清除照片
-    if (clearPhotoIds.length > 0) {
-      await prisma.$transaction(
-        clearPhotoIds.map(id =>
-          prisma.student.update({ where: { id }, data: { photoUrl: '' } })
-        )
-      )
-    }
-
-    // 批量插入
-    if (insertData.length > 0) {
-      await prisma.student.createMany({ data: insertData })
     }
   }
 
@@ -402,22 +369,22 @@ export async function syncTeacherPhotoToPool(teacherClassId) {
   // 获取教师班级中有照片的学生
   const teacherStudents = await prisma.student.findMany({
     where: { classId: teacherClassId, photoUrl: { not: '' } },
-    select: { name: true, photoUrl: true },
+    select: { name: true, homeClass: true, photoUrl: true },
   })
   if (teacherStudents.length === 0) return { ok: true, synced: 0 }
 
-  const teacherPhotoMap = new Map(teacherStudents.map(s => [normalizeName(s.name), s]))
+  const teacherPhotoMap = new Map(teacherStudents.map(s => [getStudentIdentityKey(s), s]))
 
   // 获取班级池中没有照片的学生
   const poolStudents = await prisma.student.findMany({
     where: { classId: poolClass.id },
-    select: { id: true, name: true, photoUrl: true },
+    select: { id: true, name: true, homeClass: true, photoUrl: true },
   })
 
   const updates = []
   for (const ps of poolStudents) {
     if (ps.photoUrl) continue
-    const tp = teacherPhotoMap.get(normalizeName(ps.name))
+    const tp = teacherPhotoMap.get(getStudentIdentityKey(ps))
     if (tp) {
       updates.push({ id: ps.id, photoUrl: tp.photoUrl })
     }
@@ -508,16 +475,16 @@ export async function claimPoolClass(classId, teacherId) {
     })
     const existingStudents = await prisma.student.findMany({
       where: { classId: existing.id },
-      select: { id: true, name: true, photoUrl: true },
+      select: { id: true, name: true, homeClass: true, photoUrl: true },
     })
-    const existingMap = new Map(existingStudents.map(s => [normalizeName(s.name), s]))
+    const existingMap = new Map(existingStudents.map(s => [getStudentIdentityKey(s), s]))
 
     let mergedCount = 0
     const claimUpdates = []
     const claimInserts = []
     for (const ps of poolStudents) {
       if (!ps.photoUrl) continue
-      const es = existingMap.get(normalizeName(ps.name))
+      const es = existingMap.get(getStudentIdentityKey(ps))
       if (es) {
         if (!es.photoUrl) {
           claimUpdates.push(prisma.student.update({ where: { id: es.id }, data: { photoUrl: ps.photoUrl } }))
@@ -1486,22 +1453,33 @@ export async function startZipMatching(jobId) {
 
     for (const s of cls.students) {
       const hc = parseHomeClass(s.homeClass)
-      if (!hc || !hc.classNum) continue
 
-      if (!schoolMap.has(hc.school)) schoolMap.set(hc.school, new Map())
-      const classMap = schoolMap.get(hc.school)
+      // 有行政班的学生：正常索引
+      if (hc && hc.classNum) {
+        if (!schoolMap.has(hc.school)) schoolMap.set(hc.school, new Map())
+        const classMap = schoolMap.get(hc.school)
 
-      if (!classMap.has(hc.classNum)) classMap.set(hc.classNum, [])
-      classMap.get(hc.classNum).push({ classId: cls.id, className: cls.name, student: s })
+        if (!classMap.has(hc.classNum)) classMap.set(hc.classNum, [])
+        classMap.get(hc.classNum).push({ classId: cls.id, className: cls.name, student: s })
 
-      // school 级索引（按 name + homeClass 去重：同一学生在不同教学班只存一条）
-      const nameKey = normalizeName(s.name)
-      if (!sIndex.has(hc.school)) sIndex.set(hc.school, new Map())
-      const nameMap = sIndex.get(hc.school)
-      if (!nameMap.has(nameKey)) nameMap.set(nameKey, [])
-      // 去重：同名且同行政班 = 同一人
-      if (!nameMap.get(nameKey).find(e => e.homeClass === s.homeClass)) {
-        nameMap.get(nameKey).push({ classId: cls.id, className: cls.name, student: s, homeClass: s.homeClass })
+        // school 级索引（按 name + homeClass 去重：同一学生在不同教学班只存一条）
+        const nameKey = normalizeName(s.name)
+        if (!sIndex.has(hc.school)) sIndex.set(hc.school, new Map())
+        const nameMap = sIndex.get(hc.school)
+        if (!nameMap.has(nameKey)) nameMap.set(nameKey, [])
+        // 去重：同名且同行政班 = 同一人
+        if (!nameMap.get(nameKey).find(e => e.homeClass === s.homeClass)) {
+          nameMap.get(nameKey).push({ classId: cls.id, className: cls.name, student: s, homeClass: s.homeClass })
+        }
+      } else {
+        // 旧数据无行政班：仅按姓名索引到 school 级（fallback）
+        const nameKey = normalizeName(s.name)
+        if (!sIndex.has('镇海中学')) sIndex.set('镇海中学', new Map())
+        const nameMap = sIndex.get('镇海中学')
+        if (!nameMap.has(nameKey)) nameMap.set(nameKey, [])
+        if (!nameMap.get(nameKey).find(e => e.homeClass === s.homeClass)) {
+          nameMap.get(nameKey).push({ classId: cls.id, className: cls.name, student: s, homeClass: s.homeClass })
+        }
       }
     }
   }
