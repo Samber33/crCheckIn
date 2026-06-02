@@ -83,12 +83,18 @@ function normalizeName(name) {
 }
 
 /**
- * 从班级名提取学科标识
- * "一职B4" → "职", "二劳A3" → "劳", "二信B7" → "信", "临时班" → ""
+ * 从班级名提取学科分组
+ * 职、信 → "信息"（信息技术学科）
+ * 通、劳 → "通用"（通用技术学科）
+ * 其他 → 原字符
  */
 function extractSubjectFromClass(className) {
   const match = String(className || '').match(/[一二三四五六七八九十]([^\d])/)
-  return match ? match[1] : ''
+  if (!match) return ''
+  const ch = match[1]
+  if (ch === '职' || ch === '信') return '信息'
+  if (ch === '通' || ch === '劳') return '通用'
+  return ch
 }
 
 /**
