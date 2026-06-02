@@ -330,6 +330,16 @@
       font-size: 28px;
       font-weight: 800;
     }
+    .annotated-name ruby {
+      ruby-align: center;
+      ruby-position: over;
+    }
+    .annotated-name rt {
+      color: var(--primary, #cc785c);
+      font-size: .5em;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
     .swipe-cue {
       position: absolute;
       top: 18px;
@@ -939,9 +949,7 @@ function renderStudy(student, isNameVisible) {
   els.namePrompt.hidden = true
   els.nameReveal.hidden = !isNameVisible
   if (isNameVisible) {
-    els.nameReveal.innerHTML = student.pinyin
-      ? `<span class="name-pinyin">${student.pinyin}</span><span class="name-chinese">${student.name}</span>`
-      : student.name
+    renderStudentName(els.nameReveal, student)
   } else {
     els.nameReveal.textContent = ''
   }
@@ -969,15 +977,11 @@ function renderQuestion(question, result) {
 
   if (isNameToPhoto) {
     els.studentPhoto.removeAttribute('src')
-    els.namePrompt.innerHTML = question.answer.pinyin
-      ? `<span class="name-pinyin">${question.answer.pinyin}</span><span class="name-chinese">${question.answer.name}</span>`
-      : question.answer.name
+    renderStudentName(els.namePrompt, question.answer)
   } else {
     els.studentPhoto.src = question.answer.photoUrl
     els.studentPhoto.alt = '学生照片'
-    els.nameReveal.innerHTML = question.answer.pinyin
-      ? `<span class="name-pinyin">${question.answer.pinyin}</span><span class="name-chinese">${question.answer.name}</span>`
-      : question.answer.name
+    renderStudentName(els.nameReveal, question.answer)
   }
 
   els.options.innerHTML = ''
@@ -999,19 +1003,11 @@ function renderQuestion(question, result) {
       if (isAnswered) {
         const nameWrap = document.createElement('span')
         nameWrap.className = 'option-name'
-        if (student.pinyin) {
-          nameWrap.innerHTML = `<span class="name-pinyin">${student.pinyin}</span><span class="name-chinese">${student.name}</span>`
-        } else {
-          nameWrap.textContent = student.name
-        }
+        renderStudentName(nameWrap, student)
         button.appendChild(nameWrap)
       }
     } else {
-      if (student.pinyin) {
-        button.innerHTML = `<span class="name-pinyin">${student.pinyin}</span><span class="name-chinese">${student.name}</span>`
-      } else {
-        button.textContent = student.name
-      }
+      renderStudentName(button, student)
     }
 
     els.options.appendChild(button)
@@ -1024,6 +1020,20 @@ function renderQuestion(question, result) {
   } else {
     setFeedback(`答错了，正确答案是 ${question.answer.name}`, 'bad')
   }
+}
+
+function renderStudentName(element, student) {
+  const parts = Array.isArray(student.pinyinParts) ? student.pinyinParts : []
+  const hasAnnotations = parts.some((part) => part.annotate && part.pinyin)
+  const nameHtml = hasAnnotations
+    ? parts.map((part) => {
+        const character = escapeHtml(part.character)
+        return part.annotate && part.pinyin
+          ? `<ruby>${character}<rt>${escapeHtml(part.pinyin)}</rt></ruby>`
+          : character
+      }).join('')
+    : escapeHtml(student.name)
+  element.innerHTML = `<span class="name-chinese${hasAnnotations ? ' annotated-name' : ''}">${nameHtml}</span>`
 }
 
 function renderDone(title, subtitle) {
@@ -1283,7 +1293,7 @@ function revealSwipeNamePreview() {
   state.isStudyNameVisible = true
   swipeState.didRevealName = true
   els.nameReveal.hidden = false
-  els.nameReveal.textContent = student.name
+  renderStudentName(els.nameReveal, student)
   els.studentPhoto.alt = student.name
   els.primaryButton.textContent = '下一张'
 }

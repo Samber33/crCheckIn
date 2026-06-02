@@ -56,6 +56,7 @@ async function getPhotoMemoryClasses(teacherId, isAdmin, selectedClassId = null)
         id: String(student.id),
         name: student.name,
         pinyin: pinyinData.toned,
+        pinyinParts: pinyinData.parts,
         homeClass: student.homeClass || '',
         photoUrl: student.photoUrl || '',
       }

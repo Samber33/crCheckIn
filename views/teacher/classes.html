@@ -915,7 +915,7 @@ let unarchiveClassName = ''
 function showDeleteModal(id, name) {
   deleteClassId = id
   deleteClassName = name
-  document.getElementById('deleteModalDesc').textContent = `确认删除班级「${name}」？此操作将同时删除该班级的所有学生和签到记录，不可恢复。`
+  document.getElementById('deleteModalDesc').textContent = `确认移除班级「${name}」？该班级将退回班级池，学生名单会保留，当前签到记录和教师侧历史数据将清理。`
   document.getElementById('deleteModal').classList.remove('hidden')
 }
 
@@ -952,29 +952,28 @@ function closeUnarchiveModal() {
 }
 
 // Event delegation for archive/unarchive/delete buttons
-const classActionGrid = document.querySelector('.class-grid')
-if (classActionGrid) {
+document.querySelectorAll('.class-grid').forEach((classActionGrid) => {
   classActionGrid.addEventListener('click', (e) => {
-  const item = e.target.closest('.class-item')
-  if (!item) return
-  const classId = item.dataset.classId
-  const className = item.dataset.className
-  const btn = e.target.closest('[data-action]')
-  if (!btn) return
+    const item = e.target.closest('.class-item')
+    if (!item) return
+    const classId = item.dataset.classId
+    const className = item.dataset.className
+    const btn = e.target.closest('[data-action]')
+    if (!btn) return
 
-  e.preventDefault()
-  e.stopPropagation()
+    e.preventDefault()
+    e.stopPropagation()
 
-  const action = btn.dataset.action
-  if (action === 'delete') {
-    showDeleteModal(classId, className)
-  } else if (action === 'archive') {
-    showArchiveModal(classId, className)
-  } else if (action === 'unarchive') {
-    showUnarchiveModal(classId, className)
-  }
+    const action = btn.dataset.action
+    if (action === 'delete') {
+      showDeleteModal(classId, className)
+    } else if (action === 'archive') {
+      showArchiveModal(classId, className)
+    } else if (action === 'unarchive') {
+      showUnarchiveModal(classId, className)
+    }
   })
-}
+})
 
 // Modal close buttons
 document.addEventListener('click', (e) => {

@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { nameToPinyin, matchesPinyin } from './pinyin.js'
+import { nameToPinyin, matchesPinyin, shouldAnnotateNameCharacter } from './pinyin.js'
 
 describe('nameToPinyin', () => {
   it('converts Chinese name to full pinyin', () => {
@@ -29,6 +29,27 @@ describe('nameToPinyin', () => {
     const r1 = nameToPinyin('王五')
     const r2 = nameToPinyin('王五')
     assert.strictEqual(r1, r2) // same object reference (cache hit)
+  })
+
+  it('marks only uncommon characters for pronunciation hints', () => {
+    const result = nameToPinyin('\u9648\u73e9')
+    assert.deepEqual(result.parts, [
+      { character: '\u9648', pinyin: 'ch\u00e9n', annotate: false },
+      { character: '\u73e9', pinyin: 'h\u00e9ng', annotate: true },
+    ])
+  })
+})
+
+describe('shouldAnnotateNameCharacter', () => {
+  it('does not annotate common characters', () => {
+    assert.equal(shouldAnnotateNameCharacter('\u5f20'), false)
+    assert.equal(shouldAnnotateNameCharacter('\u6db5'), false)
+  })
+
+  it('annotates uncommon name characters', () => {
+    assert.equal(shouldAnnotateNameCharacter('\u73e9'), true)
+    assert.equal(shouldAnnotateNameCharacter('\u7fca'), true)
+    assert.equal(shouldAnnotateNameCharacter('\u71ca'), true)
   })
 })
 
