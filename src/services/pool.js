@@ -83,6 +83,19 @@ function normalizeName(name) {
 }
 
 /**
+ * 校验照片 URL 对应的本地文件是否真实存在
+ */
+function isPhotoFileValid(photoUrl) {
+  if (!photoUrl) return false
+  try {
+    const filePath = path.resolve(__dirname, '../../', photoUrl.replace(/^\//, ''))
+    return fsSync.existsSync(filePath)
+  } catch {
+    return false
+  }
+}
+
+/**
  * 从班级名提取学科分组
  * 职、信 → "信息"（信息技术学科）
  * 通、劳 → "通用"（通用技术学科）
@@ -192,13 +205,15 @@ export async function getPoolClasses(opts = {}) {
   })
 
   // 概览学生总数 + 缺照片数：跨教学班去重（按姓名+行政班）
+  // 同时校验 photoUrl 指向的本地文件是否真实存在
   const allStudents = classes.flatMap(c => c.students)
   const uniqueStudentMap = new Map()
   for (const s of allStudents) {
     const key = `${s.name}|||${s.homeClass || ''}`
+    const photoValid = isPhotoFileValid(s.photoUrl)
     if (!uniqueStudentMap.has(key)) {
-      uniqueStudentMap.set(key, { hasPhoto: !!s.photoUrl })
-    } else if (s.photoUrl) {
+      uniqueStudentMap.set(key, { hasPhoto: photoValid })
+    } else if (photoValid) {
       // 如果已有记录但没有照片，而当前记录有照片，则更新
       uniqueStudentMap.get(key).hasPhoto = true
     }
@@ -221,9 +236,10 @@ export async function getPoolClasses(opts = {}) {
     const gradeUniqueMap = new Map()
     for (const s of gradeStudents) {
       const key = `${s.name}|||${s.homeClass || ''}`
+      const photoValid = isPhotoFileValid(s.photoUrl)
       if (!gradeUniqueMap.has(key)) {
-        gradeUniqueMap.set(key, { hasPhoto: !!s.photoUrl })
-      } else if (s.photoUrl) {
+        gradeUniqueMap.set(key, { hasPhoto: photoValid })
+      } else if (photoValid) {
         // 如果已有记录但没有照片，而当前记录有照片，则更新
         gradeUniqueMap.get(key).hasPhoto = true
       }
