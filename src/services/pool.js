@@ -1259,6 +1259,7 @@ export function getZipMatchProgress(jobId) {
     totalPhotos: job.totalPhotos,
     progress: job.progress,
     matched: job.matched,
+    skipped: job.skipped || 0,
     unmatched: job.unmatched,
     missingClasses: job.missingClasses,
     conflicts: job.conflicts || [],
@@ -1295,14 +1296,19 @@ function parseHomeClass(homeClass) {
  * 3. school 级找到 1 个 → 自动匹配
  * 4. school 级找到多个 → 加入同名冲突列表，待管理员选择
  * @param {string} jobId - 匹配任务 ID
+ * @param {object} [opts]
+ * @param {boolean} [opts.skipExisting=true] - 跳过已有有效照片的学生
  */
-export async function startZipMatching(jobId) {
+export async function startZipMatching(jobId, opts = {}) {
   const job = ZIP_JOBS.get(jobId)
   if (!job) return { ok: false, message: '任务不存在' }
   if (job.status !== 'extracted') return { ok: false, message: '任务状态不正确' }
 
+  const skipExisting = opts.skipExisting !== false // 默认跳过
+
   job.status = 'matching'
   job.matched = 0
+  job.skipped = 0
   job.unmatched = []
   job.missingClasses = []
   job.conflicts = []
@@ -1414,6 +1420,19 @@ export async function startZipMatching(jobId) {
 
   function processMatch(entry, photo, filename, grade, school, className) {
     if (matchedStudentIds.has(entry.student.id)) return false
+
+    // 检查学生是否已有有效照片
+    if (entry.student.photoUrl && isPhotoFileValid(entry.student.photoUrl)) {
+      if (skipExisting) {
+        job.skipped++
+        return false
+      }
+      // 覆盖模式：删除旧照片文件
+      try {
+        const oldPath = path.resolve(__dirname, '../../', entry.student.photoUrl.replace(/^\//, ''))
+        fsSync.unlinkSync(oldPath)
+      } catch { /* 旧文件可能已被删除 */ }
+    }
 
     const safeFilename = getSafeFilename(filename)
     const url = `/uploads/photos/${year}/${month}/${safeFilename}`
@@ -1563,6 +1582,7 @@ export async function startZipMatching(jobId) {
   return {
     ok: true,
     matched: job.matched,
+    skipped: job.skipped || 0,
     unmatched: job.unmatched,
     missingClasses: job.missingClasses,
     conflicts: job.conflicts,

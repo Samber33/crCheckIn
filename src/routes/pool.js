@@ -378,7 +378,8 @@ export default async function poolRoutes(app) {
   // 启动匹配
   app.post('/admin/api/pool/zip-match/:jobId', { preHandler: adminRequired }, async (request, reply) => {
     const jobId = request.params.jobId
-    const result = await startZipMatching(jobId)
+    const { skipExisting } = request.body ?? {}
+    const result = await startZipMatching(jobId, { skipExisting })
     return reply.send(result)
   })
 
