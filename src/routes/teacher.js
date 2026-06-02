@@ -1,6 +1,7 @@
 import { getClasses } from '../services/class.js'
 import { teacherRequired, classOwnerRequired } from '../utils/auth.js'
 import { prisma } from '../plugins/db.js'
+import { nameToPinyin } from '../utils/pinyin.js'
 import { getSessionDetailForTeacher, getSessionRosterForTeacher } from '../services/attendance.js'
 import { getPoolClasses, uploadStudentPhoto, deleteStudentPhoto } from '../services/pool.js'
 import { getSeatGrids, getSeatGridsFromArchivedRecords, getSeatGridsWithTags } from '../services/seat.js'
@@ -49,12 +50,16 @@ async function getPhotoMemoryClasses(teacherId, isAdmin, selectedClassId = null)
   })
 
   return classes.map((cls) => {
-    const students = cls.students.map((student) => ({
-      id: String(student.id),
-      name: student.name,
-      homeClass: student.homeClass || '',
-      photoUrl: student.photoUrl || '',
-    }))
+    const students = cls.students.map((student) => {
+      const pinyinData = nameToPinyin(student.name)
+      return {
+        id: String(student.id),
+        name: student.name,
+        pinyin: pinyinData.full,
+        homeClass: student.homeClass || '',
+        photoUrl: student.photoUrl || '',
+      }
+    })
     const playableCount = students.filter((student) => student.photoUrl).length
 
     return {
